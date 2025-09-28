@@ -1,0 +1,1354 @@
+openapi: 3.0.3
+info:
+  title: EtnoTerms API
+  description: |
+    REST API for the EtnoTerms ethnobotanical terminology management system.
+
+    This API provides comprehensive access to term management, search functionality,
+    relationship mapping, bibliographic sources, and administrative features for
+    ethnobotanical research.
+  version: 1.0.0
+  contact:
+    name: EtnoTerms Development Team
+    email: support@etnoterms.org
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.etnoterms.org/v1
+    description: Production server
+  - url: https://staging-api.etnoterms.org/v1
+    description: Staging server
+  - url: http://localhost:3000/api/v1
+    description: Local development server
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+paths:
+  # Authentication Endpoints
+  /auth/google:
+    get:
+      tags: [Authentication]
+      summary: Initiate Google OAuth login
+      description: Redirects user to Google OAuth consent screen
+      security: []
+      responses:
+        '302':
+          description: Redirect to Google OAuth
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /auth/google/callback:
+    get:
+      tags: [Authentication]
+      summary: Handle Google OAuth callback
+      description: Processes OAuth callback and returns JWT token
+      security: []
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+          description: OAuth authorization code
+      responses:
+        '200':
+          description: Successful authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Refresh JWT token
+      description: Exchange refresh token for new access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken:
+                  type: string
+              required: [refreshToken]
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # Term Management Endpoints
+  /terms:
+    get:
+      tags: [Terms]
+      summary: List terms with filtering and pagination
+      description: Retrieve a paginated list of terms with optional filtering
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, under_review, published, archived]
+          description: Filter by term status
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [meta, generic, specific, related, preferred]
+          description: Filter by term category
+        - name: community
+          in: query
+          schema:
+            type: string
+          description: Filter by traditional community
+        - name: region
+          in: query
+          schema:
+            type: string
+          description: Filter by geographic region
+      responses:
+        '200':
+          description: List of terms
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TermListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Terms]
+      summary: Create a new term
+      description: Create a new ethnobotanical term entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTermRequest'
+      responses:
+        '201':
+          description: Term created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Term'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /terms/{termId}:
+    get:
+      tags: [Terms]
+      summary: Get term by ID
+      description: Retrieve detailed information about a specific term
+      parameters:
+        - $ref: '#/components/parameters/TermIdParam'
+        - name: include
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [notes, relationships, sources, audit]
+          style: form
+          explode: false
+          description: Additional data to include in response
+      responses:
+        '200':
+          description: Term details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TermWithRelations'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    put:
+      tags: [Terms]
+      summary: Update term
+      description: Update an existing term's information
+      parameters:
+        - $ref: '#/components/parameters/TermIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTermRequest'
+      responses:
+        '200':
+          description: Term updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Term'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Terms]
+      summary: Delete term
+      description: |
+        Delete a term. This operation checks for dependent relationships
+        and may require confirmation for terms with children in hierarchy.
+      parameters:
+        - $ref: '#/components/parameters/TermIdParam'
+        - name: force
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: Force deletion despite dependencies
+      responses:
+        '200':
+          description: Term deleted successfully
+        '409':
+          description: Term has dependencies
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DependencyWarning'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # Relationship Management
+  /terms/{termId}/relationships:
+    get:
+      tags: [Relationships]
+      summary: Get term relationships
+      description: Retrieve all relationships for a specific term
+      parameters:
+        - $ref: '#/components/parameters/TermIdParam'
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [broader, narrower, related, equivalent, translationOf, partOf, hasPart, usedWith, replacedBy, replaces]
+          description: Filter by relationship type
+        - name: direction
+          in: query
+          schema:
+            type: string
+            enum: [outgoing, incoming, both]
+            default: both
+          description: Relationship direction
+      responses:
+        '200':
+          description: Term relationships
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Relationship'
+
+    post:
+      tags: [Relationships]
+      summary: Create relationship
+      description: Create a new relationship between terms
+      parameters:
+        - $ref: '#/components/parameters/TermIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRelationshipRequest'
+      responses:
+        '201':
+          description: Relationship created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Relationship'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /relationships/{relationshipId}:
+    delete:
+      tags: [Relationships]
+      summary: Delete relationship
+      description: Remove a relationship between terms
+      parameters:
+        - name: relationshipId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Relationship ID
+      responses:
+        '200':
+          description: Relationship deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # Notes Management
+  /terms/{termId}/notes:
+    get:
+      tags: [Notes]
+      summary: Get term notes
+      description: Retrieve notes associated with a term
+      parameters:
+        - $ref: '#/components/parameters/TermIdParam'
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [scope, cataloger, historical, bibliographic, private, definition, example]
+          description: Filter by note type
+        - name: visibility
+          in: query
+          schema:
+            type: string
+            enum: [public, authenticated, role_restricted, private]
+          description: Filter by visibility level
+      responses:
+        '200':
+          description: Term notes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Note'
+
+    post:
+      tags: [Notes]
+      summary: Add note to term
+      description: Create a new note for a term
+      parameters:
+        - $ref: '#/components/parameters/TermIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNoteRequest'
+      responses:
+        '201':
+          description: Note created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+
+  /notes/{noteId}:
+    put:
+      tags: [Notes]
+      summary: Update note
+      description: Update an existing note
+      parameters:
+        - name: noteId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Note ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateNoteRequest'
+      responses:
+        '200':
+          description: Note updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+
+    delete:
+      tags: [Notes]
+      summary: Delete note
+      description: Remove a note from a term
+      parameters:
+        - name: noteId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Note ID
+      responses:
+        '200':
+          description: Note deleted successfully
+
+  # Search Endpoints
+  /search:
+    get:
+      tags: [Search]
+      summary: Search terms
+      description: |
+        Full-text search across terms, definitions, and notes.
+        Supports filters, facets, and result ranking.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Search query
+        - name: filters
+          in: query
+          schema:
+            type: object
+            additionalProperties: true
+          style: deepObject
+          explode: true
+          description: Search filters (category, community, region, etc.)
+        - name: facets
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: false
+          description: Facets to include in response
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /search/suggest:
+    get:
+      tags: [Search]
+      summary: Search suggestions
+      description: Get autocomplete suggestions for search queries
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Partial search query
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            maximum: 20
+          description: Maximum number of suggestions
+      responses:
+        '200':
+          description: Search suggestions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
+  # Export Endpoints
+  /export/skos:
+    get:
+      tags: [Export]
+      summary: Export as SKOS
+      description: Export terms and relationships in SKOS format
+      parameters:
+        - name: collection
+          in: query
+          schema:
+            type: string
+          description: Collection ID to export
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [turtle, rdf-xml, json-ld]
+            default: turtle
+          description: SKOS serialization format
+      responses:
+        '200':
+          description: SKOS export
+          content:
+            text/turtle:
+              schema:
+                type: string
+            application/rdf+xml:
+              schema:
+                type: string
+            application/ld+json:
+              schema:
+                type: object
+
+  /export/csv:
+    get:
+      tags: [Export]
+      summary: Export as CSV
+      description: Export terms data in CSV format
+      parameters:
+        - name: collection
+          in: query
+          schema:
+            type: string
+          description: Collection ID to export
+        - name: fields
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: false
+          description: Fields to include in export
+      responses:
+        '200':
+          description: CSV export
+          content:
+            text/csv:
+              schema:
+                type: string
+
+  # Administrative Endpoints
+  /admin/users:
+    get:
+      tags: [Administration]
+      summary: List users
+      description: Get paginated list of system users (admin only)
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [admin, researcher, student, community_leader]
+          description: Filter by user role
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive, suspended, pending]
+          description: Filter by user status
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+
+  /admin/users/{userId}/roles:
+    put:
+      tags: [Administration]
+      summary: Update user roles
+      description: Modify user roles and permissions (admin only)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: User ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRolesRequest'
+      responses:
+        '200':
+          description: User roles updated successfully
+
+  /admin/dashboard:
+    get:
+      tags: [Administration]
+      summary: Get dashboard statistics
+      description: Retrieve system-wide statistics and metrics
+      responses:
+        '200':
+          description: Dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  parameters:
+    TermIdParam:
+      name: termId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Term ID
+
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description: Page number for pagination
+
+    LimitParam:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      description: Number of items per page
+
+  schemas:
+    # Core Entity Schemas
+    Term:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique term identifier
+        title:
+          $ref: '#/components/schemas/TermTitle'
+        definitions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Definition'
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/TermCategory'
+        culturalContext:
+          $ref: '#/components/schemas/CulturalContext'
+        metadata:
+          $ref: '#/components/schemas/TermMetadata'
+        createdBy:
+          type: string
+          description: User ID of creator
+        updatedBy:
+          type: string
+          description: User ID of last updater
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        version:
+          type: integer
+      required: [id, title, createdBy, createdAt]
+
+    TermTitle:
+      type: object
+      properties:
+        primary:
+          type: string
+          description: Primary term name
+        variants:
+          type: array
+          items:
+            type: string
+          description: Alternative names/spellings
+        languages:
+          type: array
+          items:
+            $ref: '#/components/schemas/LanguageVariant'
+      required: [primary]
+
+    LanguageVariant:
+      type: object
+      properties:
+        code:
+          type: string
+          description: ISO language code
+        name:
+          type: string
+          description: Term in that language
+        script:
+          type: string
+          description: Writing system
+      required: [code, name]
+
+    Definition:
+      type: object
+      properties:
+        text:
+          type: string
+          description: Definition text
+        language:
+          type: string
+          description: Language code
+        context:
+          type: string
+          description: Cultural/academic context
+        sourceId:
+          type: string
+          description: Reference to bibliographic source
+        createdBy:
+          type: string
+          description: User who added definition
+        createdAt:
+          type: string
+          format: date-time
+      required: [text, createdBy]
+
+    TermCategory:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [meta, generic, specific, related, preferred]
+          description: Term classification
+        hierarchy:
+          type: integer
+          description: Hierarchical level (0 = root)
+        parentId:
+          type: string
+          description: Reference to parent term
+      required: [type]
+
+    CulturalContext:
+      type: object
+      properties:
+        communities:
+          type: array
+          items:
+            type: string
+          description: Traditional communities associated
+        regions:
+          type: array
+          items:
+            type: string
+          description: Geographic regions
+        usageContext:
+          type: string
+          description: Traditional usage context
+        sensitivity:
+          $ref: '#/components/schemas/CulturalSensitivity'
+
+    CulturalSensitivity:
+      type: object
+      properties:
+        level:
+          type: string
+          enum: [public, restricted, sacred]
+          default: public
+          description: Sensitivity level
+        restrictions:
+          type: string
+          description: Usage restrictions if any
+        consentGiven:
+          type: boolean
+          description: Community consent documented
+        reviewedBy:
+          type: string
+          description: Community leader who reviewed
+
+    TermMetadata:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [draft, under_review, published, archived]
+          default: draft
+        visibility:
+          type: string
+          enum: [public, authenticated, role_restricted]
+          default: authenticated
+        searchable:
+          type: boolean
+          default: true
+
+    Relationship:
+      type: object
+      properties:
+        id:
+          type: string
+        fromTermId:
+          type: string
+          description: Source term ID
+        toTermId:
+          type: string
+          description: Target term ID
+        type:
+          type: string
+          enum: [broader, narrower, related, equivalent, translationOf, partOf, hasPart, usedWith, replacedBy, replaces]
+        properties:
+          $ref: '#/components/schemas/RelationshipProperties'
+        sources:
+          type: array
+          items:
+            type: string
+          description: Supporting bibliographic source IDs
+        bidirectional:
+          type: boolean
+          default: false
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, fromTermId, toTermId, type, createdBy]
+
+    RelationshipProperties:
+      type: object
+      properties:
+        strength:
+          type: number
+          minimum: 0
+          maximum: 1
+          default: 1
+          description: Relationship strength
+        context:
+          type: string
+          description: Contextual description
+        evidence:
+          type: string
+          description: Supporting evidence
+        confidence:
+          type: string
+          enum: [low, medium, high]
+          default: medium
+
+    Note:
+      type: object
+      properties:
+        id:
+          type: string
+        termId:
+          type: string
+          description: Associated term ID
+        type:
+          type: string
+          enum: [scope, cataloger, historical, bibliographic, private, definition, example]
+        content:
+          $ref: '#/components/schemas/NoteContent'
+        visibility:
+          type: string
+          enum: [public, authenticated, role_restricted, private]
+          default: authenticated
+        sources:
+          type: array
+          items:
+            type: string
+          description: Supporting source IDs
+        metadata:
+          $ref: '#/components/schemas/NoteMetadata'
+        createdBy:
+          type: string
+        updatedBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, termId, type, content, createdBy]
+
+    NoteContent:
+      type: object
+      properties:
+        text:
+          type: string
+          description: Note content
+        language:
+          type: string
+          description: Language code
+        format:
+          type: string
+          enum: [plain, markdown, html]
+          default: plain
+      required: [text]
+
+    NoteMetadata:
+      type: object
+      properties:
+        tags:
+          type: array
+          items:
+            type: string
+          description: Categorization tags
+        priority:
+          type: integer
+          minimum: 1
+          maximum: 5
+          default: 3
+          description: Display priority
+        reviewStatus:
+          type: string
+          enum: [draft, under_review, approved, rejected]
+          default: draft
+
+    # Request/Response Schemas
+    CreateTermRequest:
+      type: object
+      properties:
+        title:
+          $ref: '#/components/schemas/TermTitle'
+        definitions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Definition'
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/TermCategory'
+        culturalContext:
+          $ref: '#/components/schemas/CulturalContext'
+        metadata:
+          $ref: '#/components/schemas/TermMetadata'
+      required: [title]
+
+    UpdateTermRequest:
+      type: object
+      properties:
+        title:
+          $ref: '#/components/schemas/TermTitle'
+        definitions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Definition'
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/TermCategory'
+        culturalContext:
+          $ref: '#/components/schemas/CulturalContext'
+        metadata:
+          $ref: '#/components/schemas/TermMetadata'
+
+    CreateRelationshipRequest:
+      type: object
+      properties:
+        toTermId:
+          type: string
+          description: Target term ID
+        type:
+          type: string
+          enum: [broader, narrower, related, equivalent, translationOf, partOf, hasPart, usedWith, replacedBy, replaces]
+        properties:
+          $ref: '#/components/schemas/RelationshipProperties'
+        sources:
+          type: array
+          items:
+            type: string
+          description: Supporting source IDs
+        bidirectional:
+          type: boolean
+          default: false
+      required: [toTermId, type]
+
+    CreateNoteRequest:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [scope, cataloger, historical, bibliographic, private, definition, example]
+        content:
+          $ref: '#/components/schemas/NoteContent'
+        visibility:
+          type: string
+          enum: [public, authenticated, role_restricted, private]
+          default: authenticated
+        sources:
+          type: array
+          items:
+            type: string
+        metadata:
+          $ref: '#/components/schemas/NoteMetadata'
+      required: [type, content]
+
+    UpdateNoteRequest:
+      type: object
+      properties:
+        content:
+          $ref: '#/components/schemas/NoteContent'
+        visibility:
+          type: string
+          enum: [public, authenticated, role_restricted, private]
+        sources:
+          type: array
+          items:
+            type: string
+        metadata:
+          $ref: '#/components/schemas/NoteMetadata'
+
+    UpdateUserRolesRequest:
+      type: object
+      properties:
+        roles:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                enum: [admin, researcher, student, community_leader]
+              level:
+                type: string
+                enum: [basic, advanced, full]
+                default: basic
+            required: [type]
+      required: [roles]
+
+    # Response Schemas
+    AuthResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          description: JWT access token
+        refreshToken:
+          type: string
+          description: Refresh token
+        expiresIn:
+          type: integer
+          description: Token expiration in seconds
+        user:
+          $ref: '#/components/schemas/UserProfile'
+      required: [accessToken, expiresIn, user]
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        profile:
+          type: object
+          properties:
+            displayName:
+              type: string
+            avatar:
+              type: string
+            institution:
+              type: string
+        roles:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                enum: [admin, researcher, student, community_leader]
+              level:
+                type: string
+                enum: [basic, advanced, full]
+
+    TermListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Term'
+        pagination:
+          $ref: '#/components/schemas/PaginationInfo'
+        filters:
+          type: object
+          description: Applied filters
+      required: [data, pagination]
+
+    TermWithRelations:
+      allOf:
+        - $ref: '#/components/schemas/Term'
+        - type: object
+          properties:
+            notes:
+              type: array
+              items:
+                $ref: '#/components/schemas/Note'
+            relationships:
+              type: array
+              items:
+                $ref: '#/components/schemas/Relationship'
+            sources:
+              type: array
+              items:
+                type: object
+                description: Bibliographic source references
+            auditLog:
+              type: array
+              items:
+                type: object
+                description: Audit trail entries
+
+    SearchResponse:
+      type: object
+      properties:
+        query:
+          type: string
+          description: Original search query
+        results:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/Term'
+              - type: object
+                properties:
+                  score:
+                    type: number
+                    description: Search relevance score
+                  highlights:
+                    type: object
+                    description: Search result highlights
+        facets:
+          type: object
+          description: Faceted search results
+        pagination:
+          $ref: '#/components/schemas/PaginationInfo'
+        totalHits:
+          type: integer
+          description: Total number of matching terms
+      required: [query, results, totalHits]
+
+    UserListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserProfile'
+        pagination:
+          $ref: '#/components/schemas/PaginationInfo'
+      required: [data, pagination]
+
+    DashboardResponse:
+      type: object
+      properties:
+        statistics:
+          type: object
+          properties:
+            totalTerms:
+              type: integer
+            totalUsers:
+              type: integer
+            totalRelationships:
+              type: integer
+            totalSources:
+              type: integer
+        recentActivity:
+          type: array
+          items:
+            type: object
+        culturalBreakdown:
+          type: object
+          properties:
+            communities:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  termCount:
+                    type: integer
+            regions:
+              type: array
+              items:
+                type: object
+        userActivity:
+          type: object
+          properties:
+            activeUsers:
+              type: integer
+            newUsers:
+              type: integer
+            topContributors:
+              type: array
+              items:
+                type: object
+
+    PaginationInfo:
+      type: object
+      properties:
+        currentPage:
+          type: integer
+        totalPages:
+          type: integer
+        totalItems:
+          type: integer
+        itemsPerPage:
+          type: integer
+        hasNext:
+          type: boolean
+        hasPrevious:
+          type: boolean
+      required: [currentPage, totalPages, totalItems, itemsPerPage]
+
+    DependencyWarning:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Warning message
+        dependencies:
+          type: object
+          properties:
+            childTerms:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  title:
+                    type: string
+            relationships:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  type:
+                    type: string
+                  relatedTermTitle:
+                    type: string
+        confirmationRequired:
+          type: boolean
+          description: Whether explicit confirmation is needed
+      required: [message, dependencies, confirmationRequired]
+
+    # Error Schemas
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error type
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          description: Additional error details
+        requestId:
+          type: string
+          description: Request identifier for support
+      required: [error, message]
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "validation_error"
+            message: "Invalid input data"
+            details:
+              field: "title.primary"
+              issue: "Required field missing"
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "unauthorized"
+            message: "Authentication required"
+
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "forbidden"
+            message: "Insufficient permissions"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "not_found"
+            message: "Term not found"
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "internal_error"
+            message: "An unexpected error occurred"
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Terms
+    description: Term management operations
+  - name: Relationships
+    description: Term relationship management
+  - name: Notes
+    description: Note management for terms
+  - name: Search
+    description: Search and discovery functionality
+  - name: Export
+    description: Data export in various formats
+  - name: Administration
+    description: Administrative operations
