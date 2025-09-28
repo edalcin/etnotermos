@@ -94,5 +94,5 @@ O EtnoTerms contribui para:
 ---
 
 **Status do Projeto**: Em especificação
-**Documentação**: [Especificação completa](specs/001-quero-criar-uma/spec.md)
+**Documentação**: [Especificação completa](specs/spec.md)
 **Inspiração**: [TemaTres Vocabulary Server](https://vocabularyserver.com/web/)
