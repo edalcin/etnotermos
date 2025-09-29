@@ -1,17 +1,16 @@
-# EtnoTermos - Sistema de Gestão de Terminologia Etnobotânica
+# EtnoTermos - Plataforma de Gestão de Terminologia Etnobotânica
 
-Motivação e justificativa
+Mo#tivação e justificativa
 
 O conhecimento e a ciência existente nas comunidades tradicionais do Brasil contém descrições, termos e práticas que expressam relações profundas com o ambiente e com as entidades que nele existem — incluindo as entidades biológicas. Preservar esse conhecimento de forma legítima e documentada é essencial para reconhecer, valorizar e proteger a memória cultural dessas comunidades, bem como para garantir transparência e justiça na repartição de benefícios decorrentes deste conhecimento. O EtnoTermos propõe criar e manter um repositório de termos e associações que registre com precisão as formas linguísticas, os contextos de uso e as relações comunitárias com estas entidades, promovendo a visibilidade das comunidades e oferecendo uma base confiável para pesquisa colaborativa, políticas públicas e mecanismos de repartição de benefícios justos e equitativos.
-
-
-## 🌿 Propósito
+## 
+🌿 Propósito
 
 O **EtnoTermos** é uma plataforma digital que preserva e organiza o conhecimento etnobotânico através de um sistema estruturado de glossários, vocabulários e tesauros. O sistema permite a criação de uma rede interconectada de termos que reflete as complexas relações entre entidades biológicas (plantas e animais), usos tradicionais e conhecimento cultural.
 
 ### Inspiração
 
-Baseado no [TemaTres](https://vocabularyserver.com/web/), o EtnoTermos adapta as melhores práticas de representação de conhecimento formal para o contexto específico da etnobotânica.
+Baseado no [TemaTres](https://vocabularyserver.com/web/), o EtnoTerms adapta as melhores práticas de representação de conhecimento formal para o contexto específico da etnobotânica.
 
 ## 👥 Usuários-Alvo
 
@@ -23,13 +22,16 @@ Baseado no [TemaTres](https://vocabularyserver.com/web/), o EtnoTermos adapta as
 ## 🚀 Funcionalidades Principais
 
 ### Gestão de Termos
+
 - **Criação e edição** de termos etnobotânicos com identificadores únicos
 - **Classificação hierárquica**: meta termo → termo genérico → termo específico
 - **Relacionamentos múltiplos**: conexões n:n entre termos
 - **Suporte multilíngue** para variações de nomenclatura
 
 ### Sistema de Notas
+
 Seis tipos de anotações contextuais:
+
 - 📝 **Nota de escopo**: Definição do contexto de uso
 - 👨‍💼 **Nota do catalogador**: Observações do pesquisador
 - 📚 **Nota histórica**: Contexto histórico e cultural
@@ -39,11 +41,13 @@ Seis tipos de anotações contextuais:
 - 💡 **Nota de exemplo**: Casos de uso práticos
 
 ### Gestão de Fontes
+
 - **Referências bibliográficas** com estrutura de citação padrão
 - **Relacionamentos n:n** entre termos, notas e fontes
 - **Rastreabilidade completa** de atribuições acadêmicas
 
 ### Recursos Avançados
+
 - 🔍 **Busca inteligente** com Meilisearch
 - 📊 **Dashboard administrativo** com métricas e analytics
 - 🔐 **Autenticação Google OAuth** com controle de acesso baseado em funções
@@ -66,12 +70,14 @@ Seis tipos de anotações contextuais:
 ## 🌐 Integração e Interoperabilidade
 
 ### APIs Disponíveis
+
 - Recuperação de termos e relacionamentos
 - Funcionalidades de busca avançada
 - Consultas de dados com autenticação segura
 - Documentação completa para desenvolvedores
 
 ### Formatos de Export
+
 - **SKOS** (Simple Knowledge Organization System)
 - **RDF** (Resource Description Framework)
 - **Dublin Core** para metadados
@@ -80,6 +86,7 @@ Seis tipos de anotações contextuais:
 ## 🐳 Implementação
 
 O sistema será containerizado com Docker e disponibilizado sob demanda através de GitHub Actions, garantindo:
+
 - Implantação consistente
 - Escalabilidade automática
 - Manutenção simplificada
@@ -88,6 +95,7 @@ O sistema será containerizado com Docker e disponibilizado sob demanda através
 ## 🎓 Impacto Acadêmico
 
 O EtnoTermos contribui para:
+
 - **Preservação** do conhecimento tradicional sobre plantas
 - **Padronização** da terminologia etnobotânica
 - **Colaboração** entre pesquisadores e comunidades
