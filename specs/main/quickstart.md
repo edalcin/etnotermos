@@ -1,10 +1,10 @@
-# EtnoTerms Quickstart Guide
+# EtnoTermos Quickstart Guide
 
 **Date**: 2025-09-28
 **Version**: 1.0.0
 **Purpose**: Integration test validation and developer onboarding
 
-This quickstart guide provides step-by-step instructions to set up, run, and validate the EtnoTerms system. It serves as both a developer onboarding tool and a comprehensive integration test for all system components.
+This quickstart guide provides step-by-step instructions to set up, run, and validate the EtnoTermos system. It serves as both a developer onboarding tool and a comprehensive integration test for all system components.
 
 ## Prerequisites
 
@@ -29,8 +29,8 @@ This quickstart guide provides step-by-step instructions to set up, run, and val
 
 ```bash
 # Clone repository
-git clone https://github.com/your-org/etnoterms.git
-cd etnoterms
+git clone https://github.com/edalcin/etnotermos.git
+cd etnotermos
 
 # Copy environment template
 cp .env.example .env
@@ -45,8 +45,8 @@ Edit `.env` file with your settings:
 
 ```bash
 # Database Configuration
-MONGODB_URI=mongodb://localhost:27017/etnoterms
-MONGODB_TEST_URI=mongodb://localhost:27017/etnoterms_test
+MONGODB_URI=mongodb://localhost:27017/etnotermos
+MONGODB_TEST_URI=mongodb://localhost:27017/etnotermos_test
 
 # Search Configuration
 MEILISEARCH_HOST=http://localhost:7700
@@ -81,10 +81,10 @@ docker-compose ps
 Expected output:
 ```
 NAME                SERVICE             STATUS              PORTS
-etnoterms-mongodb   mongodb             running             0.0.0.0:27017->27017/tcp
-etnoterms-meilisearch meilisearch       running             0.0.0.0:7700->7700/tcp
-etnoterms-backend   backend             running             0.0.0.0:3000->3000/tcp
-etnoterms-frontend  frontend            running             0.0.0.0:3001->3001/tcp
+etnotermos-mongodb   mongodb             running             0.0.0.0:27017->27017/tcp
+etnotermos-meilisearch meilisearch       running             0.0.0.0:7700->7700/tcp
+etnotermos-backend   backend             running             0.0.0.0:3000->3000/tcp
+etnotermos-frontend  frontend            running             0.0.0.0:3001->3001/tcp
 ```
 
 ### 4. Initialize Database
@@ -388,8 +388,8 @@ autocannon -c 5 -d 30 \
 
 ```bash
 # Check MongoDB indexes
-docker exec etnoterms-mongodb mongosh --eval "
-  use etnoterms;
+docker exec etnotermos-mongodb mongosh --eval "
+  use etnotermos;
   db.terms.getIndexes();
   db.terms.stats();
 "
@@ -418,7 +418,7 @@ docker-compose restart backend
 **Database connection issues:**
 ```bash
 # Test MongoDB connection
-docker exec etnoterms-mongodb mongosh --eval "db.runCommand('ping')"
+docker exec etnotermos-mongodb mongosh --eval "db.runCommand('ping')"
 
 # Check environment variables
 grep MONGODB .env
@@ -525,16 +525,16 @@ npm run db:reset
 
 ```bash
 # All services healthy
-curl https://api.etnoterms.org/health
+curl https://api.etnotermos.org/health
 
 # Database replication status
-curl https://api.etnoterms.org/admin/health/database
+curl https://api.etnotermos.org/admin/health/database
 
 # Search index status
-curl https://api.etnoterms.org/admin/health/search
+curl https://api.etnotermos.org/admin/health/search
 
 # SSL certificate validity
-openssl s_client -connect api.etnoterms.org:443 -servername api.etnoterms.org
+openssl s_client -connect api.etnotermos.org:443 -servername api.etnotermos.org
 ```
 
 ---
@@ -550,7 +550,7 @@ openssl s_client -connect api.etnoterms.org:443 -servername api.etnoterms.org
 ✅ **Performance meets targets** - <1s search, <500ms term lookup
 ✅ **Frontend operational** - Web interface loads and functions correctly
 
-**Quickstart complete! Your EtnoTerms system is ready for development and use.**
+**Quickstart complete! Your EtnoTermos system is ready for development and use.**
 
 For detailed API documentation, see the [OpenAPI specification](contracts/openapi.yaml).
 For development guidelines, see the [CONTRIBUTING.md](../../CONTRIBUTING.md) file.

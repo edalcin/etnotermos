@@ -1,14 +1,17 @@
-# EtnoTerms - Sistema de Gestão de Terminologia Etnobotânica
+# EtnoTermos - Sistema de Gestão de Terminologia Etnobotânica
 
-Um sistema web moderno para catalogação, organização e exploração de terminologia relacionada ao uso tradicional de plantas por comunidades tradicionais.
+Motivação e justificativa
+
+O conhecimento e a ciência existente nas comunidades tradicionais do Brasil contém descrições, termos e práticas que expressam relações profundas com o ambiente e com as entidades que nele existem — incluindo as entidades biológicas. Preservar esse conhecimento de forma legítima e documentada é essencial para reconhecer, valorizar e proteger a memória cultural dessas comunidades, bem como para garantir transparência e justiça na repartição de benefícios decorrentes deste conhecimento. O EtnoTermos propõe criar e manter um repositório de termos e associações que registre com precisão as formas linguísticas, os contextos de uso e as relações comunitárias com estas entidades, promovendo a visibilidade das comunidades e oferecendo uma base confiável para pesquisa colaborativa, políticas públicas e mecanismos de repartição de benefícios justos e equitativos.
+
 
 ## 🌿 Propósito
 
-O **EtnoTerms** é uma plataforma digital que preserva e organiza o conhecimento etnobotânico através de um sistema estruturado de glossários, vocabulários e tesauros. O sistema permite a criação de uma rede interconectada de termos que reflete as complexas relações entre plantas, usos tradicionais e conhecimento cultural.
+O **EtnoTermos** é uma plataforma digital que preserva e organiza o conhecimento etnobotânico através de um sistema estruturado de glossários, vocabulários e tesauros. O sistema permite a criação de uma rede interconectada de termos que reflete as complexas relações entre entidades biológicas (plantas e animais), usos tradicionais e conhecimento cultural.
 
 ### Inspiração
 
-Baseado no [TemaTres](https://vocabularyserver.com/web/), o EtnoTerms adapta as melhores práticas de representação de conhecimento formal para o contexto específico da etnobotânica.
+Baseado no [TemaTres](https://vocabularyserver.com/web/), o EtnoTermos adapta as melhores práticas de representação de conhecimento formal para o contexto específico da etnobotânica.
 
 ## 👥 Usuários-Alvo
 
@@ -30,9 +33,9 @@ Seis tipos de anotações contextuais:
 - 📝 **Nota de escopo**: Definição do contexto de uso
 - 👨‍💼 **Nota do catalogador**: Observações do pesquisador
 - 📚 **Nota histórica**: Contexto histórico e cultural
-- 📖 **Nota bibliográfica**: Referências acadêmicas
+- 📖 **Nota bibliográfica**: Referências acadêmicas onde o termo é citado
 - 🔒 **Nota privada**: Informações restritas
-- ✏️ **Nota de definição**: Definições técnicas
+- ✏️ **Nota de definição**: Definições do termo
 - 💡 **Nota de exemplo**: Casos de uso práticos
 
 ### Gestão de Fontes
@@ -49,7 +52,7 @@ Seis tipos de anotações contextuais:
 
 ## 🎯 Capacidade do Sistema
 
-- **Escala**: Suporte para até 200.000 termos
+- **Escala**: Suporte para um número massivo de termos
 - **Usuários**: Otimizado para pequenos grupos com baixa concorrência
 - **Performance**: Busca e navegação eficientes em grandes volumes de dados
 
@@ -84,7 +87,7 @@ O sistema será containerizado com Docker e disponibilizado sob demanda através
 
 ## 🎓 Impacto Acadêmico
 
-O EtnoTerms contribui para:
+O EtnoTermos contribui para:
 - **Preservação** do conhecimento tradicional sobre plantas
 - **Padronização** da terminologia etnobotânica
 - **Colaboração** entre pesquisadores e comunidades
@@ -95,4 +98,5 @@ O EtnoTerms contribui para:
 
 **Status do Projeto**: Em especificação
 **Documentação**: [Especificação completa](specs/spec.md)
+**Exemplo de registro (JSON)**: [docs/examples/term-record-example.json](docs/examples/term-record-example.json)
 **Inspiração**: [TemaTres Vocabulary Server](https://vocabularyserver.com/web/)

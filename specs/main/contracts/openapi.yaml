@@ -1,24 +1,24 @@
 openapi: 3.0.3
 info:
-  title: EtnoTerms API
+  title: EtnoTermos API
   description: |
-    REST API for the EtnoTerms ethnobotanical terminology management system.
+    REST API for the EtnoTermos ethnobotanical terminology management system.
 
     This API provides comprehensive access to term management, search functionality,
     relationship mapping, bibliographic sources, and administrative features for
     ethnobotanical research.
   version: 1.0.0
   contact:
-    name: EtnoTerms Development Team
-    email: support@etnoterms.org
+    name: EtnoTermos Development Team
+    email: support@etnotermos.org
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
 
 servers:
-  - url: https://api.etnoterms.org/v1
+  - url: https://api.etnotermos.org/v1
     description: Production server
-  - url: https://staging-api.etnoterms.org/v1
+  - url: https://staging-api.etnotermos.org/v1
     description: Staging server
   - url: http://localhost:3000/api/v1
     description: Local development server

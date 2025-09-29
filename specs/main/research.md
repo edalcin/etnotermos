@@ -1,4 +1,4 @@
-# Research Findings: EtnoTerms Implementation
+# Research Findings: EtnoTermos Implementation
 
 **Date**: 2025-09-28
 **Phase**: 0 - Technical Research

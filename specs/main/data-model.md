@@ -1,4 +1,4 @@
-# Data Model: EtnoTerms
+# Data Model: EtnoTermos
 
 **Date**: 2025-09-28
 **Phase**: 1 - Design

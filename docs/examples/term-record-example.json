@@ -1,0 +1,120 @@
+{
+  "_id": { "$oid": "6512f3e5a1b2c3d4e5f67890" },
+  "termId": "term-0023",
+  "canonicalLabel": "Fitoterapia",
+  "forms": [
+    {
+      "text": "fitoterapia",
+      "language": "pt-BR",
+      "script": "Latim",
+      "note": "Termo em português"
+    },
+    {
+      "text": "fitoterapia (inglês: phytotherapy)",
+      "language": "en",
+      "script": "Latin",
+      "note": "Equivalente em inglês"
+    }
+  ],
+  "variants": [
+    { "label": "Medicina herbal", "language": "pt-BR" },
+    { "label": "Medicinal", "language": "pt-BR" }
+  ],
+  "definition": "Uso de plantas e preparados vegetais em práticas terapêuticas tradicionais; inclui infusões, decocções e aplicações externas usadas por comunidades locais.",
+  "notes": [
+    {
+      "type": "scope",
+      "text": "Inclui preparações tradicionais como infusão e decocção; uso para afecções comuns na comunidade."
+    },
+    {
+      "type": "cataloger",
+      "text": "Baseado em vocabulário TemaTres (Vocabulário Controlado em Etnobotânica) e entrevistas de campo."
+    },
+    {
+      "type": "historical",
+      "text": "Termos correlatos aparecem em registros etnográficos e listas de termos tradicionais."
+    },
+    {
+      "type": "bibliographic",
+      "text": "Vocabulário Controlado em Etnobotânica (TemaTres), entradas datadas entre 2024-11-06 e 2025-08-19."
+    }
+  ],
+  "communities": [
+    {
+      "communityId": "comm-abr-001",
+      "name": "Comunidade Y",
+      "role": "guardians",
+      "visibility": "Somente comunidade",
+      "consent": {
+        "status": "granted",
+        "grantedBy": "leader-123",
+        "grantedAt": "2024-05-12T14:23:00Z",
+        "scope": "uso, documentação e pesquisa acadêmica"
+      }
+    },
+    {
+      "communityId": "comm-local-045",
+      "name": "Associação Z",
+      "role": "practice-holder",
+      "visibility": "Restrito",
+      "consent": {
+        "status": "pending",
+        "requestedAt": "2025-03-01T10:00:00Z"
+      }
+    }
+  ],
+  "associations": {
+    "procedures": [
+      {
+        "id": "proc-133",
+        "name": "infusão",
+        "description": "Infusão de partes vegetais (ex.: folha) para uso terapêutico."
+      },
+      {
+        "id": "proc-132",
+        "name": "decocção",
+        "description": "Decocção de raízes e cascas para extração de princípios ativos."
+      }
+    ],
+    "events": [
+    { "id": "evt-201", "name": "colheita-comunitária", "season": "chuvosa" }
+    ]
+  },
+  "sources": [
+    {
+      "type": "vocabular",
+      "reference": "TemaTres - Vocabulário Controlado em Etnobotânica; tabela lc_tema (ids exemplo: 23 Fitoterapia, 133 Infusão)."
+    },
+    { "type": "oral", "reference": "Entrevista com Maria (Com. Y), 2019" }
+  ],
+  "isSensitive": false,
+  "visibility": "Público",
+  "relatedTerms": ["term-0015", "term-0133"],
+  "classification": ["Medicina Popular", "Plantas medicinais"],
+  "audit": [
+    { "action": "create", "by": "researcher-77", "at": "2025-04-20T09:12:00Z" },
+    {
+      "action": "update",
+      "by": "admin-2",
+      "at": "2025-06-01T15:00:00Z",
+      "changes": { "visibility": "Restrito" }
+    }
+  ],
+  "createdAt": "2025-04-20T09:12:00Z",
+  "createdBy": "researcher-77",
+  "updatedAt": "2025-06-01T15:00:00Z",
+  "updatedBy": "admin-2",
+  "provenance": {
+    "collectedBy": "FieldResearchTeam-3",
+    "collectionMethod": "interview+voucher",
+    "voucherSpecimen": "Herbarium-XYZ-12345"
+  },
+  "externalRefs": [
+    {
+      "source": "TemaTres",
+      "table": "lc_tema",
+      "id": 23,
+      "url": "https://etnovocab.jbrj.gov.br/vocab/"
+    }
+  ]
+}
