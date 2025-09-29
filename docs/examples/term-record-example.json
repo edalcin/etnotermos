@@ -1,0 +1,83 @@
+{
+  "_id": {"$oid": "6512f3e5a1b2c3d4e5f67890"},
+  "termId": "term-0001",
+  "canonicalLabel": "Jaborandi",
+  "forms": [
+    {
+      "text": "jaborandi",
+      "language": "pt-BR",
+      "script": "Latim",
+      "note": "Forma em português brasileiro"
+    },
+    {
+      "text": "xabôrandî",
+      "language": "nheengatu",
+      "script": "Latim-transcrição",
+      "note": "Transcrição em Nheengatu (exemplo)"
+    }
+  ],
+  "variants": [
+    {"label": "Jaborandí", "language": "pt-BR"},
+    {"label": "jaborandi", "language": "es"}
+  ],
+  "definition": "Nome comum de plantas do gênero Pilocarpus, usadas tradicionalmente como estimulante e em práticas medicinais.",
+  "notes": [
+    {"type": "scope", "text": "Uso tradicional em preparação de té para afecções respiratórias."},
+    {"type": "cataloger", "text": "Registro baseado em entrevistas realizadas em 2019."},
+    {"type": "historical", "text": "Termo documentado em fontes etnográficas desde o século XIX."},
+    {"type": "bibliographic", "text": "Silva, 2003; Oliveira, 2011."}
+  ],
+  "communities": [
+    {
+      "communityId": "comm-abr-001",
+      "name": "Comunidade Y",
+      "role": "guardians",
+      "visibility": "Somente comunidade",
+      "consent": {
+        "status": "granted",
+        "grantedBy": "leader-123",
+        "grantedAt": "2024-05-12T14:23:00Z",
+        "scope": "uso, documentação e pesquisa acadêmica"
+      }
+    },
+    {
+      "communityId": "comm-local-045",
+      "name": "Associação Z",
+      "role": "practice-holder",
+      "visibility": "Restrito",
+      "consent": {
+        "status": "pending",
+        "requestedAt": "2025-03-01T10:00:00Z"
+      }
+    }
+  ],
+  "associations": {
+    "procedures": [
+      {"id": "proc-089", "name": "preparo-de-chá", "description": "Ritual de preparo do chá para uso terapêutico."}
+    ],
+    "events": [
+      {"id": "evt-201", "name": "colheita-comunitaria", "season": "rainy"}
+    ]
+  },
+  "sources": [
+    {"type": "oral", "reference": "Entrevista com Maria (Com. Y), 2019"},
+    {"type": "publication", "reference": "Silva, A. 2003. Etnobotânica Regional."}
+  ],
+  "isSensitive": false,
+  "visibility": "Restrito",
+  "relatedTerms": ["term-0002", "term-0025"],
+  "classification": ["Plantas medicinais", "Etnobotânica"],
+  "audit": [
+    {"action": "create", "by": "researcher-77", "at": "2025-04-20T09:12:00Z"},
+    {"action": "update", "by": "admin-2", "at": "2025-06-01T15:00:00Z", "changes": {"visibility": "Restrito"}}
+  ],
+  "createdAt": "2025-04-20T09:12:00Z",
+  "createdBy": "researcher-77",
+  "updatedAt": "2025-06-01T15:00:00Z",
+  "updatedBy": "admin-2",
+  "provenance": {
+    "collectedBy": "FieldResearchTeam-3",
+    "collectionMethod": "interview+voucher",
+    "voucherSpecimen": "Herbarium-XYZ-12345"
+  }
+}

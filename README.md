@@ -99,4 +99,5 @@ O EtnoTerms contribui para:
 
 **Status do Projeto**: Em especificação
 **Documentação**: [Especificação completa](specs/spec.md)
+**Exemplo de registro (JSON)**: [docs/examples/term-record-example.json](docs/examples/term-record-example.json)
 **Inspiração**: [TemaTres Vocabulary Server](https://vocabularyserver.com/web/)
