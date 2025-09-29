@@ -1,31 +1,31 @@
 {
   "_id": {"$oid": "6512f3e5a1b2c3d4e5f67890"},
-  "termId": "term-0001",
-  "canonicalLabel": "Jaborandi",
+  "termId": "term-0023",
+  "canonicalLabel": "Fitoterapia",
   "forms": [
     {
-      "text": "jaborandi",
+      "text": "fitoterapia",
       "language": "pt-BR",
       "script": "Latim",
-      "note": "Forma em português brasileiro"
+      "note": "Termo em português"
     },
     {
-      "text": "xabôrandî",
-      "language": "nheengatu",
-      "script": "Latim-transcrição",
-      "note": "Transcrição em Nheengatu (exemplo)"
+      "text": "phytotherapy",
+      "language": "en",
+      "script": "Latin",
+      "note": "Equivalente em inglês"
     }
   ],
   "variants": [
-    {"label": "Jaborandí", "language": "pt-BR"},
-    {"label": "jaborandi", "language": "es"}
+    {"label": "Herbal medicine", "language": "en"},
+    {"label": "Medicinal", "language": "pt-BR"}
   ],
-  "definition": "Nome comum de plantas do gênero Pilocarpus, usadas tradicionalmente como estimulante e em práticas medicinais.",
+  "definition": "Uso de plantas e preparados vegetais em práticas terapêuticas tradicionais; inclui infusões, decocções e aplicações externas usadas por comunidades locais.",
   "notes": [
-    {"type": "scope", "text": "Uso tradicional em preparação de té para afecções respiratórias."},
-    {"type": "cataloger", "text": "Registro baseado em entrevistas realizadas em 2019."},
-    {"type": "historical", "text": "Termo documentado em fontes etnográficas desde o século XIX."},
-    {"type": "bibliographic", "text": "Silva, 2003; Oliveira, 2011."}
+    {"type": "scope", "text": "Inclui preparações tradicionais como infusão e decocção; uso para afecções comuns na comunidade."},
+    {"type": "cataloger", "text": "Baseado em vocabulário TemaTres (Vocabulário Controlado em Etnobotânica) e entrevistas de campo."},
+    {"type": "historical", "text": "Termos correlatos aparecem em registros etnográficos e listas de termos tradicionais."},
+    {"type": "bibliographic", "text": "Vocabulário Controlado em Etnobotânica (TemaTres), entradas datadas entre 2024-11-06 e 2025-08-19."}
   ],
   "communities": [
     {
@@ -53,20 +53,21 @@
   ],
   "associations": {
     "procedures": [
-      {"id": "proc-089", "name": "preparo-de-chá", "description": "Ritual de preparo do chá para uso terapêutico."}
+      {"id": "proc-133", "name": "infusao", "description": "Infusão de partes vegetais (ex.: folha) para uso terapêutico (ex.: infusão de plantas medicinais)."},
+      {"id": "proc-132", "name": "cocção", "description": "Decocção / cocção de raízes e cascas para extração de princípios ativos."}
     ],
     "events": [
       {"id": "evt-201", "name": "colheita-comunitaria", "season": "rainy"}
     ]
   },
   "sources": [
-    {"type": "oral", "reference": "Entrevista com Maria (Com. Y), 2019"},
-    {"type": "publication", "reference": "Silva, A. 2003. Etnobotânica Regional."}
+    {"type": "vocabular", "reference": "TemaTres - Vocabulário Controlado em Etnobotânica; tabela lc_tema (ids exemplo: 23 Fitoterapia, 133 Infusão)."},
+    {"type": "oral", "reference": "Entrevista com Maria (Com. Y), 2019"}
   ],
   "isSensitive": false,
-  "visibility": "Restrito",
-  "relatedTerms": ["term-0002", "term-0025"],
-  "classification": ["Plantas medicinais", "Etnobotânica"],
+  "visibility": "Público",
+  "relatedTerms": ["term-0015", "term-0133"],
+  "classification": ["Medicina Popular", "Plantas medicinais"],
   "audit": [
     {"action": "create", "by": "researcher-77", "at": "2025-04-20T09:12:00Z"},
     {"action": "update", "by": "admin-2", "at": "2025-06-01T15:00:00Z", "changes": {"visibility": "Restrito"}}
@@ -80,4 +81,7 @@
     "collectionMethod": "interview+voucher",
     "voucherSpecimen": "Herbarium-XYZ-12345"
   }
+  ,"externalRefs": [
+    {"source": "TemaTres", "table": "lc_tema", "id": 23, "url": "https://etnovocab.jbrj.gov.br/vocab/"}
+  ]
 }
