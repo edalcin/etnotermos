@@ -1,12 +1,10 @@
 # EtnoTermos - Plataforma de Gestão de Terminologia Etnobotânica
 
-Mo#tivação e justificativa
+## Motivação e justificativa
 
 O conhecimento e a ciência existente nas comunidades tradicionais do Brasil contém descrições, termos e práticas que expressam relações profundas com o ambiente e com as entidades que nele existem — incluindo as entidades biológicas. Preservar esse conhecimento de forma legítima e documentada é essencial para reconhecer, valorizar e proteger a memória cultural dessas comunidades, bem como para garantir transparência e justiça na repartição de benefícios decorrentes deste conhecimento. O EtnoTermos propõe criar e manter um repositório de termos e associações que registre com precisão as formas linguísticas, os contextos de uso e as relações comunitárias com estas entidades, promovendo a visibilidade das comunidades e oferecendo uma base confiável para pesquisa colaborativa, políticas públicas e mecanismos de repartição de benefícios justos e equitativos.
 
-##
-
-🌿 Propósito
+## 🌿 Propósito
 
 O **EtnoTermos** é uma plataforma digital que preserva e organiza o conhecimento etnobotânico através de um sistema estruturado de glossários, vocabulários e tesauros. O sistema permite a criação de uma rede interconectada de termos que reflete as complexas relações entre entidades biológicas (plantas e animais), usos tradicionais e conhecimento cultural.
 
@@ -17,8 +15,8 @@ Baseado no [TemaTres](https://vocabularyserver.com/web/), o EtnoTerms adapta as 
 ## 👥 Usuários-Alvo
 
 - **Pesquisadores em Etnobotânica**: Acesso completo para pesquisa e catalogação
-- **Estudantes de Graduação e Pós-graduação**: Interface educacional com recursos de orientação
-- **Lideranças de Comunidades Tradicionais**: Foco na contribuição de conhecimentos tradicionais
+- **Estudantes de Graduação e Pós-graduação**: Interface educacional com recursos de orientação. Principais responsáveis pela alimentação e gestão dos dados
+- **Lideranças de Comunidades Tradicionais**: Foco na contribuição e validação de termos
 - **Sistemas Externos**: Integração via API para outros projetos de pesquisa
 
 ## 🚀 Funcionalidades Principais
@@ -27,7 +25,7 @@ Baseado no [TemaTres](https://vocabularyserver.com/web/), o EtnoTerms adapta as 
 
 - **Criação e edição** de termos etnobotânicos com identificadores únicos
 - **Classificação hierárquica**: meta termo → termo genérico → termo específico
-- **Relacionamentos múltiplos**: conexões n:n entre termos
+- **Relacionamentos múltiplos**: conexões n:n entre termos, com visualização gráfica
 - **Suporte multilíngue** para variações de nomenclatura
 
 ### Sistema de Notas
