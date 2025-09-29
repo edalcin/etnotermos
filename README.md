@@ -1,5 +1,9 @@
 # EtnoTerms - Sistema de Gestão de Terminologia Etnobotânica
 
+Motivação e justificativa
+
+O conhecimento tradicional mantido pelas comunidades tradicionais do Brasil contém descrições, nomes e práticas que expressam relações profundas com o ambiente e com as entidades vivas que nele existem — incluindo espécies vegetais, animais e outros elementos biológicos. Preservar esse conhecimento de forma legítima e documentada é essencial para reconhecer, valorizar e proteger a memória cultural dessas comunidades, bem como para garantir transparência e justiça na repartição de benefícios decorrentes de usos e pesquisas. O EtnoTerms propõe criar e manter um repositório de termos e associações que registre com precisão as formas linguísticas, os contextos de uso e as relações comunitárias, fortalecendo a visibilidade das comunidades e oferecendo uma base confiável para pesquisa colaborativa, políticas públicas e mecanismos de benefício compartilhado.
+
 Um sistema web moderno para catalogação, organização e exploração de terminologia relacionada ao uso tradicional de plantas por comunidades tradicionais.
 
 ## 🌿 Propósito
@@ -30,9 +34,9 @@ Seis tipos de anotações contextuais:
 - 📝 **Nota de escopo**: Definição do contexto de uso
 - 👨‍💼 **Nota do catalogador**: Observações do pesquisador
 - 📚 **Nota histórica**: Contexto histórico e cultural
-- 📖 **Nota bibliográfica**: Referências acadêmicas
+- 📖 **Nota bibliográfica**: Referências acadêmicas onde o termo é citado
 - 🔒 **Nota privada**: Informações restritas
-- ✏️ **Nota de definição**: Definições técnicas
+- ✏️ **Nota de definição**: Definições do termo
 - 💡 **Nota de exemplo**: Casos de uso práticos
 
 ### Gestão de Fontes
@@ -49,7 +53,7 @@ Seis tipos de anotações contextuais:
 
 ## 🎯 Capacidade do Sistema
 
-- **Escala**: Suporte para até 200.000 termos
+- **Escala**: Suporte para um número massivo de termos
 - **Usuários**: Otimizado para pequenos grupos com baixa concorrência
 - **Performance**: Busca e navegação eficientes em grandes volumes de dados
 
