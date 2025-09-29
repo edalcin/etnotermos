@@ -156,7 +156,6 @@ As an ethnobotanical researcher, undergraduate/graduate student, or traditional 
 
 ---
 
-
 ## Review & Acceptance Checklist
 
 GATE: Automated checks run during main() execution
@@ -184,7 +183,6 @@ GATE: Automated checks run during main() execution
 - [x] Dependencies and assumptions identified
 
 ---
-
 
 ## Execution Status
 

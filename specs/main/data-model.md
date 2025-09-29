@@ -46,6 +46,7 @@
 ## Core Entities
 
 ### Term
+
 **Purpose**: Central entity representing ethnobotanical concepts
 **Collections**: `terms`
 
@@ -137,6 +138,7 @@
 ```
 
 ### Relationship
+
 **Purpose**: Many-to-many connections between terms
 **Collections**: `relationships`
 
@@ -203,6 +205,7 @@
 ```
 
 ### Note
+
 **Purpose**: Contextual annotations for terms
 **Collections**: `notes`
 
@@ -273,6 +276,7 @@
 ```
 
 ### BibliographicSource
+
 **Purpose**: Academic citations and references
 **Collections**: `bibliographic_sources`
 
@@ -360,6 +364,7 @@
 ```
 
 ### User
+
 **Purpose**: System users with role-based access
 **Collections**: `users`
 
@@ -451,6 +456,7 @@
 ```
 
 ### Collection
+
 **Purpose**: Grouped sets of terms for organization
 **Collections**: `collections`
 
@@ -515,6 +521,7 @@
 ```
 
 ### APIKey
+
 **Purpose**: External system authentication
 **Collections**: `api_keys`
 
@@ -576,6 +583,7 @@
 ```
 
 ### AuditLog
+
 **Purpose**: Complete audit trail for all system changes
 **Collections**: `audit_logs`
 
@@ -654,6 +662,7 @@
 ## Data Validation Rules
 
 ### Term Validation
+
 - `title.primary` required, min 2 characters, max 200 characters
 - At least one definition required for published terms
 - Cultural sensitivity level must be validated by community leaders for restricted/sacred terms
@@ -661,17 +670,20 @@
 - Maximum 5 levels of hierarchy depth
 
 ### Relationship Validation
+
 - Cannot create self-referencing relationships (fromTermId ≠ toTermId)
 - Bidirectional relationships automatically create reverse relationship
 - Hierarchical relationships (broader/narrower) must maintain tree structure
 - Maximum 50 relationships per term to prevent performance issues
 
 ### Note Validation
+
 - Private notes only accessible to creator and admins
 - Bibliographic notes must reference valid sources
 - Content length limits by type (scope: 500 chars, example: 1000 chars, etc.)
 
 ### Cultural Sensitivity Validation
+
 - Sacred/restricted terms require community leader approval
 - Consent documentation required for traditional knowledge
 - Attribution must include community and contributor information
@@ -680,17 +692,20 @@
 ## Performance Considerations
 
 ### Indexing Strategy
+
 - Text search indexes on all searchable fields
 - Compound indexes for common query patterns
 - Sparse indexes for optional fields
 - TTL indexes for temporary data (sessions, tokens)
 
 ### Aggregation Pipelines
+
 - Term relationship graphs cached for complex queries
 - Collection statistics computed incrementally
 - Cultural context facets pre-computed for search filters
 
 ### Data Archival
+
 - Automatic archival of old audit logs (>2 years)
 - Soft delete for terms (status change vs. physical deletion)
 - Version history for critical entities

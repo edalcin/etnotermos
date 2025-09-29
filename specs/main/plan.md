@@ -5,6 +5,7 @@
 **Input**: Feature specification from `/specs/spec.md`
 
 ## Execution Flow (/plan command scope)
+
 ```
 1. Load feature spec from Input path
    → If not found: ERROR "No feature spec at {path}"
@@ -27,13 +28,16 @@
 ```
 
 **IMPORTANT**: The /plan command STOPS at step 7. Phases 2-4 are executed by other commands:
+
 - Phase 2: /tasks command creates tasks.md
 - Phase 3-4: Implementation execution (manual or via tools)
 
 ## Summary
+
 EtnoTermos is a comprehensive web-based system for cataloging, organizing, and exploring ethnobotanical terminology used by traditional communities. The system manages complex many-to-many relationships between terms, supports hierarchical classifications, integrates bibliographic sources, and provides role-based access for researchers, students, and community leaders. Key features include Google OAuth authentication, advanced search with Meilisearch, data export in open standards (SKOS, RDF, CSV), comprehensive APIs, and support for up to 200,000 terms with efficient performance for small concurrent user bases.
 
 ## Technical Context
+
 **Language/Version**: Node.js 18+ for backend, React 18+ for frontend
 **Primary Dependencies**: Express.js/Fastify for API, MongoDB for storage, Meilisearch for search, Google OAuth for auth
 **Storage**: MongoDB for document storage with complex relationships, Meilisearch for search indexing
@@ -45,11 +49,13 @@ EtnoTermos is a comprehensive web-based system for cataloging, organizing, and e
 **Scale/Scope**: 200,000 terms max, 3 user types, comprehensive API, cultural sensitivity requirements
 
 ## Constitution Check
+
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
 **Constitution Status**: Template constitution found - specific principles need to be defined for EtnoTermos project.
 
 **Key Architectural Principles for EtnoTermos**:
+
 - **Library-First**: Core functionality (term management, search, relationships) should be library modules
 - **API-First**: All functionality exposed via REST APIs for integration and frontend consumption
 - **Test-First**: TDD approach with comprehensive test coverage for critical academic data integrity
@@ -62,6 +68,7 @@ EtnoTermos is a comprehensive web-based system for cataloging, organizing, and e
 ## Project Structure
 
 ### Documentation (this feature)
+
 ```
 specs/main/
 ├── plan.md              # This file (/plan command output)
@@ -73,6 +80,7 @@ specs/main/
 ```
 
 ### Source Code (repository root)
+
 ```
 backend/
 ├── src/
@@ -139,12 +147,14 @@ Dockerfile              # Production container
 **Structure Decision**: Web application structure selected due to frontend + backend requirements. The backend provides comprehensive REST APIs for term management, search, authentication, and export functionality. The frontend offers role-specific interfaces for researchers, students, community leaders, and administrators. This structure supports the cultural sensitivity requirements with dedicated UI components and the academic standards with proper citation and audit trail management.
 
 ## Phase 0: Outline & Research
+
 1. **Extract unknowns from Technical Context** above:
    - For each NEEDS CLARIFICATION → research task
    - For each dependency → best practices task
    - For each integration → patterns task
 
 2. **Generate and dispatch research agents**:
+
    ```
    For each unknown in Technical Context:
      Task: "Research {unknown} for {feature context}"
@@ -160,6 +170,7 @@ Dockerfile              # Production container
 **Output**: research.md with all NEEDS CLARIFICATION resolved
 
 ## Phase 1: Design & Contracts
+
 *Prerequisites: research.md complete*
 
 1. **Extract entities from feature spec** → `data-model.md`:
@@ -193,18 +204,21 @@ Dockerfile              # Production container
 **Output**: data-model.md, /contracts/*, failing tests, quickstart.md, agent-specific file
 
 ## Phase 2: Task Planning Approach
+
 *This section describes what the /tasks command will do - DO NOT execute during /plan*
 
 **Task Generation Strategy**:
+
 - Load `.specify/templates/tasks-template.md` as base
 - Generate tasks from Phase 1 design docs (contracts, data model, quickstart)
 - Each contract → contract test task [P]
-- Each entity → model creation task [P] 
+- Each entity → model creation task [P]
 - Each user story → integration test task
 - Implementation tasks to make tests pass
 
 **Ordering Strategy**:
-- TDD order: Tests before implementation 
+
+- TDD order: Tests before implementation
 - Dependency order: Models before services before UI
 - Mark [P] for parallel execution (independent files)
 
@@ -213,6 +227,7 @@ Dockerfile              # Production container
 **IMPORTANT**: This phase is executed by the /tasks command, NOT by /plan
 
 ## Phase 3+: Future Implementation
+
 *These phases are beyond the scope of the /plan command*
 
 **Phase 3**: Task execution (/tasks command creates tasks.md)  
@@ -220,6 +235,7 @@ Dockerfile              # Production container
 **Phase 5**: Validation (run tests, execute quickstart.md, performance validation)
 
 ## Complexity Tracking
+
 *Fill ONLY if Constitution Check has violations that must be justified*
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
@@ -227,11 +243,12 @@ Dockerfile              # Production container
 | [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
 | [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
 
-
 ## Progress Tracking
+
 *This checklist is updated during execution flow*
 
 **Phase Status**:
+
 - [x] Phase 0: Research complete (/plan command)
 - [x] Phase 1: Design complete (/plan command)
 - [x] Phase 2: Task planning complete (/plan command - describe approach only)
@@ -240,12 +257,14 @@ Dockerfile              # Production container
 - [ ] Phase 5: Validation passed
 
 **Gate Status**:
+
 - [x] Initial Constitution Check: PASS
 - [x] Post-Design Constitution Check: PASS
 - [x] All NEEDS CLARIFICATION resolved
 - [ ] Complexity deviations documented
 
 **Artifacts Generated**:
+
 - [x] research.md - Technology stack decisions and architecture research
 - [x] data-model.md - Complete MongoDB schema design with all entities
 - [x] contracts/openapi.yaml - Comprehensive REST API specification

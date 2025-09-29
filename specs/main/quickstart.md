@@ -9,16 +9,19 @@ This quickstart guide provides step-by-step instructions to set up, run, and val
 ## Prerequisites
 
 ### Required Software
+
 - **Node.js**: 18.0.0 or later
 - **Docker**: 20.10.0 or later
 - **Docker Compose**: 2.0.0 or later
 - **Git**: 2.30.0 or later
 
 ### Required Accounts
+
 - **Google Cloud Console**: For OAuth setup
 - **MongoDB Atlas** (optional): For production database
 
 ### System Requirements
+
 - **RAM**: 4GB minimum, 8GB recommended
 - **Storage**: 2GB free space for containers and data
 - **Network**: Internet access for dependency installation
@@ -79,6 +82,7 @@ docker-compose ps
 ```
 
 Expected output:
+
 ```
 NAME                SERVICE             STATUS              PORTS
 etnotermos-mongodb   mongodb             running             0.0.0.0:27017->27017/tcp
@@ -96,6 +100,7 @@ npm run db:seed
 ```
 
 This creates:
+
 - Database indexes and collections
 - Admin user account
 - Sample ethnobotanical terms
@@ -324,6 +329,7 @@ curl http://localhost:3001
 ```
 
 Navigate through the interface:
+
 1. **Login**: Use Google OAuth or seeded admin account
 2. **Browse Terms**: View term list with filters
 3. **Search**: Try full-text search with various queries
@@ -405,6 +411,7 @@ curl http://localhost:7700/stats
 ### Common Issues
 
 **Services not starting:**
+
 ```bash
 # Check Docker logs
 docker-compose logs backend
@@ -416,6 +423,7 @@ docker-compose restart backend
 ```
 
 **Database connection issues:**
+
 ```bash
 # Test MongoDB connection
 docker exec etnotermos-mongodb mongosh --eval "db.runCommand('ping')"
@@ -425,6 +433,7 @@ grep MONGODB .env
 ```
 
 **Authentication failures:**
+
 ```bash
 # Verify Google OAuth setup
 curl http://localhost:3000/api/v1/auth/google
@@ -434,6 +443,7 @@ echo $AUTH_TOKEN | base64 -d
 ```
 
 **Search not working:**
+
 ```bash
 # Check Meilisearch health
 curl http://localhost:7700/health
