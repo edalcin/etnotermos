@@ -78,6 +78,12 @@ Como usuário contribuinte (ex.: pesquisador, membro de comunidade, administrado
 
 - Usuários incompletos ou dados faltantes ao criar associações: validar campos obrigatórios e fornecer mensagens claras de erro.
 
+### Importação de vocabulário bibliográfico (TemaTres)
+
+- Cenário: a equipe possui um dump TemaTres (SQL) com termos extraídos de referências bibliográficas. Deseja-se importar esse subconjunto bibliográfico para o novo modelo MongoDB, preservando proveniência, ids originais (`lc_tema.tema_id`) e relacionamentos (`lc_tabla_rel`) quando aplicável.
+- Objetivo: migrar termos citados em notas bibliográficas para a nova base, enriquecendo o catálogo sem perder rastreabilidade das fontes.
+
+
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
@@ -89,6 +95,31 @@ Como usuário contribuinte (ex.: pesquisador, membro de comunidade, administrado
 - **FR-006**: O sistema MUST apresentar advertências sobre duplicatas potenciais ao inserir termos que possuam alta similaridade com registros existentes e oferecer opções (mesclar, criar como novo, sinalizar para revisão).
 - **FR-007**: O sistema MUST permitir que comunidades indiquem visibilidade/consentimento para cada associação. Serão suportados três níveis de visibilidade: `Público`, `Restrito` (acesso autenticado) e `Somente comunidade`. Associações marcadas como sensíveis exigem consentimento explícito de um representante autorizado da comunidade e passam por um fluxo de revisão por curador antes da publicação.
 - **FR-008**: O sistema MUST validar metadados essenciais (ex.: língua obrigatória, comunidade quando requerida) e retornar mensagens de erro testáveis quando faltarem dados.
+
+
+### Requisitos Funcionais - Importação e Integração
+
+- **FR-009**: O sistema MUST fornecer uma ferramenta de importação que consuma dumps TemaTres (SQL) e produza documentos compatíveis com o modelo MongoDB usado pela plataforma.
+
+- **FR-010**: Na importação, cada registro importado MUST preservar: id original (`lc_tema.tema_id`), texto da entrada, metadados de criação (datas), e indicação das fontes bibliográficas quando presentes nas notas (mapear para `sources` no documento Mongo).
+
+- **FR-011**: Relações expressas em `lc_tabla_rel` MUST ser mapeadas para associações em MongoDB (por exemplo: relações hierárquicas, equivalências, ou relações de uso) sempre que possível; quando não for possível, gerar um relatório de itens não mapeáveis para revisão manual.
+
+- **FR-012**: A importação MUST classificar a origem do termo como `bibliographic` (campo `sourceType`) e registrar `externalRefs` apontando para `TemaTres` com `table` e `id` originais.
+
+- **FR-013**: O sistema MUST suportar regras configuráveis de filtragem durante a importação (por ex.: importar apenas termos que aparecem em notas bibliográficas ou com determinado `tema_id`), com logs e preview antes da execução completa.
+
+- **FR-014**: O processo de importação MUST oferecer um modo 'dry-run' que valida e mostra estatísticas (quantidade de registros, possíveis duplicatas, relacionamentos mapeáveis, erros) sem persistir dados.
+
+- **FR-015**: Para cada registro importado, o sistema MUST criar um rastro de auditoria que registre o pacote de importação, usuário que executou a importação, timestamp e transformações aplicadas.
+
+- **FR-016**: A importação MUST suportar enriquecimento incremental posterior (por ex., vincular entrevistas e procedimentos ao termo importado sem perda da referência bibliográfica original).
+
+*Notas de implementação (não prescritivas):*
+
+- Mapeamento sugerido: `lc_tema` → `Termo` (Mongo), colunas relevantes mapeadas para `canonicalLabel`, `variants`, `createdAt`/`updatedAt` e `notes` quando houver texto bibliográfico; `lc_tabla_rel` → `associations` (procedures/events/relatedTerms) sempre que o tipo de relação for identificado.
+
+- Recomendação operacional: executar importação inicialmente em ambiente de staging com validação humana antes de promover para produção.
 
 
 *Observações sobre requisitos não funcionais e políticas (decisões iniciais):*
@@ -105,6 +136,17 @@ Como usuário contribuinte (ex.: pesquisador, membro de comunidade, administrado
 - **Associação (Termo–Comunidade)**: relação entre Termo e Comunidade. Atributos: id, termo_id, comunidade_id, papel/descrição (por ex. 'uso litúrgico', 'nome de lugar'), lista de procedimentos/eventos relacionados, nível de visibilidade/consentimento, metadados de autoria e data.
 - **Procedimento/Event o**: representa um procedimento, rito ou evento cultural; atributos: id, nome, descrição, relação com comunidade(s), período/ocorrência (opcional).
 - **AuditLog**: registro das alterações realizadas em termos e associações (operador, timestamp, ação, campo alterado, valor antigo, valor novo).
+
+- **ExternalRef**: metadado que registra origem externa do termo (ex.: TemaTres). Atributos: source (e.g., TemaTres), table, original_id, url, importedAt, importBatchId.
+
+## Migration & Import Checklist (gatemap)
+
+- [ ] Criar ferramenta de conversão SQL → JSON (staging) e validar mapeamentos básicos.
+- [ ] Executar dry-run e revisar relatório de duplicatas e itens não mapeáveis.
+- [ ] Validar amostra (n ≥ 50) com pesquisadores para garantir fidelidade das notas bibliográficas e relacionamentos.
+- [ ] Rodar importação em staging com auditoria e backups.
+- [ ] Promover para produção após aprovação.
+
 
 ---
 
