@@ -31,7 +31,7 @@
 - Phase 3-4: Implementation execution (manual or via tools)
 
 ## Summary
-EtnoTerms is a comprehensive web-based system for cataloging, organizing, and exploring ethnobotanical terminology used by traditional communities. The system manages complex many-to-many relationships between terms, supports hierarchical classifications, integrates bibliographic sources, and provides role-based access for researchers, students, and community leaders. Key features include Google OAuth authentication, advanced search with Meilisearch, data export in open standards (SKOS, RDF, CSV), comprehensive APIs, and support for up to 200,000 terms with efficient performance for small concurrent user bases.
+EtnoTermos is a comprehensive web-based system for cataloging, organizing, and exploring ethnobotanical terminology used by traditional communities. The system manages complex many-to-many relationships between terms, supports hierarchical classifications, integrates bibliographic sources, and provides role-based access for researchers, students, and community leaders. Key features include Google OAuth authentication, advanced search with Meilisearch, data export in open standards (SKOS, RDF, CSV), comprehensive APIs, and support for up to 200,000 terms with efficient performance for small concurrent user bases.
 
 ## Technical Context
 **Language/Version**: Node.js 18+ for backend, React 18+ for frontend
@@ -47,9 +47,9 @@ EtnoTerms is a comprehensive web-based system for cataloging, organizing, and ex
 ## Constitution Check
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-**Constitution Status**: Template constitution found - specific principles need to be defined for EtnoTerms project.
+**Constitution Status**: Template constitution found - specific principles need to be defined for EtnoTermos project.
 
-**Key Architectural Principles for EtnoTerms**:
+**Key Architectural Principles for EtnoTermos**:
 - **Library-First**: Core functionality (term management, search, relationships) should be library modules
 - **API-First**: All functionality exposed via REST APIs for integration and frontend consumption
 - **Test-First**: TDD approach with comprehensive test coverage for critical academic data integrity

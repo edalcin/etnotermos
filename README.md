@@ -1,18 +1,17 @@
-# EtnoTerms - Sistema de Gestão de Terminologia Etnobotânica
+# EtnoTermos - Sistema de Gestão de Terminologia Etnobotânica
 
 Motivação e justificativa
 
-O conhecimento tradicional mantido pelas comunidades tradicionais do Brasil contém descrições, nomes e práticas que expressam relações profundas com o ambiente e com as entidades vivas que nele existem — incluindo espécies vegetais, animais e outros elementos biológicos. Preservar esse conhecimento de forma legítima e documentada é essencial para reconhecer, valorizar e proteger a memória cultural dessas comunidades, bem como para garantir transparência e justiça na repartição de benefícios decorrentes de usos e pesquisas. O EtnoTerms propõe criar e manter um repositório de termos e associações que registre com precisão as formas linguísticas, os contextos de uso e as relações comunitárias, fortalecendo a visibilidade das comunidades e oferecendo uma base confiável para pesquisa colaborativa, políticas públicas e mecanismos de benefício compartilhado.
+O conhecimento e a ciência existente nas comunidades tradicionais do Brasil contém descrições, termos e práticas que expressam relações profundas com o ambiente e com as entidades que nele existem — incluindo as entidades biológicas. Preservar esse conhecimento de forma legítima e documentada é essencial para reconhecer, valorizar e proteger a memória cultural dessas comunidades, bem como para garantir transparência e justiça na repartição de benefícios decorrentes deste conhecimento. O EtnoTermos propõe criar e manter um repositório de termos e associações que registre com precisão as formas linguísticas, os contextos de uso e as relações comunitárias com estas entidades, promovendo a visibilidade das comunidades e oferecendo uma base confiável para pesquisa colaborativa, políticas públicas e mecanismos de repartição de benefícios justos e equitativos.
 
-Um sistema web moderno para catalogação, organização e exploração de terminologia relacionada ao uso tradicional de plantas por comunidades tradicionais.
 
 ## 🌿 Propósito
 
-O **EtnoTerms** é uma plataforma digital que preserva e organiza o conhecimento etnobotânico através de um sistema estruturado de glossários, vocabulários e tesauros. O sistema permite a criação de uma rede interconectada de termos que reflete as complexas relações entre plantas, usos tradicionais e conhecimento cultural.
+O **EtnoTermos** é uma plataforma digital que preserva e organiza o conhecimento etnobotânico através de um sistema estruturado de glossários, vocabulários e tesauros. O sistema permite a criação de uma rede interconectada de termos que reflete as complexas relações entre entidades biológicas (plantas e animais), usos tradicionais e conhecimento cultural.
 
 ### Inspiração
 
-Baseado no [TemaTres](https://vocabularyserver.com/web/), o EtnoTerms adapta as melhores práticas de representação de conhecimento formal para o contexto específico da etnobotânica.
+Baseado no [TemaTres](https://vocabularyserver.com/web/), o EtnoTermos adapta as melhores práticas de representação de conhecimento formal para o contexto específico da etnobotânica.
 
 ## 👥 Usuários-Alvo
 
@@ -88,7 +87,7 @@ O sistema será containerizado com Docker e disponibilizado sob demanda através
 
 ## 🎓 Impacto Acadêmico
 
-O EtnoTerms contribui para:
+O EtnoTermos contribui para:
 - **Preservação** do conhecimento tradicional sobre plantas
 - **Padronização** da terminologia etnobotânica
 - **Colaboração** entre pesquisadores e comunidades
