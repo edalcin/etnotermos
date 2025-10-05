@@ -1,8 +1,8 @@
 
-# Implementation Plan: Ethnobotanical Terms Database and Management System
+# Implementation Plan: [FEATURE]
 
-**Branch**: `main` | **Date**: 2025-09-28 | **Spec**: [specs/spec.md](../spec.md)
-**Input**: Feature specification from `/specs/spec.md`
+**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
+**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
 
 ## Execution Flow (/plan command scope)
 
@@ -34,43 +34,32 @@
 
 ## Summary
 
-EtnoTermos is a comprehensive web-based system for cataloging, organizing, and exploring ethnobotanical terminology used by traditional communities. The system manages complex many-to-many relationships between terms, supports hierarchical classifications, integrates bibliographic sources, and provides role-based access for researchers, students, and community leaders. Key features include Google OAuth authentication, advanced search with Meilisearch, data export in open standards (SKOS, RDF, CSV), comprehensive APIs, and support for up to 200,000 terms with efficient performance for small concurrent user bases.
+[Extract from feature spec: primary requirement + technical approach from research]
 
 ## Technical Context
 
-**Language/Version**: Node.js 18+ for backend, React 18+ for frontend
-**Primary Dependencies**: Express.js/Fastify for API, MongoDB for storage, Meilisearch for search, Google OAuth for auth
-**Storage**: MongoDB for document storage with complex relationships, Meilisearch for search indexing
-**Testing**: Jest for unit tests, Cypress for e2e tests, Supertest for API tests
-**Target Platform**: Docker containers, deployable via GitHub Actions
-**Project Type**: web - full-stack web application with REST APIs
-**Performance Goals**: Support 200,000 terms, <1s search response, efficient for 5-10 concurrent users
-**Constraints**: Small concurrent user base, containerized deployment, open standards compliance
-**Scale/Scope**: 200,000 terms max, 3 user types, comprehensive API, cultural sensitivity requirements
+**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
+**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
+**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
+**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
+**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
+**Project Type**: [single/web/mobile - determines source structure]  
+**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
+**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
+**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-**Constitution Status**: Template constitution found - specific principles need to be defined for EtnoTermos project.
-
-**Key Architectural Principles for EtnoTermos**:
-
-- **Library-First**: Core functionality (term management, search, relationships) should be library modules
-- **API-First**: All functionality exposed via REST APIs for integration and frontend consumption
-- **Test-First**: TDD approach with comprehensive test coverage for critical academic data integrity
-- **Cultural Sensitivity**: Special consideration for traditional knowledge handling and attribution
-- **Academic Standards**: Proper citation management and audit trails for research integrity
-- **Open Standards**: Export capabilities must comply with SKOS, RDF, Dublin Core standards
-
-**GATE RESULT**: PASS - Architecture aligns with academic and technical requirements
+[Gates determined based on constitution file]
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```
-specs/main/
+specs/[###-feature]/
 ├── plan.md              # This file (/plan command output)
 ├── research.md          # Phase 0 output (/plan command)
 ├── data-model.md        # Phase 1 output (/plan command)
@@ -80,71 +69,50 @@ specs/main/
 ```
 
 ### Source Code (repository root)
-
+<!--
+  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
+  for this feature. Delete unused options and expand the chosen structure with
+  real paths (e.g., apps/admin, packages/something). The delivered plan must
+  not include Option labels.
+-->
 ```
+# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
+src/
+├── models/
+├── services/
+├── cli/
+└── lib/
+
+tests/
+├── contract/
+├── integration/
+└── unit/
+
+# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
 backend/
 ├── src/
-│   ├── models/          # MongoDB schemas and data models
-│   │   ├── term.js      # Core term entity
-│   │   ├── note.js      # Note types and associations
-│   │   ├── relationship.js # Term relationships
-│   │   ├── source.js    # Bibliographic sources
-│   │   └── user.js      # User management and roles
-│   ├── services/        # Business logic and core libraries
-│   │   ├── term.service.js
-│   │   ├── search.service.js  # Meilisearch integration
-│   │   ├── auth.service.js    # Google OAuth handling
-│   │   ├── export.service.js  # SKOS/RDF/CSV export
-│   │   └── graph.service.js   # Relationship management
-│   ├── api/             # REST API endpoints
-│   │   ├── routes/
-│   │   │   ├── terms.js
-│   │   │   ├── search.js
-│   │   │   ├── admin.js
-│   │   │   └── export.js
-│   │   └── middleware/  # Auth, validation, logging
-│   └── lib/             # Utilities and helpers
-│       ├── citation.js  # Citation formatting
-│       ├── validation.js
-│       └── cultural-sensitivity.js
-├── tests/
-│   ├── contract/        # API contract tests
-│   ├── integration/     # Cross-service tests
-│   └── unit/           # Service and model tests
-├── docker/
-└── docs/
+│   ├── models/
+│   ├── services/
+│   └── api/
+└── tests/
 
 frontend/
 ├── src/
-│   ├── components/      # React components
-│   │   ├── common/      # Shared UI components
-│   │   ├── terms/       # Term management UI
-│   │   ├── search/      # Search interface
-│   │   ├── admin/       # Administrative interface
-│   │   └── dashboard/   # Analytics dashboard
-│   ├── pages/           # Main application views
-│   │   ├── TermsPage.jsx
-│   │   ├── SearchPage.jsx
-│   │   ├── AdminPage.jsx
-│   │   └── DashboardPage.jsx
-│   ├── services/        # API communication
-│   │   ├── api.js       # HTTP client setup
-│   │   ├── terms.api.js
-│   │   └── auth.api.js
-│   └── hooks/           # Custom React hooks
-├── tests/
-│   ├── e2e/            # Cypress end-to-end tests
-│   ├── integration/    # Component integration tests
-│   └── unit/           # Component unit tests
-└── public/
+│   ├── components/
+│   ├── pages/
+│   └── services/
+└── tests/
 
-docker-compose.yml       # Local development setup
-Dockerfile              # Production container
-.github/
-└── workflows/          # GitHub Actions for deployment
+# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
+api/
+└── [same as backend above]
+
+ios/ or android/
+└── [platform-specific structure: feature modules, UI flows, platform tests]
 ```
 
-**Structure Decision**: Web application structure selected due to frontend + backend requirements. The backend provides comprehensive REST APIs for term management, search, authentication, and export functionality. The frontend offers role-specific interfaces for researchers, students, community leaders, and administrators. This structure supports the cultural sensitivity requirements with dedicated UI components and the academic standards with proper citation and audit trail management.
+**Structure Decision**: [Document the selected structure and reference the real
+directories captured above]
 
 ## Phase 0: Outline & Research
 
@@ -249,27 +217,19 @@ Dockerfile              # Production container
 
 **Phase Status**:
 
-- [x] Phase 0: Research complete (/plan command)
-- [x] Phase 1: Design complete (/plan command)
-- [x] Phase 2: Task planning complete (/plan command - describe approach only)
+- [ ] Phase 0: Research complete (/plan command)
+- [ ] Phase 1: Design complete (/plan command)
+- [ ] Phase 2: Task planning complete (/plan command - describe approach only)
 - [ ] Phase 3: Tasks generated (/tasks command)
 - [ ] Phase 4: Implementation complete
 - [ ] Phase 5: Validation passed
 
 **Gate Status**:
 
-- [x] Initial Constitution Check: PASS
-- [x] Post-Design Constitution Check: PASS
-- [x] All NEEDS CLARIFICATION resolved
+- [ ] Initial Constitution Check: PASS
+- [ ] Post-Design Constitution Check: PASS
+- [ ] All NEEDS CLARIFICATION resolved
 - [ ] Complexity deviations documented
-
-**Artifacts Generated**:
-
-- [x] research.md - Technology stack decisions and architecture research
-- [x] data-model.md - Complete MongoDB schema design with all entities
-- [x] contracts/openapi.yaml - Comprehensive REST API specification
-- [x] quickstart.md - Integration test guide and developer onboarding
-- [x] CLAUDE.md - Agent context file updated with project details
 
 ---
 *Based on Constitution v2.1.1 - See `/memory/constitution.md`*

@@ -1,267 +1,38 @@
-# Research Findings: EtnoTermos Implementation
+# Phase 0: Research & Discovery
 
-**Date**: 2025-09-28
-**Phase**: 0 - Technical Research
-**Status**: Complete
+This document summarizes the initial research and key technical decisions based on the feature specification.
 
-## Technology Stack Decisions
+## 1. Vocabulary and Data Standards
 
-### Backend Framework Choice
+- **SKOS (Simple Knowledge Organization System)**: This is the primary standard to follow for representing the thesaurus structure. It provides a model for expressing the relationships between terms (broader, narrower, related). Our data model will be heavily influenced by SKOS concepts.
+- **Dublin Core**: To be used for metadata attached to terms and other resources, ensuring interoperability.
+- **RDF (Resource Description Framework)**: The export functionality will support RDF, which is the underlying data model for SKOS.
+- **CSV**: A simple and universally supported format for data export, useful for users who want to work with the data in spreadsheets.
 
-**Decision**: Node.js with Express.js
-**Rationale**:
+## 2. Database Technology
 
-- Excellent MongoDB integration with Mongoose ODM
-- Strong ecosystem for authentication (Passport.js for Google OAuth)
-- Good performance for I/O intensive operations (term searches, relationship queries)
-- Docker-friendly deployment
-- Active community and enterprise support
+- **MongoDB**: The specification requires MongoDB. A document-based model is a good fit for the semi-structured nature of the vocabulary data. We will use nested documents and references to model the relationships between entities.
+- **Meilisearch**: The spec suggests Meilisearch for performance. This is a good choice for providing fast, typo-tolerant search. We will need to implement a mechanism to keep the Meilisearch index synchronized with the MongoDB database.
 
-**Alternatives Considered**:
+## 3. Graph Visualization
 
-- Python/FastAPI: Good for academic applications but Node.js has better real-time capabilities
-- Java/Spring Boot: More enterprise-focused, heavier for this use case
-- Go: Excellent performance but smaller ecosystem for academic/research tools
+- **2D Interactive Graph**: The clarification process confirmed the need for an interactive graph. We will use a JavaScript library like [D3.js](https://d3js.org/), [vis.js](https://visjs.org/), or [Cytoscape.js](https://js.cytoscape.org/) to render the graph of term relationships. The choice of library will be finalized based on a quick prototype during implementation.
 
-### Database Architecture
+## 4. Authentication
 
-**Decision**: MongoDB as primary database + Meilisearch for search
-**Rationale**:
+- **Google OAuth**: The requirement is to use Google for authentication. We will use a library like `passport.js` (if using Node.js/Express) to handle the OAuth 2.0 flow.
 
-- MongoDB's document structure ideal for complex term relationships and flexible schemas
-- Native support for many-to-many relationships through embedded arrays and references
-- JSON-like structure maps well to REST APIs and React frontend
-- Meilisearch provides superior full-text search with typo tolerance and multilingual support
+## 5. Cultural Sensitivity & Data Governance
 
-**Alternatives Considered**:
+- **CARE Principles for Indigenous Data Governance**: The clarification process identified the CARE principles as the framework for ensuring cultural sensitivity. This has several implications for the design:
+    - **Collective Benefit**: The system should be designed to be useful for the communities providing the knowledge, not just for researchers.
+    - **Authority to Control**: The roles and permissions system must be designed to give communities control over their data. The "private" notes feature is a first step in this direction.
+    - **Responsibility**: The system must be transparent about how data is used. The audit log feature will be important here.
+    - **Ethics**: The well-being of the communities must be a primary concern. This will influence UI/UX design choices.
 
-- PostgreSQL with full-text search: Relational model less suitable for graph-like term relationships
-- Elasticsearch: More complex setup and resource-intensive for 200k terms
-- Neo4j: Excellent for relationships but adds complexity for standard CRUD operations
+## 6. Hosting and Deployment
 
-### Authentication & Authorization
+- **Docker**: The application will be containerized using Docker. This will simplify deployment and ensure a consistent environment.
+- **GitHub Actions**: The spec mentions deployment on demand via GitHub Actions. We will create a workflow that builds the Docker image and deploys it.
 
-**Decision**: Google OAuth 2.0 with JWT tokens
-**Rationale**:
-
-- Meets specified requirement for Google login
-- JWT tokens enable stateless authentication suitable for API access
-- Role-based access control (RBAC) can be implemented with JWT claims
-- Supports both web and API authentication flows
-
-**Implementation Pattern**:
-
-- Passport.js GoogleStrategy for OAuth flow
-- JWT tokens for session management
-- Role hierarchy: Admin > Researcher > Student/Community Leader
-
-### Search Engine Integration
-
-**Decision**: Meilisearch for primary search functionality
-**Rationale**:
-
-- Designed for applications with up to millions of documents (well above 200k terms)
-- Built-in support for filters, faceted search, and typo tolerance
-- Real-time indexing suitable for dynamic term management
-- Lightweight deployment compared to Elasticsearch
-- Excellent performance for < 1 second search requirement
-
-**Search Architecture**:
-
-- Primary data in MongoDB
-- Search indexes in Meilisearch (synced on term creation/update)
-- Faceted search by term type, cultural context, time period
-- Full-text search across all term fields and notes
-
-### Export Standards Implementation
-
-**Decision**: Node.js libraries for SKOS/RDF generation
-**Rationale**:
-
-- `rdf-serialize` for RDF output in multiple formats (Turtle, N-Triples, JSON-LD)
-- SKOS ontology mapping for hierarchical term relationships
-- Custom CSV export with configurable fields
-- Dublin Core metadata integration for academic compliance
-
-**Standards Compliance**:
-
-- SKOS Core vocabulary for concept schemes and term relationships
-- Dublin Core for metadata (creator, contributor, date, rights)
-- RDF/XML and JSON-LD for semantic web integration
-- CSV with RFC 4180 compliance for data analysis
-
-## Cultural Sensitivity Implementation
-
-### Traditional Knowledge Handling
-
-**Research Findings**:
-
-- Follow UNESCO and WIPO guidelines for traditional knowledge documentation
-- Implement contributor attribution requirements
-- Support for community consent documentation
-- Culturally appropriate terminology warnings
-
-**Implementation Approach**:
-
-- Dedicated "Cultural Context" field for each term
-- Community contributor attribution system
-- Consent documentation workflow
-- Cultural review flags for sensitive knowledge
-
-### Multilingual Support
-
-**Decision**: Unicode (UTF-8) with ICU collation
-**Rationale**:
-
-- Full support for indigenous language diacritics and special characters
-- Proper sorting and comparison for non-Latin scripts
-- ICU library for locale-aware string operations
-- MongoDB's built-in Unicode support
-
-## Performance Architecture
-
-### Scaling Strategy
-
-**Decision**: Horizontal scaling with read replicas
-**Rationale**:
-
-- MongoDB replica sets for read scaling (search-heavy workload)
-- Meilisearch clustering if search volume increases
-- Node.js cluster mode for CPU utilization
-- Docker Swarm or Kubernetes for container orchestration
-
-**Performance Targets**:
-
-- < 1 second for term searches (met by Meilisearch)
-- < 500ms for simple term lookups (MongoDB indexes)
-- < 5 seconds for complex relationship queries (aggregation pipelines)
-- Support for 5-10 concurrent users with room for growth
-
-### Caching Strategy
-
-**Decision**: Redis for session and query caching
-**Rationale**:
-
-- Session storage for JWT token management
-- Query result caching for expensive relationship calculations
-- Rate limiting for API endpoints
-- Real-time features (future: collaborative editing)
-
-## Security Architecture
-
-### Data Protection
-
-**Research Findings**:
-
-- Academic data requires audit trails and version control
-- Private notes need encryption at rest
-- API access requires rate limiting and authentication
-- Compliance with research data management standards
-
-**Implementation**:
-
-- bcrypt for local password hashing (backup to Google OAuth)
-- AES-256 encryption for private notes
-- Audit log middleware for all data modifications
-- Rate limiting with express-rate-limit
-- Input validation with Joi schemas
-
-### API Security
-
-**Decision**: OpenAPI 3.0 specification with security schemas
-**Rationale**:
-
-- Clear documentation for external integrators
-- Built-in authentication requirements
-- Request/response validation
-- Rate limiting and quota management per API key
-
-## Academic Standards Integration
-
-### Citation Management
-
-**Decision**: CSL (Citation Style Language) integration
-**Rationale**:
-
-- Standard used by academic reference managers (Zotero, Mendeley)
-- Support for multiple citation formats (APA, Chicago, etc.)
-- JSON-based citation data storage
-- Integration with bibliographic databases
-
-**Implementation**:
-
-- citeproc-js for citation formatting
-- CSL JSON storage format for bibliographic sources
-- DOI resolution and metadata retrieval
-- BibTeX import/export support
-
-### Audit and Versioning
-
-**Decision**: Event sourcing for term modifications
-**Rationale**:
-
-- Complete audit trail for academic integrity
-- Ability to reconstruct term history
-- Support for collaborative editing workflows
-- Integration with research data management requirements
-
-## Integration Architecture
-
-### API Design
-
-**Decision**: RESTful API with OpenAPI 3.0 documentation
-**Rationale**:
-
-- Standard approach for academic system integration
-- Clear documentation for researchers and developers
-- Support for CRUD operations and complex queries
-- Version management for API stability
-
-**API Structure**:
-
-- `/api/v1/terms` - Term management
-- `/api/v1/search` - Search functionality
-- `/api/v1/export` - Data export endpoints
-- `/api/v1/admin` - Administrative functions
-- `/api/v1/auth` - Authentication endpoints
-
-### Deployment Strategy
-
-**Decision**: Docker containers with GitHub Actions
-**Rationale**:
-
-- Meets requirement for on-demand deployment
-- Consistent environment across development and production
-- GitHub Actions integration for CI/CD
-- Support for both development and production configurations
-
-**Container Architecture**:
-
-- Multi-stage Docker builds for optimization
-- Separate containers for backend, frontend, MongoDB, Meilisearch
-- Docker Compose for local development
-- Production deployment via container registry
-
-## Risk Assessment
-
-### Technical Risks
-
-1. **MongoDB relationship performance**: Mitigated by proper indexing and aggregation optimization
-2. **Meilisearch sync complexity**: Handled by event-driven updates and reconciliation jobs
-3. **Cultural sensitivity validation**: Addressed by community review workflows and contributor guidelines
-
-### Scalability Risks
-
-1. **200k term limit**: MongoDB can handle millions of documents; Meilisearch scales to 10M+ documents
-2. **Concurrent user growth**: Architecture supports horizontal scaling when needed
-3. **Export performance**: Implement background jobs for large exports
-
-### Security Risks
-
-1. **API abuse**: Mitigated by rate limiting and authentication
-2. **Data integrity**: Addressed by comprehensive audit trails and validation
-3. **Traditional knowledge exposure**: Handled by role-based access and cultural sensitivity controls
-
----
-
-**All technical unknowns resolved. Ready for Phase 1 Design.**
+This research provides the foundation for the system design and task decomposition in the following phases.
