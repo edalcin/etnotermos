@@ -15,6 +15,12 @@
 - Q: FR-023 requires "culturally sensitive interfaces." Please provide one specific, actionable example of a feature that would fulfill this requirement. → A: Respect principles C.A.R.E.
 - Q: FR-025 requires "educational guidance features" for student users. What is the single most important guidance feature to prioritize for the initial release? → A: Contextual help and definitions for ethnobotanical concepts.
 
+### Session 2025-10-15
+- Q: FR-008 specifies data export in four different formats (SKOS, RDF, Dublin Core, CSV). To ensure value delivery in the first version, which of these formats is the most critical and should be prioritized? → A: CSV
+- Q: FR-012 specifies a "2D interactive graph". For the first version, what is the most important interaction that the user should be able to perform on this graph? → A: Pan/Zoom
+- Q: FR-021 mentions "comprehensive API endpoints" for external system integration. Which API paradigm should be prioritized for the initial implementation? → A: REST
+- Q: The 'Collection' entity is listed in the data model, but its purpose is not detailed. What is the primary function of a "Collection"? → A: To act as a simple "tag" for grouping terms thematically (e.g., 'Medicinal Plants').
+
 **Input**: User description: "Quero criar uma base de dados com termos relacionados com o uso de plantas por comunidades tradicionais. Esta base de dados será em MongoDB e seguirá um esquema de glossários / vocabulários / tesauro para os termos. Cada termo será relacionado com n outros termos, estabelecendo um grafo das relações entre termos. Cada termo poderá ter associado à ele um texto livre (notas), que poderão ser \"Nota de escopo\", \"Nota do catalogador\", \"Nota histórica\", \"Nota bibliográfica\", \"Nota privada\",\"Nota de definição\" e \"Nota de exemplo\". Os termos também podem ser classificados como \"meta termo\", \"termo específico\", \"termo relacionado\", \"termo genérico\", \"termo preferencial\". As relações entre termos poderão ser de \"n\" para \"n\". Este sistema terá ainda uma interface moderna e limpa para entrada, edição, deleção e busca (CRUD), e garantirá que termos hierarquicamente relacionados (meta termo -> termo genérico -> termo específico) não deverão ter seus registros apagados pela interface sem um aviso claro das consequências. Este sistema pode ainda usar o Mellisearch para melhorar o desempenho das buscas. Escolha a melhor linguagem para cada funcionalidade do sistema. Este sistema irá rodar em um docker, que será disponibilizado por demanda, na execução de um \"action\" no github. O sistema que serviu de inspiração para este é o [TemaTres](https://vocabularyserver.com/web/). Pesquise na Web sobre ferramentas de representação de conhecimento através de ontologias, taxonomias, tesauros. glossarios e vocabulários. O controle de acesso será por login com o Google e um administrador terá uma interface de administração, onde poderá definir o tipo específico de cada usuário e seus direitos. O sistema será usado por poucas pessoas e quase nunca simultaneamente. O numero de termos deve ficar em torno de 200.000. O sistema deve prever exportação dos dados (termos e suas características) em padrões abertos e internacionalmente aceitos. As... [truncated]"
 
 ## Execution Flow (main)
@@ -120,20 +126,20 @@ As an ethnobotanical researcher, undergraduate/graduate student, or traditional 
 - **FR-005**: System MUST provide complete CRUD operations (Create, Read, Update, Delete) for all term data through an intuitive interface
 - **FR-006**: System MUST implement hierarchical relationship protection, warning users before deletion of terms with dependent relationships
 - **FR-007**: System MUST provide advanced search capabilities across all term fields, notes, and relationship data
-- **FR-008**: System MUST export term data and relationships in internationally accepted open standards (SKOS, RDF, Dublin Core, CSV)
+- **FR-008**: System MUST export term data and relationships in internationally accepted open standards, prioritizing CSV for the initial version (other formats include SKOS, RDF, Dublin Core)
 - **FR-009**: System MUST authenticate users through Google OAuth and provide role-based access control managed by administrators
 - **FR-010**: System MUST maintain audit trails of all term modifications for research integrity and versioning
 - **FR-011**: System MUST validate relationship consistency to prevent logical conflicts in the term hierarchy
-- **FR-012**: System MUST provide a 2D interactive graph/network diagram (nodes and edges) as a visual representation of term relationships and hierarchical structures.
+- **FR-012**: System MUST provide a 2D interactive graph/network diagram (nodes and edges) as a visual representation of term relationships and hierarchical structures, prioritizing Pan/Zoom functionality for the initial version.
 - **FR-013**: System MUST support bulk import of existing vocabulary data from standard formats
 - **FR-014**: System MUST implement search result ranking based on term relevance and relationship strength
 - **FR-015**: System MUST support up to 200,000 terms with efficient performance for small concurrent user base
-- **FR-016**: System MUST associate terms and notes with bibliographic sources in many-to-many relationships using standard citation formats
+- **FR-016**: System MUST associate terms and notes with sources in many-to-many relationships using standard citation formats
 - **FR-017**: System MUST provide an administrative interface for user management, role assignment, and system configuration
 - **FR-018**: System MUST display a comprehensive dashboard with database statistics, term counts, relationship metrics, and usage analytics
-- **FR-019**: System MUST manage bibliographic sources with standard citation structure (author, title, publication, year, pages, DOI, etc.)
+- **FR-019**: System MUST manage sources, accommodating different structures for bibliographic data, field notes, interviews, etc.
 - **FR-020**: System MUST track source attribution for all terms and notes, ensuring proper academic citation and provenance
-- **FR-021**: System MUST provide comprehensive API endpoints for external system integration, including term retrieval, search, and relationship queries
+- **FR-021**: System MUST provide comprehensive API endpoints for external system integration, prioritizing a REST paradigm for the initial version, including term retrieval, search, and relationship queries
 - **FR-022**: System MUST support role-based access for different user types: ethnobotanical researchers (full access), students (educational access), and community leaders (knowledge contribution focus)
 - **FR-023**: System MUST provide culturally sensitive interfaces and workflows appropriate for traditional knowledge holders, specifically by adhering to the CARE Principles for Indigenous Data Governance (https://www.gida-global.org/care).
 - **FR-024**: System MUST implement API authentication and rate limiting to ensure secure external system integration
@@ -144,7 +150,7 @@ As an ethnobotanical researcher, undergraduate/graduate student, or traditional 
 
 ### Key Entities *(include if feature involves data)*
 
-- **Term**: Core vocabulary entry representing an ethnobotanical concept with unique identifier, names in multiple languages, definitions, and metadata, linked to bibliographic sources
+- **Term**: Core vocabulary entry representing an ethnobotanical concept with unique identifier, names in multiple languages, definitions, and metadata, linked to sources
 
 - **Note**: Contextual information attached to terms, categorized by type (scope, cataloger, historical, bibliographic, private, definition, example) with timestamps, authorship, and source attribution. "Private" notes are viewable only by their author and system administrators.
 
@@ -154,9 +160,9 @@ As an ethnobotanical researcher, undergraduate/graduate student, or traditional 
 
 - **API**: External system integration endpoints providing secure access to term data, search capabilities, and relationship queries with authentication and rate limiting
 
-- **BibliographicSource**: Academic references using standard citation format (author, title, publication, year, volume, pages, DOI, ISBN) linked to terms and notes
+- **Source**: Represents the origin of the information, which can be a bibliographic reference (book, article), a herbarium sample, field notes, an interview, etc. The structure will adapt to the source type.
 
-- **Collection**: Grouped sets of related terms organized by research project, geographic region, or cultural context for better organization and access control
+- **Collection**: A simple "tag" used to group terms thematically (e.g., 'Medicinal Plants'). A term can have multiple collections.
 
 - **Role**: User permission templates defining access levels (view, edit, admin) that administrators can assign to users
 

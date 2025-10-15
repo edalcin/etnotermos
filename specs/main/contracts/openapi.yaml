@@ -1,66 +1,97 @@
 openapi: 3.0.0
 info:
   title: EtnoTermos API
-  description: API for managing ethnobotanical terms and their relationships.
   version: 1.0.0
+  description: API for managing ethnobotanical terms and their relationships.
 
 paths:
   /terms:
     get:
       summary: List all terms
+      description: Retrieves a paginated list of terms.
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
       responses:
         '200':
           description: A list of terms.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Term'
     post:
       summary: Create a new term
+      description: Adds a new term to the database.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TermInput'
       responses:
         '201':
           description: The created term.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Term'
 
-  /terms/{termId}:
+  /terms/{id}:
     get:
-      summary: Get a single term by ID
+      summary: Get a term by ID
+      description: Retrieves a single term by its unique ID.
       parameters:
-        - name: termId
-          in: path
+        - in: path
+          name: id
           required: true
           schema:
             type: string
       responses:
         '200':
           description: A single term.
-    put:
-      summary: Update a term
-      parameters:
-        - name: termId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: The updated term.
-    delete:
-      summary: Delete a term
-      parameters:
-        - name: termId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: The term was deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Term'
+        '404':
+          description: Term not found.
 
-  /search:
-    get:
-      summary: Search for terms
-      parameters:
-        - name: q
-          in: query
-          required: true
-          schema:
+components:
+  schemas:
+    Term:
+      type: object
+      properties:
+        _id:
+          type: string
+        prefLabel:
+          type: string
+        altLabels:
+          type: array
+          items:
             type: string
-      responses:
-        '200':
-          description: A list of search results.
+        definition:
+          type: string
+        # ... other fields from data-model.md
+
+    TermInput:
+      type: object
+      properties:
+        prefLabel:
+          type: string
+        altLabels:
+          type: array
+          items:
+            type: string
+        definition:
+          type: string
+        # ... other fields from data-model.md

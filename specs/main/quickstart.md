@@ -1,47 +1,66 @@
-# Phase 1: Quickstart Guide
+# Quickstart Guide
 
-This guide provides instructions for setting up and running the EtnoTermos application locally using Docker.
+This guide provides a quick way to test the core functionality of the API using `curl`. It follows the primary user acceptance scenario.
 
-## Prerequisites
+**Prerequisites**:
+- The application must be running.
+- You must have a valid authentication token (`AUTH_TOKEN`).
 
-- [Docker](https://docs.docker.com/get-docker/)
-- [Docker Compose](https://docs.docker.com/compose/install/)
+## 1. Create a new Source
 
-## Running the Application
+First, let's create a source for our new term.
 
-1.  **Clone the repository:**
+```bash
+curl -X POST http://localhost:3000/api/v1/sources \
+  -H "Authorization: Bearer $AUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "bibliographic",
+    "fields": {
+      "author": "Smith, J.",
+      "title": "The Flora of the Region",
+      "year": "2022"
+    }
+  }'
+```
 
-    ```bash
-    git clone <repository-url>
-    cd etnotermos
-    ```
+*Save the `_id` from the response. We'll call it `SOURCE_ID`.*
 
-2.  **Create a `.env` file:**
+## 2. Create a new Term
 
-    Create a `.env` file in the root of the project and add the following environment variables:
+Now, create the term and link it to the source.
 
-    ```
-    MONGO_URI=mongodb://mongodb:27017/etnotermos
-    GOOGLE_CLIENT_ID=<your-google-client-id>
-    GOOGLE_CLIENT_SECRET=<your-google-client-secret>
-    ```
+```bash
+curl -X POST http://localhost:3000/api/v1/terms \
+  -H "Authorization: Bearer $AUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prefLabel": "Exemplum herba",
+    "definition": "A species of plant used in traditional medicine.",
+    "sourceIds": ["$SOURCE_ID"]
+  }'
+```
 
-3.  **Run with Docker Compose:**
+*Save the `_id` from the response. We'll call it `TERM_ID`.*
 
-    ```bash
-    docker-compose up -d
-    ```
+## 3. Retrieve the Term
 
-    This will start the following services:
+Verify that the term was created correctly.
 
-    -   `etnotermos-app`: The main application (e.g., a Node.js server).
-    -   `mongodb`: The MongoDB database.
-    -   `meilisearch`: The Meilisearch instance.
+```bash
+curl http://localhost:3000/api/v1/terms/$TERM_ID \
+  -H "Authorization: Bearer $AUTH_TOKEN"
+```
 
-4.  **Access the application:**
+You should see the full term object, including the populated source information.
 
-    The application will be available at [http://localhost:3000](http://localhost:3000).
+## 4. Search for the Term
 
-## API Documentation
+Use the search endpoint to find the new term.
 
-Once the application is running, the API documentation (powered by Swagger UI) will be available at [http://localhost:3000/api-docs](http://localhost:3000/api-docs).
+```bash
+curl http://localhost:3000/api/v1/search?q=Exemplum \
+  -H "Authorization: Bearer $AUTH_TOKEN"
+```
+
+The response should contain an array with the term we just created.

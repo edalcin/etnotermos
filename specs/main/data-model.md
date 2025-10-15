@@ -1,114 +1,85 @@
 # Phase 1: Data Model
 
-This document defines the data model for the EtnoTermos system, based on the entities identified in the feature specification. The schemas are described using JSON Schema, which can be used to validate data in the MongoDB database.
+This document defines the data model for the EtnoTermos system based on the entities identified in `spec.md`. The schemas are described in a format that can be easily translated to Mongoose schemas for MongoDB.
 
-## Core Entities
+## 1. User
 
-### 1. Term
+Represents a user of the system, authenticated via Google.
 
-Represents a single ethnobotanical term.
+- `_id`: string (unique identifier)
+- `googleId`: string (Google's unique user ID)
+- `email`: string (User's email)
+- `name`: string (User's full name)
+- `role`: string (Enum: `admin`, `researcher`, `student`, `community_leader`)
+- `createdAt`: date
 
-**JSON Schema:**
-```json
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Term",
-  "description": "An ethnobotanical term or concept.",
-  "type": "object",
-  "properties": {
-    "_id": { "type": "string", "description": "Unique identifier (e.g., UUID)" },
-    "prefLabel": { "type": "string", "description": "The preferred label for the term." },
-    "altLabels": { 
-      "type": "array", 
-      "items": { "type": "string" },
-      "description": "Alternative labels or synonyms."
-    },
-    "definition": { "type": "string", "description": "A concise definition of the term." },
-    "scopeNote": { "type": "string", "description": "A note about the scope and usage of the term." },
-    "historyNote": { "type": "string", "description": "A note about the history of the term." },
-    "example": { "type": "string", "description": "An example of the term's usage." },
-    "createdAt": { "type": "string", "format": "date-time" },
-    "updatedAt": { "type": "string", "format": "date-time" }
-  },
-  "required": ["_id", "prefLabel", "createdAt", "updatedAt"]
-}
-```
+## 2. Source
 
-### 2. Note
+Represents the origin of information. This is a flexible entity to accommodate various source types.
 
-Represents a note associated with a term.
+- `_id`: string (unique identifier)
+- `type`: string (Enum: `bibliographic`, `interview`, `field_notes`, `herbarium_sample`)
+- `fields`: object (A flexible object to store type-specific fields. E.g., for `bibliographic`: `{ author, title, year }`; for `interview`: `{ interviewee, date }`)
+- `createdAt`: date
+- `createdBy`: ref (User ID)
 
-**JSON Schema:**
-```json
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Note",
-  "description": "A note associated with a term.",
-  "type": "object",
-  "properties": {
-    "_id": { "type": "string" },
-    "termId": { "type": "string", "description": "The ID of the term this note is associated with." },
-    "type": {
-      "type": "string",
-      "enum": ["scope", "cataloger", "historical", "bibliographic", "private", "definition", "example"]
-    },
-    "content": { "type": "string" },
-    "authorId": { "type": "string", "description": "The ID of the user who created the note." },
-    "isPrivate": { "type": "boolean", "default": false },
-    "createdAt": { "type": "string", "format": "date-time" },
-    "updatedAt": { "type": "string", "format": "date-time" }
-  },
-  "required": ["_id", "termId", "type", "content", "authorId", "createdAt", "updatedAt"]
-}
-```
+## 3. Collection
 
-### 3. Relationship
+Acts as a simple tag to group terms thematically.
 
-Represents a relationship between two terms.
+- `_id`: string (unique identifier)
+- `name`: string (The name of the collection, e.g., "Medicinal Plants")
+- `description`: string (Optional description)
 
-**JSON Schema:**
-```json
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Relationship",
-  "description": "A relationship between two terms.",
-  "type": "object",
-  "properties": {
-    "_id": { "type": "string" },
-    "sourceTermId": { "type": "string" },
-    "targetTermId": { "type": "string" },
-    "type": { 
-      "type": "string", 
-      "enum": ["broader", "narrower", "related"] 
-    },
-    "createdAt": { "type": "string", "format": "date-time" },
-    "updatedAt": { "type": "string", "format": "date-time" }
-  },
-  "required": ["_id", "sourceTermId", "targetTermId", "type", "createdAt", "updatedAt"]
-}
-```
+## 4. Term
 
-### 4. User
+Represents a single ethnobotanical term. This is the core entity of the system.
 
-Represents a user of the system.
+- `_id`: string (unique identifier)
+- `prefLabel`: string (The preferred name for the term)
+- `altLabels`: array of strings (Synonyms or alternative names)
+- `definition`: string
+- `scopeNote`: string
+- `historyNote`: string
+- `example`: string
+- `sourceIds`: array of refs (References to Source entities)
+- `collectionIds`: array of refs (References to Collection entities)
+- `createdAt`: date
+- `updatedAt`: date
+- `createdBy`: ref (User ID)
 
-**JSON Schema:**
-```json
-{
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "User",
-  "type": "object",
-  "properties": {
-    "_id": { "type": "string" },
-    "googleId": { "type": "string" },
-    "email": { "type": "string", "format": "email" },
-    "name": { "type": "string" },
-    "role": { 
-      "type": "string", 
-      "enum": ["admin", "researcher", "student", "community_leader"] 
-    },
-    "createdAt": { "type": "string", "format": "date-time" }
-  },
-  "required": ["_id", "googleId", "email", "name", "role", "createdAt"]
-}
-```
+## 5. Note
+
+Contextual information attached to a term.
+
+- `_id`: string (unique identifier)
+- `termId`: ref (The term this note is associated with)
+- `type`: string (Enum: `scope`, `cataloger`, `historical`, `bibliographic`, `private`, `definition`, `example`)
+- `content`: string
+- `sourceIds`: array of refs (References to Source entities that back up this note)
+- `isPrivate`: boolean (Defaults to false. If true, only visible to author and admins)
+- `authorId`: ref (User ID)
+- `createdAt`: date
+
+## 6. Relationship
+
+Defines a semantic relationship between two terms.
+
+- `_id`: string (unique identifier)
+- `sourceTermId`: ref (The origin term)
+- `targetTermId`: ref (The destination term)
+- `type`: string (Enum: `broader`, `narrower`, `related`, `synonym`)
+- `createdAt`: date
+- `createdBy`: ref (User ID)
+
+## 7. APIKey
+
+Authentication token for external systems.
+
+- `_id`: string (unique identifier)
+- `key`: string (The generated API key, should be hashed in DB)
+- `description`: string
+- `permissions`: array of strings (e.g., `read:terms`, `search`)
+- `lastUsed`: date
+- `createdAt`: date
+- `createdBy`: ref (User ID)
