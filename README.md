@@ -40,11 +40,12 @@ Seis tipos de anotações contextuais:
 - ✏️ **Nota de definição**: Definições do termo
 - 💡 **Nota de exemplo**: Casos de uso práticos
 
-### Gestão de Fontes
+### Gestão de Fontes e Atribuição
 
-- **Referências bibliográficas** com estrutura de citação padrão
-- **Relacionamentos n:n** entre termos, notas e fontes
-- **Rastreabilidade completa** de atribuições acadêmicas
+- **Rastreabilidade da Origem**: O sistema registrará a proveniência de cada informação, seja ela uma referência bibliográfica, um conhecimento tradicional compartilhado por um líder comunitário ou uma anotação de um pesquisador.
+- **Fontes Bibliográficas**: Gerenciamento de referências acadêmicas com estrutura de citação padrão (autor, título, ano, etc.).
+- **Conhecimento Tradicional**: Atribuição clara e respeitosa do conhecimento a seus detentores, garantindo o reconhecimento da autoria e a governança dos dados em conformidade com os princípios CARE.
+- **Relacionamentos n:n**: Conexões flexíveis entre termos, notas e suas respectivas fontes, permitindo uma rede de citações completa.
 
 ### Recursos Avançados
 
