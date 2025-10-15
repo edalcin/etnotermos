@@ -92,6 +92,17 @@ O sistema será containerizado com Docker e disponibilizado sob demanda através
 - Manutenção simplificada
 - Ambiente reproduzível
 
+## 💻 Desenvolvimento
+
+### Desenvolvimento Assistido por IA
+
+Este projeto utiliza o Claude para automatizar tarefas de desenvolvimento e garantir a qualidade do código. As seguintes automações estão configuradas:
+
+- **Revisão de Código**: Em cada pull request, o Claude analisa as alterações e fornece feedback sobre qualidade, potenciais bugs e conformidade com as convenções do projeto.
+- **Assistente de Código**: Desenvolvedores podem interagir com o Claude em issues e pull requests para obter ajuda com implementação, refatoração e outras tarefas.
+
+Para mais detalhes, consulte os arquivos de fluxo de trabalho em `.github/workflows`.
+
 ## 🎓 Impacto Acadêmico
 
 O EtnoTermos contribui para:
