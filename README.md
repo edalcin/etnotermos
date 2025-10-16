@@ -8,9 +8,26 @@ O conhecimento e a ciência existente nas comunidades tradicionais do Brasil con
 
 O **EtnoTermos** é uma plataforma digital que preserva e organiza o conhecimento etnobotânico através de um sistema estruturado de glossários, vocabulários e tesauros. O sistema permite a criação de uma rede interconectada de termos que reflete as complexas relações entre entidades biológicas (plantas e animais), usos tradicionais e conhecimento cultural.
 
+### Conformidade com Padrões Internacionais
+
+O EtnoTermos segue as diretrizes da norma **ANSI/NISO Z39.19-2005 (R2010)** - *Guidelines for the Construction, Format, and Management of Monolingual Controlled Vocabularies*. Esta conformidade garante que o vocabulário etnobotânico construído seja:
+
+- **Interoperável**: Compatível com outros sistemas de organização do conhecimento
+- **Estruturado**: Seguindo princípios estabelecidos de seleção e forma de termos
+- **Sustentável**: Com práticas definidas de manutenção e evolução
+- **Profissional**: Alinhado com padrões bibliotecários e de ciência da informação reconhecidos internacionalmente
+
+A norma Z39.19 estabelece práticas para:
+- **Seleção de termos** (Section 6): Critérios de inclusão baseados em garantia literária, de usuário e organizacional
+- **Forma de termos** (Section 7): Convenções gramaticais, sintaxe e uso de singular/plural
+- **Relacionamentos** (Section 8): Estruturas de equivalência (USE/UF), hierárquicas (BT/NT) e associativas (RT)
+- **Notas e referências** (Section 10): Notas de escopo, definições, notas históricas e bibliográficas
+- **Controle de autoridade** (Section 9): Princípio "um conceito, um termo" e desambiguação
+- **Apresentação** (Section 11): Formatos de exibição alfabéticos, hierárquicos e facetados
+
 ### Inspiração
 
-Baseado no [TemaTres](https://vocabularyserver.com/web/), o EtnoTerms adapta as melhores práticas de representação de conhecimento formal para o contexto específico da etnobotânica.
+Baseado no [TemaTres](https://vocabularyserver.com/web/), o EtnoTermos adapta as melhores práticas de representação de conhecimento formal para o contexto específico da etnobotânica, incorporando padrões internacionais de construção de vocabulários controlados.
 
 ## 👥 Usuários-Alvo
 
@@ -24,21 +41,27 @@ Baseado no [TemaTres](https://vocabularyserver.com/web/), o EtnoTerms adapta as 
 ### Gestão de Termos
 
 - **Criação e edição** de termos etnobotânicos com identificadores únicos
-- **Classificação hierárquica**: meta termo → termo genérico → termo específico
+- **Classificação hierárquica conforme Z39.19**:
+  - Relações de equivalência (USE/UF): termos preferenciais e não-preferenciais
+  - Relações hierárquicas (BT/NT): termos mais amplos e mais específicos
+  - Relações associativas (RT): termos relacionados tematicamente
+  - Suporte a polihierarquia (um termo pode ter múltiplos termos mais amplos)
 - **Relacionamentos múltiplos**: conexões n:n entre termos, com visualização gráfica
 - **Suporte multilíngue** para variações de nomenclatura
+- **Controle de autoridade**: um conceito, um termo preferencial
+- **Desambiguação de homógrafos**: qualificadores para termos idênticos com significados diferentes
 
-### Sistema de Notas
+### Sistema de Notas (Z39.19 Section 10)
 
-Seis tipos de anotações contextuais:
+Seis tipos de anotações contextuais seguindo a norma Z39.19:
 
-- 📝 **Nota de escopo**: Definição do contexto de uso
-- 👨‍💼 **Nota do catalogador**: Observações do pesquisador
-- 📚 **Nota histórica**: Contexto histórico e cultural
+- 📝 **Nota de escopo** (Z39.19 10.2): Define os limites e contexto de uso do termo
+- 👨‍💼 **Nota do catalogador**: Observações do pesquisador sobre o processo de catalogação
+- 📚 **Nota histórica** (Z39.19 10.4): Documenta evolução e mudanças do termo ao longo do tempo
 - 📖 **Nota bibliográfica**: Referências acadêmicas onde o termo é citado
-- 🔒 **Nota privada**: Informações restritas
-- ✏️ **Nota de definição**: Definições do termo
-- 💡 **Nota de exemplo**: Casos de uso práticos
+- 🔒 **Nota privada**: Informações restritas (visível apenas ao autor e administradores)
+- ✏️ **Nota de definição** (Z39.19 10.3): Definição formal do conceito representado pelo termo
+- 💡 **Nota de exemplo** (Z39.19 10.5): Casos de uso práticos e contextos de aplicação
 
 ### Gestão de Fontes e Atribuição
 
@@ -109,14 +132,25 @@ Para mais detalhes, consulte os arquivos de fluxo de trabalho em `.github/workfl
 O EtnoTermos contribui para:
 
 - **Preservação** do conhecimento tradicional sobre plantas
-- **Padronização** da terminologia etnobotânica
+- **Padronização** da terminologia etnobotânica seguindo normas internacionais (ANSI/NISO Z39.19)
 - **Colaboração** entre pesquisadores e comunidades
 - **Acessibilidade** do conhecimento para futuras gerações
-- **Interoperabilidade** entre projetos de pesquisa
+- **Interoperabilidade** entre projetos de pesquisa através de formatos abertos e padrões estabelecidos
+- **Qualidade científica** através de controle de autoridade e práticas de construção de vocabulários controlados
+- **Sustentabilidade** com práticas documentadas de manutenção e evolução do vocabulário
 
 ---
 
 **Status do Projeto**: Em especificação
-**Documentação**: [Especificação completa](specs/spec.md)
-**Exemplo de registro (JSON)**: [docs/examples/term-record-example.json](docs/examples/term-record-example.json)
-**Inspiração**: [TemaTres Vocabulary Server](https://vocabularyserver.com/web/)
+
+**Documentação**:
+- [Especificação completa](specs/main/spec.md)
+- [Modelo de dados](specs/main/data-model.md)
+- [Diretrizes de construção do vocabulário (Z39.19)](specs/main/vocabulary-guidelines.md)
+- [Exemplo de registro (JSON)](docs/examples/term-record-example.json)
+
+**Padrões e Referências**:
+- [ANSI/NISO Z39.19-2005 (R2010)](docs/ANSI-NISO%20Z39.19-2005%20(R2010).pdf) - Guidelines for the Construction, Format, and Management of Monolingual Controlled Vocabularies
+- [TemaTres Vocabulary Server](https://vocabularyserver.com/web/) (inspiração inicial)
+- [CARE Principles for Indigenous Data Governance](https://www.gida-global.org/care)
+- [SKOS - Simple Knowledge Organization System](https://www.w3.org/2004/02/skos/)

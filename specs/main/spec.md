@@ -4,7 +4,11 @@
 
 **Created**: 2025-09-28
 
+**Updated**: 2025-10-16
+
 **Status**: Draft
+
+**Standards Compliance**: ANSI/NISO Z39.19-2005 (R2010) - Guidelines for the Construction, Format, and Management of Monolingual Controlled Vocabularies
 
 ## Clarifications
 
@@ -119,9 +123,13 @@ As an ethnobotanical researcher, undergraduate/graduate student, or traditional 
 
 ### Functional Requirements
 
-- **FR-001**: System MUST allow creation of ethnobotanical terms with unique identifiers and multilingual name variants
-- **FR-002**: System MUST support six distinct note types for each term: scope, cataloger, historical, bibliographic, private, definition, and example notes
-- **FR-003**: System MUST enable classification of terms into five relationship categories: meta term, specific term, related term, generic term, and preferential term
+#### Vocabulary Structure (ANSI-NISO Z39.19 Compliance)
+
+- **FR-001**: System MUST allow creation of ethnobotanical terms with unique identifiers and multilingual name variants, following ANSI-NISO Z39.19 Section 6 (Term Selection) principles
+- **FR-001a**: System MUST support term specificity levels according to Z39.19 Section 6.4, allowing terms to be as specific or general as needed for the domain
+- **FR-001b**: System MUST enforce term form consistency as per Z39.19 Section 7 (Term Form), including grammatical form, singular/plural conventions, and syntax rules
+- **FR-002**: System MUST support six distinct note types for each term: scope, cataloger, historical, bibliographic, private, definition, and example notes, aligned with Z39.19 Section 10 (Notes and References)
+- **FR-003**: System MUST enable classification of terms into relationship categories following Z39.19 Section 8 (Relationships): equivalence relationships (preferred/non-preferred terms), hierarchical relationships (broader/narrower terms), and associative relationships (related terms)
 - **FR-004**: System MUST support many-to-many relationships between terms, creating a navigable knowledge graph
 - **FR-005**: System MUST provide complete CRUD operations (Create, Read, Update, Delete) for all term data through an intuitive interface
 - **FR-006**: System MUST implement hierarchical relationship protection, warning users before deletion of terms with dependent relationships
@@ -147,6 +155,19 @@ As an ethnobotanical researcher, undergraduate/graduate student, or traditional 
 - **FR-026**: System MUST maintain API documentation and developer resources for integration partners
 - **FR-027**: System MUST restrict visibility of "private" notes to only the original author and users with administrator roles.
 - **FR-028**: In the event of a simultaneous edit conflict on a term, the system MUST attempt to automatically merge the changes. If the merge is not possible, it MUST notify a system administrator of the conflict.
+
+#### ANSI-NISO Z39.19 Specific Requirements
+
+- **FR-029**: System MUST support compound terms and complex terms as defined in Z39.19 Section 7.2, including precoordinated phrases that represent specific concepts
+- **FR-030**: System MUST allow entry terms (non-preferred terms) with USE references directing to preferred terms, per Z39.19 Section 8.2
+- **FR-031**: System MUST support polyhierarchy where a term can have multiple broader terms in different contexts, as per Z39.19 Section 8.3.3
+- **FR-032**: System MUST implement scope notes that clearly define term boundaries and usage context, following Z39.19 Section 10.2
+- **FR-033**: System MUST maintain term authority control ensuring each concept has one preferred term with controlled synonyms
+- **FR-034**: System MUST support term homograph disambiguation using qualifiers in parentheses (e.g., "cedar (tree)" vs "cedar (wood)")
+- **FR-035**: System MUST allow faceted classification of terms by multiple characteristics (e.g., plant part, usage type, preparation method)
+- **FR-036**: System MUST validate relationship reciprocity ensuring that BT/NT and RT relationships are bidirectional
+- **FR-037**: System MUST support term deprecation and history tracking when terms are replaced or merged
+- **FR-038**: System MUST provide vocabulary display formats compliant with Z39.19 Section 11, including alphabetical and hierarchical displays
 
 ### Key Entities *(include if feature involves data)*
 
