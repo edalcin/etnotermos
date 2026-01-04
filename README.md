@@ -25,9 +25,15 @@ A norma Z39.19 estabelece práticas para:
 - **Controle de autoridade** (Section 9): Princípio "um conceito, um termo" e desambiguação
 - **Apresentação** (Section 11): Formatos de exibição alfabéticos, hierárquicos e facetados
 
+### Contexto dentro da etnoArquitetura
+
+O **EtnoTermos** faz parte da [etnoArquitetura](https://github.com/edalcin/etnoArquitetura), um ecossistema integrado de ferramentas para gestão, análise e preservação do conhecimento etnobotânico. A etnoArquitetura fornece a base conceitual e metodológica para organizar dados etnobotânicos de forma estruturada, garantindo interoperabilidade entre diferentes sistemas e promovendo a colaboração entre pesquisadores e comunidades tradicionais.
+
+Dentro deste ecossistema, o EtnoTermos se integra especialmente com o [etnoDB](https://github.com/edalcin/etnoDB), fornecendo um vocabulário robusto e controlado para a associação de plantas com suas formas de uso pelas comunidades tradicionais. Enquanto o etnoDB gerencia os dados relacionais e observacionais (ocorrências, usos, práticas), o EtnoTermos fornece a camada terminológica padronizada que garante consistência semântica e facilita a pesquisa e descoberta de conhecimento.
+
 ### Inspiração
 
-Baseado no [TemaTres](https://vocabularyserver.com/web/), o EtnoTermos adapta as melhores práticas de representação de conhecimento formal para o contexto específico da etnobotânica, incorporando padrões internacionais de construção de vocabulários controlados.
+Baseado no [TemaTres](https://github.com/tematres/TemaTres-Vocabulary-Server), o EtnoTermos adapta as melhores práticas de representação de conhecimento formal para o contexto específico da etnobotânica brasileira, incorporando padrões internacionais de construção de vocabulários controlados (ANSI/NISO Z39.19-2005).
 
 ## 👥 Usuários-Alvo
 
@@ -72,9 +78,8 @@ Seis tipos de anotações contextuais seguindo a norma Z39.19:
 
 ### Recursos Avançados
 
-- 🔍 **Busca inteligente** com Meilisearch
+- 🔍 **Busca avançada** com suporte a pesquisa em todos os campos de termos, notas e relacionamentos
 - 📊 **Dashboard administrativo** com métricas e analytics
-- 🔐 **Autenticação Google OAuth** com controle de acesso baseado em funções
 - 📤 **Exportação** em padrões abertos (SKOS, RDF, Dublin Core, CSV)
 - 🔌 **APIs REST** para integração com sistemas externos
 
@@ -84,12 +89,11 @@ Seis tipos de anotações contextuais seguindo a norma Z39.19:
 - **Usuários**: Otimizado para pequenos grupos com baixa concorrência
 - **Performance**: Busca e navegação eficientes em grandes volumes de dados
 
-## 🔒 Segurança e Controle
+## 🔒 Integridade e Controle
 
-- **Autenticação**: Login seguro via Google OAuth
-- **Autorização**: Sistema de funções gerenciado por administradores
-- **Proteção de dados**: Avisos antes de exclusão de termos com dependências
-- **Auditoria**: Registro completo de modificações para integridade da pesquisa
+- **Proteção de dados**: Avisos antes de exclusão de termos com dependências hierárquicas
+- **Auditoria**: Registro completo de modificações para integridade da pesquisa e rastreabilidade
+- **Validação**: Garantia de consistência nas relações entre termos (reciprocidade, prevenção de ciclos)
 
 ## 🌐 Integração e Interoperabilidade
 
@@ -151,6 +155,8 @@ O EtnoTermos contribui para:
 
 **Padrões e Referências**:
 - [ANSI/NISO Z39.19-2005 (R2010)](docs/ANSI-NISO%20Z39.19-2005%20(R2010).pdf) - Guidelines for the Construction, Format, and Management of Monolingual Controlled Vocabularies
-- [TemaTres Vocabulary Server](https://vocabularyserver.com/web/) (inspiração inicial)
+- [TemaTres Vocabulary Server](https://github.com/tematres/TemaTres-Vocabulary-Server) (inspiração inicial)
 - [CARE Principles for Indigenous Data Governance](https://www.gida-global.org/care)
 - [SKOS - Simple Knowledge Organization System](https://www.w3.org/2004/02/skos/)
+- [etnoArquitetura](https://github.com/edalcin/etnoArquitetura) - Ecossistema integrado de ferramentas etnobotânicas
+- [etnoDB](https://github.com/edalcin/etnoDB) - Sistema de gestão de dados etnobotânicos

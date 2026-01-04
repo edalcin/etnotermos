@@ -11,7 +11,7 @@ Based on the feature specification and the initial user prompt, the following te
 | **Backend API** | Node.js w/ TypeScript, Express.js | A mature and widely-used stack for building REST APIs. TypeScript provides type safety, which is crucial for maintainability. |
 | **Database** | MongoDB w/ Mongoose | The initial prompt specified a document database. MongoDB is a natural fit for the hierarchical and semi-structured nature of ethnobotanical data. Mongoose provides straightforward schema validation. |
 | **Frontend** | React w/ TypeScript | A powerful and popular library for building modern, responsive Single-Page Applications (SPAs) as required by the spec. |
-| **Search** | Meilisearch | The initial prompt suggested Meilisearch for its performance. It's a fast, open-source search engine that is easy to integrate. |
+| **Search** | MongoDB Text Search | For the initial version, we'll use MongoDB's built-in text search capabilities. This simplifies the architecture and deployment while providing adequate search functionality for the expected data volume. |
 | **Testing** | Jest, Supertest, React Testing Library | A standard and comprehensive testing suite for a Node.js/React stack. |
 | **Deployment** | Docker | The initial prompt specified Docker deployment, which provides consistency across development and production environments. |
 

@@ -9,18 +9,7 @@ This document defines the data model for the EtnoTermos system based on the enti
 - Section 10: Notes and references
 - Section 11: Display and presentation formats
 
-## 1. User
-
-Represents a user of the system, authenticated via Google.
-
-- `_id`: string (unique identifier)
-- `googleId`: string (Google's unique user ID)
-- `email`: string (User's email)
-- `name`: string (User's full name)
-- `role`: string (Enum: `admin`, `researcher`, `student`, `community_leader`)
-- `createdAt`: date
-
-## 2. Source
+## 1. Source
 
 Represents the origin of information. This is a flexible entity to accommodate various source types.
 
@@ -28,9 +17,8 @@ Represents the origin of information. This is a flexible entity to accommodate v
 - `type`: string (Enum: `bibliographic`, `interview`, `field_notes`, `herbarium_sample`)
 - `fields`: object (A flexible object to store type-specific fields. E.g., for `bibliographic`: `{ author, title, year }`; for `interview`: `{ interviewee, date }`)
 - `createdAt`: date
-- `createdBy`: ref (User ID)
 
-## 3. Collection
+## 2. Collection
 
 Acts as a simple tag to group terms thematically.
 
@@ -38,7 +26,7 @@ Acts as a simple tag to group terms thematically.
 - `name`: string (The name of the collection, e.g., "Medicinal Plants")
 - `description`: string (Optional description)
 
-## 4. Term
+## 3. Term
 
 Represents a single ethnobotanical term. This is the core entity of the system, following ANSI-NISO Z39.19 vocabulary structure.
 
@@ -60,24 +48,21 @@ Represents a single ethnobotanical term. This is the core entity of the system, 
 - `collectionIds`: array of refs (References to Collection entities)
 - `createdAt`: date
 - `updatedAt`: date
-- `createdBy`: ref (User ID)
 - `deprecatedDate`: date (When term was deprecated, if applicable)
 - `replacedBy`: ref (Term ID that replaces this deprecated term)
 
-## 5. Note
+## 4. Note
 
 Contextual information attached to a term.
 
 - `_id`: string (unique identifier)
 - `termId`: ref (The term this note is associated with)
-- `type`: string (Enum: `scope`, `cataloger`, `historical`, `bibliographic`, `private`, `definition`, `example`)
+- `type`: string (Enum: `scope`, `cataloger`, `historical`, `bibliographic`, `definition`, `example`)
 - `content`: string
 - `sourceIds`: array of refs (References to Source entities that back up this note)
-- `isPrivate`: boolean (Defaults to false. If true, only visible to author and admins)
-- `authorId`: ref (User ID)
 - `createdAt`: date
 
-## 6. Relationship
+## 5. Relationship
 
 Defines a semantic relationship between two terms, following ANSI-NISO Z39.19 Section 8 (Relationships).
 
@@ -108,17 +93,4 @@ Defines a semantic relationship between two terms, following ANSI-NISO Z39.19 Se
 - `reciprocalType`: string (Automatically computed reciprocal relationship type)
 - `isReciprocal`: boolean (Whether this relationship should be automatically reciprocated)
 - `createdAt`: date
-- `createdBy`: ref (User ID)
 - `validatedAt`: date (When relationship reciprocity was last validated)
-
-## 7. APIKey
-
-Authentication token for external systems.
-
-- `_id`: string (unique identifier)
-- `key`: string (The generated API key, should be hashed in DB)
-- `description`: string
-- `permissions`: array of strings (e.g., `read:terms`, `search`)
-- `lastUsed`: date
-- `createdAt`: date
-- `createdBy`: ref (User ID)

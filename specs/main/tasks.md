@@ -11,13 +11,6 @@ This document breaks down the work required to implement the system based on the
 - [ ] 1.5: Initialize `frontend` React project with TypeScript.
 - [ ] 1.6: Setup basic frontend structure (pages, components, services).
 
-## Epic 2: User & Authentication
-
-- [ ] 2.1: Create User model/schema based on `data-model.md`.
-- [ ] 2.2: Implement Google OAuth 2.0 for user login on the backend.
-- [ ] 2.3: Create a secure endpoint to return the current user's profile and role.
-- [ ] 2.4: Implement login/logout flow on the frontend.
-- [ ] 2.5: Create role-based access control middleware for the backend API.
 
 ## Epic 3: Core Data Models
 
@@ -36,9 +29,9 @@ This document breaks down the work required to implement the system based on the
 
 ## Epic 5: Search Integration
 
-- [ ] 5.1: Integrate Meilisearch with the backend.
-- [ ] 5.2: Implement logic to index new/updated terms in Meilisearch.
-- [ ] 5.3: Create a `/search` endpoint that queries Meilisearch.
+- [ ] 5.1: Configure MongoDB text indexes on Term collection fields (prefLabel, altLabels, definition, scopeNote).
+- [ ] 5.2: Create a `/search` endpoint that uses MongoDB text search with ranking and filtering.
+- [ ] 5.3: Implement search result aggregation to include relationship data and source information.
 
 ## Epic 6: Frontend UI
 

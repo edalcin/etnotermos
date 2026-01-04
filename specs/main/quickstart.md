@@ -3,8 +3,7 @@
 This guide provides a quick way to test the core functionality of the API using `curl`. It follows the primary user acceptance scenario.
 
 **Prerequisites**:
-- The application must be running.
-- You must have a valid authentication token (`AUTH_TOKEN`).
+- The application must be running on `http://localhost:3000`.
 
 ## 1. Create a new Source
 
@@ -12,7 +11,6 @@ First, let's create a source for our new term.
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/sources \
-  -H "Authorization: Bearer $AUTH_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "type": "bibliographic",
@@ -32,7 +30,6 @@ Now, create the term and link it to the source.
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/terms \
-  -H "Authorization: Bearer $AUTH_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "prefLabel": "Exemplum herba",
@@ -48,8 +45,7 @@ curl -X POST http://localhost:3000/api/v1/terms \
 Verify that the term was created correctly.
 
 ```bash
-curl http://localhost:3000/api/v1/terms/$TERM_ID \
-  -H "Authorization: Bearer $AUTH_TOKEN"
+curl http://localhost:3000/api/v1/terms/$TERM_ID
 ```
 
 You should see the full term object, including the populated source information.
@@ -59,8 +55,7 @@ You should see the full term object, including the populated source information.
 Use the search endpoint to find the new term.
 
 ```bash
-curl http://localhost:3000/api/v1/search?q=Exemplum \
-  -H "Authorization: Bearer $AUTH_TOKEN"
+curl http://localhost:3000/api/v1/search?q=Exemplum
 ```
 
 The response should contain an array with the term we just created.

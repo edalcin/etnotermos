@@ -14,7 +14,7 @@ As an ethnobotanical researcher, student, or traditional community leader, I nee
 ## Technical Context
 
 **Language/Version**: Backend: Node.js (LTS) w/ TypeScript | Frontend: TypeScript
-**Primary Dependencies**: Backend: Express.js, Mongoose | Frontend: React, Material-UI | Search: Meilisearch
+**Primary Dependencies**: Backend: Express.js, Mongoose | Frontend: React, Material-UI | Search: MongoDB Text Search
 **Storage**: MongoDB
 **Testing**: Jest, Supertest (for API), React Testing Library
 **Target Platform**: Docker container on a Linux environment, deployed via GitHub Actions.

@@ -133,65 +133,49 @@ As an ethnobotanical researcher, undergraduate/graduate student, or traditional 
 - **FR-004**: System MUST support many-to-many relationships between terms, creating a navigable knowledge graph
 - **FR-005**: System MUST provide complete CRUD operations (Create, Read, Update, Delete) for all term data through an intuitive interface
 - **FR-006**: System MUST implement hierarchical relationship protection, warning users before deletion of terms with dependent relationships
-- **FR-007**: System MUST provide advanced search capabilities across all term fields, notes, and relationship data
+- **FR-007**: System MUST provide advanced search capabilities across all term fields, notes, and relationship data using MongoDB text search
 - **FR-008**: System MUST export term data and relationships in internationally accepted open standards, prioritizing CSV for the initial version (other formats include SKOS, RDF, Dublin Core)
-- **FR-009**: System MUST authenticate users through Google OAuth and provide role-based access control managed by administrators
-- **FR-010**: System MUST maintain audit trails of all term modifications for research integrity and versioning
-- **FR-011**: System MUST validate relationship consistency to prevent logical conflicts in the term hierarchy
-- **FR-012**: System MUST provide a 2D interactive graph/network diagram (nodes and edges) as a visual representation of term relationships and hierarchical structures, prioritizing Pan/Zoom functionality for the initial version.
-- **FR-013**: System MUST support bulk import of existing vocabulary data from standard formats
-- **FR-014**: System MUST implement search result ranking based on term relevance and relationship strength
-- **FR-015**: System MUST support up to 200,000 terms with efficient performance for small concurrent user base
-- **FR-016**: System MUST associate terms and notes with sources in many-to-many relationships using standard citation formats
-- **FR-017**: System MUST provide an administrative interface for user management, role assignment, and system configuration
-- **FR-018**: System MUST display a comprehensive dashboard with database statistics, term counts, relationship metrics, and usage analytics
-- **FR-019**: System MUST manage sources, accommodating different structures for bibliographic data, field notes, interviews, etc.
-- **FR-020**: System MUST track source attribution for all terms and notes, ensuring proper academic citation and provenance
-- **FR-021**: System MUST provide comprehensive API endpoints for external system integration, prioritizing a REST paradigm for the initial version, including term retrieval, search, and relationship queries
-- **FR-022**: System MUST support role-based access for different user types: ethnobotanical researchers (full access), students (educational access), and community leaders (knowledge contribution focus)
-- **FR-023**: System MUST provide culturally sensitive interfaces and workflows appropriate for traditional knowledge holders, specifically by adhering to the CARE Principles for Indigenous Data Governance (https://www.gida-global.org/care).
-- **FR-024**: System MUST implement API authentication and rate limiting to ensure secure external system integration
-- **FR-025**: System MUST provide educational guidance features for student users, prioritizing contextual help and definitions for ethnobotanical concepts in the initial release.
-- **FR-026**: System MUST maintain API documentation and developer resources for integration partners
-- **FR-027**: System MUST restrict visibility of "private" notes to only the original author and users with administrator roles.
-- **FR-028**: In the event of a simultaneous edit conflict on a term, the system MUST attempt to automatically merge the changes. If the merge is not possible, it MUST notify a system administrator of the conflict.
+- **FR-009**: System MUST maintain audit trails of all term modifications for research integrity and versioning
+- **FR-010**: System MUST validate relationship consistency to prevent logical conflicts in the term hierarchy
+- **FR-011**: System MUST provide a 2D interactive graph/network diagram (nodes and edges) as a visual representation of term relationships and hierarchical structures, prioritizing Pan/Zoom functionality for the initial version
+- **FR-012**: System MUST support bulk import of existing vocabulary data from standard formats
+- **FR-013**: System MUST implement search result ranking based on term relevance and relationship strength
+- **FR-014**: System MUST support up to 200,000 terms with efficient performance for small concurrent user base
+- **FR-015**: System MUST associate terms and notes with sources in many-to-many relationships using standard citation formats
+- **FR-016**: System MUST display a comprehensive dashboard with database statistics, term counts, relationship metrics, and usage analytics
+- **FR-017**: System MUST manage sources, accommodating different structures for bibliographic data, field notes, interviews, etc.
+- **FR-018**: System MUST track source attribution for all terms and notes, ensuring proper academic citation and provenance
+- **FR-019**: System MUST provide comprehensive API endpoints for external system integration, prioritizing a REST paradigm for the initial version, including term retrieval, search, and relationship queries
+- **FR-020**: System MUST provide culturally sensitive interfaces and workflows appropriate for traditional knowledge holders, specifically by adhering to the CARE Principles for Indigenous Data Governance (https://www.gida-global.org/care)
+- **FR-021**: System MUST maintain API documentation and developer resources for integration partners
+- **FR-022**: In the event of a simultaneous edit conflict on a term, the system MUST attempt to automatically merge the changes and maintain conflict resolution logs
 
 #### ANSI-NISO Z39.19 Specific Requirements
 
-- **FR-029**: System MUST support compound terms and complex terms as defined in Z39.19 Section 7.2, including precoordinated phrases that represent specific concepts
-- **FR-030**: System MUST allow entry terms (non-preferred terms) with USE references directing to preferred terms, per Z39.19 Section 8.2
-- **FR-031**: System MUST support polyhierarchy where a term can have multiple broader terms in different contexts, as per Z39.19 Section 8.3.3
-- **FR-032**: System MUST implement scope notes that clearly define term boundaries and usage context, following Z39.19 Section 10.2
-- **FR-033**: System MUST maintain term authority control ensuring each concept has one preferred term with controlled synonyms
-- **FR-034**: System MUST support term homograph disambiguation using qualifiers in parentheses (e.g., "cedar (tree)" vs "cedar (wood)")
-- **FR-035**: System MUST allow faceted classification of terms by multiple characteristics (e.g., plant part, usage type, preparation method)
-- **FR-036**: System MUST validate relationship reciprocity ensuring that BT/NT and RT relationships are bidirectional
-- **FR-037**: System MUST support term deprecation and history tracking when terms are replaced or merged
-- **FR-038**: System MUST provide vocabulary display formats compliant with Z39.19 Section 11, including alphabetical and hierarchical displays
+- **FR-023**: System MUST support compound terms and complex terms as defined in Z39.19 Section 7.2, including precoordinated phrases that represent specific concepts
+- **FR-024**: System MUST allow entry terms (non-preferred terms) with USE references directing to preferred terms, per Z39.19 Section 8.2
+- **FR-025**: System MUST support polyhierarchy where a term can have multiple broader terms in different contexts, as per Z39.19 Section 8.3.3
+- **FR-026**: System MUST implement scope notes that clearly define term boundaries and usage context, following Z39.19 Section 10.2
+- **FR-027**: System MUST maintain term authority control ensuring each concept has one preferred term with controlled synonyms
+- **FR-028**: System MUST support term homograph disambiguation using qualifiers in parentheses (e.g., "cedar (tree)" vs "cedar (wood)")
+- **FR-029**: System MUST allow faceted classification of terms by multiple characteristics (e.g., plant part, usage type, preparation method)
+- **FR-030**: System MUST validate relationship reciprocity ensuring that BT/NT and RT relationships are bidirectional
+- **FR-031**: System MUST support term deprecation and history tracking when terms are replaced or merged
+- **FR-032**: System MUST provide vocabulary display formats compliant with Z39.19 Section 11, including alphabetical and hierarchical displays
 
 ### Key Entities *(include if feature involves data)*
 
 - **Term**: Core vocabulary entry representing an ethnobotanical concept with unique identifier, names in multiple languages, definitions, and metadata, linked to sources
 
-- **Note**: Contextual information attached to terms, categorized by type (scope, cataloger, historical, bibliographic, private, definition, example) with timestamps, authorship, and source attribution. "Private" notes are viewable only by their author and system administrators.
+- **Note**: Contextual information attached to terms, categorized by type (scope, cataloger, historical, bibliographic, definition, example) with timestamps and source attribution following ANSI-NISO Z39.19 Section 10 guidelines
 
-- **Relationship**: Connections between terms defining semantic links, hierarchical structures, and cross-references with relationship type classification
+- **Relationship**: Connections between terms defining semantic links, hierarchical structures, and cross-references with relationship type classification following Z39.19 Section 8 (equivalence, hierarchical, and associative relationships)
 
-- **User**: System actors authenticated through Google OAuth with three primary types: ethnobotanical researchers (full system access), undergraduate/graduate students (educational access with guidance), and traditional community leaders (knowledge contribution focus), each with administrator-defined roles and permissions
+- **Source**: Represents the origin of the information, which can be a bibliographic reference (book, article), a herbarium sample, field notes, an interview, etc. The structure will adapt to the source type to accommodate diverse provenance documentation
 
-- **API**: External system integration endpoints providing secure access to term data, search capabilities, and relationship queries with authentication and rate limiting
+- **Collection**: A simple "tag" used to group terms thematically (e.g., 'Medicinal Plants'). A term can have multiple collections for flexible categorization
 
-- **Source**: Represents the origin of the information, which can be a bibliographic reference (book, article), a herbarium sample, field notes, an interview, etc. The structure will adapt to the source type.
-
-- **Collection**: A simple "tag" used to group terms thematically (e.g., 'Medicinal Plants'). A term can have multiple collections.
-
-- **Role**: User permission templates defining access levels (view, edit, admin) that administrators can assign to users
-
-- **AuditLog**: Historical record of all system changes with user attribution, timestamps, and change details for research integrity
-
-- **UserRole**: Specific permission templates for different user types (Researcher, Student, Community Leader, Administrator) defining access levels and available features
-
-- **APIKey**: Authentication tokens for external systems with defined permissions and usage limits for secure API access
+- **AuditLog**: Historical record of all system changes with timestamps and change details for research integrity and traceability
 
 ---
 
