@@ -27,7 +27,7 @@ A norma Z39.19 estabelece práticas para:
 
 ### Inspiração
 
-Baseado no [TemaTres](https://vocabularyserver.com/web/), o EtnoTermos adapta as melhores práticas de representação de conhecimento formal para o contexto específico da etnobotânica, incorporando padrões internacionais de construção de vocabulários controlados.
+Baseado no [TemaTres](https://github.com/tematres/TemaTres-Vocabulary-Server), o EtnoTermos adapta as melhores práticas de representação de conhecimento formal para o contexto específico da etnobotânica, incorporando padrões internacionais de construção de vocabulários controlados.
 
 ## 👥 Usuários-Alvo
 
