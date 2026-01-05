@@ -101,12 +101,12 @@ As an ethnobotanical researcher, undergraduate/graduate student, or traditional 
 3. **Given** a collection of terms in the database, **When** I search for a plant name or usage context, **Then** the system returns relevant terms with their relationships and contextual notes displayed clearly
 4. **Given** multiple related terms in different categories, **When** I establish many-to-many relationships between them, **Then** the system creates and maintains bidirectional connections that are navigable from either term
 5. **Given** a term with multiple note types attached, **When** I view the term details, **Then** all notes (scope, historical, bibliographic, etc.) are organized and presented clearly for reference
-6. **Given** I am an administrator, **When** I access the admin interface, **Then** I can manage user roles (researcher, student, community leader), permissions, and view system analytics through a comprehensive dashboard
+6. **Given** I am an administrator, **When** I access the admin interface, **Then** I can manage data and view system analytics through a comprehensive dashboard
 7. **Given** a collection of terms and their data, **When** I request data export, **Then** the system generates files in internationally accepted open standards (SKOS, RDF, CSV)
-8. **Given** I am a new user (researcher, student, or community leader), **When** I attempt to access the system, **Then** I authenticate securely through Google OAuth and receive role-appropriate permissions
-9. **Given** I am a community leader with traditional knowledge, **When** I contribute plant usage information, **Then** the system captures this knowledge with proper attribution and cultural sensitivity
-10. **Given** an external research system, **When** it requests data through our API, **Then** the system provides secure access to term data based on API authentication and permissions
-11. **Given** I am a graduate student conducting research, **When** I need to access specific terminology sets, **Then** the system provides educational-appropriate access with guidance features
+8. **Given** any user, **When** accessing the public interface, **Then** the system provides read-only access to all terminology data without requiring authentication
+9. **Given** I have admin credentials, **When** I access the admin interface, **Then** the system grants full CRUD access for data entry and curation
+10. **Given** an external research system, **When** it requests data through the public API, **Then** the system provides read-only access to term data
+11. **Given** researchers or students, **When** they access the public interface, **Then** the system provides search and visualization capabilities for educational purposes
 
 ### Edge Cases
 
@@ -116,8 +116,8 @@ As an ethnobotanical researcher, undergraduate/graduate student, or traditional 
 - How does the system manage conflicting or duplicate term entries from different cultural contexts?
 - How does the system perform when approaching the 200,000 term limit?
 - What happens when a bibliographic source is referenced by many terms and needs to be updated or deleted?
-- How does the system handle Google authentication failures or account changes?
-- How are simultaneous edit conflicts handled? The system will attempt to merge changes and notify an administrator if the merge fails.
+- How does the admin interface handle unauthorized access attempts?
+- How are simultaneous edit conflicts handled? The system will attempt to merge changes and log conflicts for admin review.
 
 ## Requirements *(mandatory)*
 
@@ -133,7 +133,7 @@ As an ethnobotanical researcher, undergraduate/graduate student, or traditional 
 - **FR-004**: System MUST support many-to-many relationships between terms, creating a navigable knowledge graph
 - **FR-005**: System MUST provide complete CRUD operations (Create, Read, Update, Delete) for all term data through an intuitive interface
 - **FR-006**: System MUST implement hierarchical relationship protection, warning users before deletion of terms with dependent relationships
-- **FR-007**: System MUST provide advanced search capabilities across all term fields, notes, and relationship data using MongoDB text search
+- **FR-007**: System MUST provide advanced search capabilities across all term fields, notes, and relationship data
 - **FR-008**: System MUST export term data and relationships in internationally accepted open standards, prioritizing CSV for the initial version (other formats include SKOS, RDF, Dublin Core)
 - **FR-009**: System MUST maintain audit trails of all term modifications for research integrity and versioning
 - **FR-010**: System MUST validate relationship consistency to prevent logical conflicts in the term hierarchy
@@ -145,23 +145,24 @@ As an ethnobotanical researcher, undergraduate/graduate student, or traditional 
 - **FR-016**: System MUST display a comprehensive dashboard with database statistics, term counts, relationship metrics, and usage analytics
 - **FR-017**: System MUST manage sources, accommodating different structures for bibliographic data, field notes, interviews, etc.
 - **FR-018**: System MUST track source attribution for all terms and notes, ensuring proper academic citation and provenance
-- **FR-019**: System MUST provide comprehensive API endpoints for external system integration, prioritizing a REST paradigm for the initial version, including term retrieval, search, and relationship queries
-- **FR-020**: System MUST provide culturally sensitive interfaces and workflows appropriate for traditional knowledge holders, specifically by adhering to the CARE Principles for Indigenous Data Governance (https://www.gida-global.org/care)
+- **FR-019**: System MUST provide comprehensive public API endpoints (read-only) and admin API endpoints (full CRUD) for external system integration, prioritizing a REST paradigm for the initial version
+- **FR-020**: System MUST support culturally sensitive data management appropriate for traditional knowledge, specifically by adhering to CARE Principles for Indigenous Data Governance (https://www.gida-global.org/care) through attribution fields and documentation guidelines
 - **FR-021**: System MUST maintain API documentation and developer resources for integration partners
-- **FR-022**: In the event of a simultaneous edit conflict on a term, the system MUST attempt to automatically merge the changes and maintain conflict resolution logs
+- **FR-022**: System MUST separate public access (read-only, no authentication) from administrative access (full CRUD, access control required)
+- **FR-023**: In the event of a simultaneous edit conflict on a term, the system MUST attempt to automatically merge the changes and maintain conflict resolution logs
 
 #### ANSI-NISO Z39.19 Specific Requirements
 
-- **FR-023**: System MUST support compound terms and complex terms as defined in Z39.19 Section 7.2, including precoordinated phrases that represent specific concepts
-- **FR-024**: System MUST allow entry terms (non-preferred terms) with USE references directing to preferred terms, per Z39.19 Section 8.2
-- **FR-025**: System MUST support polyhierarchy where a term can have multiple broader terms in different contexts, as per Z39.19 Section 8.3.3
-- **FR-026**: System MUST implement scope notes that clearly define term boundaries and usage context, following Z39.19 Section 10.2
-- **FR-027**: System MUST maintain term authority control ensuring each concept has one preferred term with controlled synonyms
-- **FR-028**: System MUST support term homograph disambiguation using qualifiers in parentheses (e.g., "cedar (tree)" vs "cedar (wood)")
-- **FR-029**: System MUST allow faceted classification of terms by multiple characteristics (e.g., plant part, usage type, preparation method)
-- **FR-030**: System MUST validate relationship reciprocity ensuring that BT/NT and RT relationships are bidirectional
-- **FR-031**: System MUST support term deprecation and history tracking when terms are replaced or merged
-- **FR-032**: System MUST provide vocabulary display formats compliant with Z39.19 Section 11, including alphabetical and hierarchical displays
+- **FR-024**: System MUST support compound terms and complex terms as defined in Z39.19 Section 7.2, including precoordinated phrases that represent specific concepts
+- **FR-025**: System MUST allow entry terms (non-preferred terms) with USE references directing to preferred terms, per Z39.19 Section 8.2
+- **FR-026**: System MUST support polyhierarchy where a term can have multiple broader terms in different contexts, as per Z39.19 Section 8.3.3
+- **FR-027**: System MUST implement scope notes that clearly define term boundaries and usage context, following Z39.19 Section 10.2
+- **FR-028**: System MUST maintain term authority control ensuring each concept has one preferred term with controlled synonyms
+- **FR-029**: System MUST support term homograph disambiguation using qualifiers in parentheses (e.g., "cedar (tree)" vs "cedar (wood)")
+- **FR-030**: System MUST allow faceted classification of terms by multiple characteristics (e.g., plant part, usage type, preparation method)
+- **FR-031**: System MUST validate relationship reciprocity ensuring that BT/NT and RT relationships are bidirectional
+- **FR-032**: System MUST support term deprecation and history tracking when terms are replaced or merged
+- **FR-033**: System MUST provide vocabulary display formats compliant with Z39.19 Section 11, including alphabetical and hierarchical displays
 
 ### Key Entities *(include if feature involves data)*
 

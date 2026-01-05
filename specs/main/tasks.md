@@ -36,13 +36,13 @@ Based on plan.md project structure:
 
 **Goal**: Establish project structure, dependencies, and development environment
 
-- [ ] **T001** [P] Create backend directory structure: `backend/src/{models,services,api/{routes,controllers,middleware},lib/{meilisearch,export,validation},config}` and `backend/tests/{contract,integration,unit}`
+- [ ] **T001** [P] Create backend directory structure: `backend/src/{models,services,api/{public,admin,controllers,middleware},lib/{search,export,validation},config}` and `backend/tests/{contract,integration,unit}`
 
-- [ ] **T002** [P] Initialize backend Node.js 18+ project with TypeScript, create `backend/package.json` with dependencies: fastify, @fastify/cors, @fastify/helmet, mongoose, meilisearch, passport, passport-google-oauth20, jsonwebtoken, bcrypt, jest, supertest, mongodb-memory-server, ts-node, typescript
+- [ ] **T002** [P] Initialize backend Node.js 18+ project with TypeScript, create `backend/package.json` with dependencies: fastify, @fastify/cors, @fastify/helmet, mongoose, jest, supertest, mongodb-memory-server, ts-node, typescript
 
 - [ ] **T003** [P] Configure TypeScript for backend: create `backend/tsconfig.json` with strict mode, ES2022 target, commonjs module, paths for clean imports
 
-- [ ] **T004** [P] Create frontend directory structure: `frontend/src/{components/{term,graph,search,admin,common},pages,services,hooks,utils}` and `frontend/tests/{integration,unit}`, `frontend/public`
+- [ ] **T004** [P] Create frontend directory structure: `frontend/{public/{components,pages,services,hooks},admin/{components,pages,services,hooks},shared,tests/{integration,unit}}`
 
 - [ ] **T005** [P] Initialize frontend React 18+ project with TypeScript using Vite, create `frontend/package.json` with dependencies: react, react-dom, react-router-dom, cytoscape, axios, @tanstack/react-query, jest, @testing-library/react, @testing-library/jest-dom, vitest
 
@@ -50,23 +50,23 @@ Based on plan.md project structure:
 
 - [ ] **T007** [P] Setup ESLint and Prettier for both backend and frontend with consistent rules
 
-- [ ] **T008** [P] Create Docker Compose configuration in `docker/docker-compose.yml` with services: backend (Fastify), frontend (Nginx), mongodb (with volume), meilisearch (with volume), mongo-init (index creation)
+- [ ] **T008** [P] Create Docker Compose configuration in `docker/docker-compose.yml` with services: backend-public (Fastify, port 3000), backend-admin (Fastify, port 3001), frontend-public (Nginx, port 80), frontend-admin (Nginx, port 8080), mongodb (with volume), mongo-init (index creation)
 
-- [ ] **T009** [P] Create backend Dockerfile in `docker/backend.Dockerfile`: Node 18 alpine, multi-stage build, production optimizations
+- [ ] **T009** [P] Create backend Dockerfiles in `docker/backend-public.Dockerfile` and `docker/backend-admin.Dockerfile`: Node 18 alpine, multi-stage build, production optimizations, different entry points for public/admin APIs
 
-- [ ] **T010** [P] Create frontend Dockerfile in `docker/frontend.Dockerfile`: Node 18 for build, Nginx alpine for serving, copy build artifacts
+- [ ] **T010** [P] Create frontend Dockerfiles in `docker/frontend-public.Dockerfile` and `docker/frontend-admin.Dockerfile`: Node 18 for build, Nginx alpine for serving, copy build artifacts for public/admin apps
 
 - [ ] **T011** [P] Create MongoDB initialization script in `backend/scripts/init-mongo.sh` for creating databases and users
 
 - [ ] **T012** [P] Create MongoDB index creation script in `backend/scripts/create-indexes.ts` (will be populated in Phase 3.3)
 
-- [ ] **T013** Create backend configuration management in `backend/src/config/index.ts`: load environment variables (PORT, MONGO_URI, MEILISEARCH_HOST, JWT_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET), validation, export typed config object
+- [ ] **T013** Create backend configuration management in `backend/src/config/index.ts`: load environment variables (PUBLIC_PORT, ADMIN_PORT, MONGO_URI, ADMIN_API_KEY), validation, export typed config object
 
-- [ ] **T014** Create Meilisearch client initialization in `backend/src/lib/meilisearch/client.ts`: connect to Meilisearch, export configured client
+- [ ] **T014** Create MongoDB text search configuration in `backend/src/lib/search/config.ts`: configure text indexes, search options, language support
 
 - [ ] **T015** Create MongoDB connection setup in `backend/src/config/database.ts`: Mongoose connection with retry logic, connection event handlers
 
-- [ ] **T016** Create backend server entry point in `backend/src/server.ts`: initialize Fastify app, register plugins (cors, helmet), connect to MongoDB, start server
+- [ ] **T016** Create backend server entry points in `backend/src/server-public.ts` and `backend/src/server-admin.ts`: initialize Fastify apps, register plugins (cors, helmet), connect to MongoDB, start on different ports
 
 ---
 
@@ -78,29 +78,27 @@ Based on plan.md project structure:
 
 - [ ] **T017** [P] Setup OpenAPI validator in `backend/tests/contract/setup.ts`: load openapi.yaml, configure validator with supertest
 
-- [ ] **T018** [P] Contract test for GET /api/v1/terms (list) in `backend/tests/contract/terms.list.test.ts`: validate pagination params, response schema, 200 status
+- [ ] **T018** [P] Contract test for public GET /api/v1/terms (list) in `backend/tests/contract/public.terms.list.test.ts`: validate pagination params, response schema, 200 status
 
-- [ ] **T019** [P] Contract test for POST /api/v1/terms in `backend/tests/contract/terms.create.test.ts`: validate request body schema, 201 response with created term
+- [ ] **T019** [P] Contract test for public GET /api/v1/terms/:id in `backend/tests/contract/public.terms.get.test.ts`: validate term response schema, 404 for missing term
 
-- [ ] **T020** [P] Contract test for GET /api/v1/terms/:id in `backend/tests/contract/terms.get.test.ts`: validate term response schema, 404 for missing term
+- [ ] **T020** [P] Contract test for admin POST /api/v1/terms in `backend/tests/contract/admin.terms.create.test.ts`: validate request body schema, 201 response with created term
 
-- [ ] **T021** [P] Contract test for PUT /api/v1/terms/:id in `backend/tests/contract/terms.update.test.ts`: validate update request, version conflict detection, 200 response
+- [ ] **T021** [P] Contract test for admin PUT /api/v1/terms/:id in `backend/tests/contract/admin.terms.update.test.ts`: validate update request, version conflict detection, 200 response
 
-- [ ] **T022** [P] Contract test for DELETE /api/v1/terms/:id in `backend/tests/contract/terms.delete.test.ts`: validate deletion, dependency warning response
+- [ ] **T022** [P] Contract test for admin DELETE /api/v1/terms/:id in `backend/tests/contract/admin.terms.delete.test.ts`: validate deletion, dependency warning response
 
-- [ ] **T023** [P] Contract test for POST /api/v1/relationships in `backend/tests/contract/relationships.create.test.ts`: validate relationship creation, reciprocal type generation
+- [ ] **T023** [P] Contract test for admin POST /api/v1/relationships in `backend/tests/contract/admin.relationships.create.test.ts`: validate relationship creation, reciprocal type generation
 
-- [ ] **T024** [P] Contract test for GET /api/v1/relationships/:termId in `backend/tests/contract/relationships.get.test.ts`: validate relationship queries by term
+- [ ] **T024** [P] Contract test for public GET /api/v1/relationships/:termId in `backend/tests/contract/public.relationships.get.test.ts`: validate relationship queries by term
 
-- [ ] **T025** [P] Contract test for POST /api/v1/notes in `backend/tests/contract/notes.create.test.ts`: validate note creation with type validation
+- [ ] **T025** [P] Contract test for admin POST /api/v1/notes in `backend/tests/contract/admin.notes.create.test.ts`: validate note creation with type validation
 
-- [ ] **T026** [P] Contract test for GET /api/v1/search in `backend/tests/contract/search.test.ts`: validate search query params, pagination, response format
+- [ ] **T026** [P] Contract test for public GET /api/v1/search in `backend/tests/contract/public.search.test.ts`: validate search query params, pagination, response format
 
-- [ ] **T027** [P] Contract test for GET /api/v1/export/csv in `backend/tests/contract/export.test.ts`: validate export query params, CSV response format
+- [ ] **T027** [P] Contract test for public GET /api/v1/export/csv in `backend/tests/contract/public.export.test.ts`: validate export query params, CSV response format
 
-- [ ] **T028** [P] Contract test for POST /api/v1/auth/google in `backend/tests/contract/auth.test.ts`: validate OAuth callback, JWT response
-
-- [ ] **T029** [P] Contract test for GET /api/v1/admin/dashboard in `backend/tests/contract/admin.test.ts`: validate admin-only access, statistics response
+- [ ] **T028** [P] Contract test for admin GET /api/v1/admin/dashboard in `backend/tests/contract/admin.dashboard.test.ts`: validate access control, statistics response
 
 ### Integration Tests (Acceptance Scenarios)
 
@@ -114,17 +112,15 @@ Based on plan.md project structure:
 
 - [ ] **T034** [P] Integration test for Acceptance Scenario 5 in `backend/tests/integration/scenario-05-notes.test.ts`: View term with multiple note types → Verify all note types organized and presented clearly
 
-- [ ] **T035** [P] Integration test for Acceptance Scenario 6 in `backend/tests/integration/scenario-06-admin.test.ts`: Admin access to admin interface → Verify user role management, permissions, and analytics dashboard
+- [ ] **T035** [P] Integration test for Acceptance Scenario 6 in `backend/tests/integration/scenario-06-admin.test.ts`: Admin access to admin interface → Verify analytics dashboard and data management capabilities
 
 - [ ] **T036** [P] Integration test for Acceptance Scenario 7 in `backend/tests/integration/scenario-07-export.test.ts`: Request data export → Verify CSV file generation with proper encoding and formatting
 
-- [ ] **T037** [P] Integration test for Acceptance Scenario 8 in `backend/tests/integration/scenario-08-auth.test.ts`: New user authentication via Google OAuth → Verify secure authentication and role-appropriate permissions
+- [ ] **T037** [P] Integration test for Acceptance Scenario 8 in `backend/tests/integration/scenario-08-public-access.test.ts`: Public user accesses read-only interface → Verify data presentation and search capabilities
 
-- [ ] **T038** [P] Integration test for Acceptance Scenario 9 in `backend/tests/integration/scenario-09-care-principles.test.ts`: Community leader contributes traditional knowledge → Verify proper attribution and cultural sensitivity
+- [ ] **T038** [P] Integration test for Acceptance Scenario 9 in `backend/tests/integration/scenario-09-care-principles.test.ts`: Data entry with traditional knowledge → Verify proper attribution fields and cultural sensitivity guidelines
 
-- [ ] **T039** [P] Integration test for Acceptance Scenario 10 in `backend/tests/integration/scenario-10-api-access.test.ts`: External system requests data via API → Verify secure access based on authentication and permissions
-
-- [ ] **T040** [P] Integration test for Acceptance Scenario 11 in `backend/tests/integration/scenario-11-student-access.test.ts`: Graduate student accesses terminology sets → Verify educational access with guidance features
+- [ ] **T039** [P] Integration test for Acceptance Scenario 10 in `backend/tests/integration/scenario-10-api-access.test.ts`: External system requests data via public API → Verify read-only access and data retrieval
 
 ---
 
@@ -142,11 +138,9 @@ Based on plan.md project structure:
 
 - [ ] **T045** [P] Implement Relationship model in `backend/src/models/Relationship.ts`: Mongoose schema with sourceTermId ref (required), targetTermId ref (required), type enum (USE, UF, BT, NT, BTG, NTG, BTP, NTP, BTI, NTI, RT), reciprocalType (computed), isReciprocal boolean, timestamps, validatedAt, compound indexes on (sourceTermId, type), (targetTermId, type)
 
-- [ ] **T046** [P] Implement AuditLog model in `backend/src/models/AuditLog.ts`: Mongoose schema with entityType (Term/Note/Relationship), entityId ref, action enum (create, update, delete), changes object, userId ref, timestamp, indexes on entityId and userId
+- [ ] **T046** [P] Implement AuditLog model in `backend/src/models/AuditLog.ts`: Mongoose schema with entityType (Term/Note/Relationship), entityId ref, action enum (create, update, delete), changes object, timestamp, metadata object, indexes on entityId and timestamp
 
-- [ ] **T047** [P] Implement User model in `backend/src/models/User.ts`: Mongoose schema with googleId (unique), email, name, role enum (admin, researcher, student, community_leader), permissions object, timestamps
-
-- [ ] **T048** Update MongoDB index creation script `backend/scripts/create-indexes.ts`: programmatically create all indexes defined in models, connection and error handling
+- [ ] **T047** Update MongoDB index creation script `backend/scripts/create-indexes.ts`: programmatically create all indexes defined in models (including text search indexes), connection and error handling
 
 ---
 
@@ -166,13 +160,11 @@ Based on plan.md project structure:
 
 - [ ] **T054** Create CollectionService in `backend/src/services/CollectionService.ts`: CRUD for collections, manage term-collection associations, query terms by collection
 
-- [ ] **T055** Create SearchService in `backend/src/services/SearchService.ts`: sync term data to Meilisearch (async via event), delete from index, perform search with filters (collections, relationship types), return results with relevance ranking
+- [ ] **T055** Create SearchService in `backend/src/services/SearchService.ts`: perform MongoDB text search with filters (collections, relationship types), return results with relevance ranking, support multilingual search
 
 - [ ] **T056** Create ExportService in `backend/src/services/ExportService.ts`: export terms to CSV with UTF-8 encoding, Z39.19 standard columns (term_id, preferred_name, language, alternate_names, scope_note, definition, broader_terms, narrower_terms, related_terms, use_for, collections, sources, timestamps), pipe-separated relationships
 
-- [ ] **T057** Create AuthService in `backend/src/services/AuthService.ts`: Google OAuth callback handling, user creation/update, JWT generation (24h expiration), JWT verification, role-based permission checking
-
-- [ ] **T058** Create DashboardService in `backend/src/services/DashboardService.ts`: aggregate statistics (term counts by status, relationship type distribution, collection sizes, user activity), query recent changes from audit log
+- [ ] **T057** Create DashboardService in `backend/src/services/DashboardService.ts`: aggregate statistics (term counts by status, relationship type distribution, collection sizes), query recent changes from audit log
 
 ---
 
@@ -180,61 +172,67 @@ Based on plan.md project structure:
 
 **Goal**: Implement cross-cutting concerns (auth, validation, error handling)
 
-- [ ] **T059** [P] Create authentication middleware in `backend/src/api/middleware/auth.ts`: verify JWT from cookie/header, attach user to request, handle missing/invalid tokens with 401
+- [ ] **T058** [P] Create admin access control middleware in `backend/src/api/middleware/adminAuth.ts`: verify API key or basic auth for admin API, handle unauthorized access with 401
 
-- [ ] **T060** [P] Create authorization middleware in `backend/src/api/middleware/authorize.ts`: check user role against required roles, handle insufficient permissions with 403, special handling for private notes (author + admin only)
+- [ ] **T059** [P] Create validation middleware in `backend/src/api/middleware/validate.ts`: JSON Schema validation for request bodies, query params, path params using Fastify's built-in validator
 
-- [ ] **T061** [P] Create validation middleware in `backend/src/api/middleware/validate.ts`: JSON Schema validation for request bodies, query params, path params using Fastify's built-in validator
+- [ ] **T060** [P] Create error handling middleware in `backend/src/api/middleware/errorHandler.ts`: catch all errors, format error responses, log errors, distinguish between operational (4xx) and programmer (5xx) errors
 
-- [ ] **T062** [P] Create error handling middleware in `backend/src/api/middleware/errorHandler.ts`: catch all errors, format error responses, log errors, distinguish between operational (4xx) and programmer (5xx) errors
+- [ ] **T061** [P] Create rate limiting middleware in `backend/src/api/middleware/rateLimit.ts`: implement 100 requests/minute per IP, use in-memory store (Redis future enhancement), return 429 on limit exceeded
 
-- [ ] **T063** [P] Create rate limiting middleware in `backend/src/api/middleware/rateLimit.ts`: implement 100 requests/minute per user, use in-memory store (Redis future enhancement), return 429 on limit exceeded
-
-- [ ] **T064** [P] Create audit logging middleware in `backend/src/api/middleware/auditLog.ts`: intercept write operations (POST/PUT/DELETE), extract changes, create audit log entries asynchronously
+- [ ] **T062** [P] Create audit logging middleware in `backend/src/api/middleware/auditLog.ts`: intercept write operations (POST/PUT/DELETE) on admin API, extract changes, create audit log entries asynchronously
 
 ---
 
 ## Phase 3.6: API Routes & Controllers
 
-**Goal**: Implement REST endpoints to satisfy contract tests
+**Goal**: Implement REST endpoints to satisfy contract tests (public + admin APIs)
 
-- [ ] **T065** Create terms router in `backend/src/api/routes/terms.ts`: register routes (GET /terms, POST /terms, GET /terms/:id, PUT /terms/:id, DELETE /terms/:id), apply auth and validation middleware
+### Public API (Read-Only)
 
-- [ ] **T066** Create terms controller in `backend/src/api/controllers/TermsController.ts`: listTerms (pagination, filtering), createTerm (validate, call TermService, trigger Meilisearch sync), getTerm, updateTerm (optimistic locking, conflict handling), deleteTerm (check dependencies, warn if needed)
+- [ ] **T063** Create public terms router in `backend/src/api/public/terms.ts`: register read-only routes (GET /terms, GET /terms/:id), apply validation and rate limiting middleware
 
-- [ ] **T067** Create relationships router in `backend/src/api/routes/relationships.ts`: register routes (POST /relationships, GET /relationships/:termId, DELETE /relationships/:id)
+- [ ] **T064** Create public terms controller in `backend/src/api/controllers/PublicTermsController.ts`: listTerms (pagination, filtering), getTerm
 
-- [ ] **T068** Create relationships controller in `backend/src/api/controllers/RelationshipsController.ts`: createRelationship (validate, generate reciprocal, call RelationshipService), getRelationshipsByTerm, deleteRelationship (remove reciprocal)
+- [ ] **T065** Create public relationships router in `backend/src/api/public/relationships.ts`: register route (GET /relationships/:termId)
 
-- [ ] **T069** Create notes router in `backend/src/api/routes/notes.ts`: register routes (POST /notes, GET /notes/:termId, PUT /notes/:id, DELETE /notes/:id)
+- [ ] **T066** Create public relationships controller in `backend/src/api/controllers/PublicRelationshipsController.ts`: getRelationshipsByTerm
 
-- [ ] **T070** Create notes controller in `backend/src/api/controllers/NotesController.ts`: createNote, getNotesByTerm (filter by type, check private note permissions), updateNote, deleteNote
+### Admin API (Full CRUD)
 
-- [ ] **T071** Create sources router in `backend/src/api/routes/sources.ts`: register routes (POST /sources, GET /sources, GET /sources/:id, PUT /sources/:id, DELETE /sources/:id)
+- [ ] **T067** Create admin terms router in `backend/src/api/admin/terms.ts`: register CRUD routes (POST /terms, PUT /terms/:id, DELETE /terms/:id), apply admin auth, validation and audit logging middleware
 
-- [ ] **T072** Create sources controller in `backend/src/api/controllers/SourcesController.ts`: CRUD operations, check source usage before deletion
+- [ ] **T068** Create admin terms controller in `backend/src/api/controllers/AdminTermsController.ts`: createTerm (validate, call TermService), updateTerm (optimistic locking, conflict handling), deleteTerm (check dependencies, warn if needed)
 
-- [ ] **T073** Create collections router in `backend/src/api/routes/collections.ts`: register routes (POST /collections, GET /collections, GET /collections/:id, PUT /collections/:id, DELETE /collections/:id)
+- [ ] **T069** Create admin relationships router in `backend/src/api/admin/relationships.ts`: register routes (POST /relationships, DELETE /relationships/:id)
 
-- [ ] **T074** Create collections controller in `backend/src/api/controllers/CollectionsController.ts`: CRUD operations, get terms by collection
+- [ ] **T070** Create admin relationships controller in `backend/src/api/controllers/AdminRelationshipsController.ts`: createRelationship (validate, generate reciprocal, call RelationshipService), deleteRelationship (remove reciprocal)
 
-- [ ] **T075** Create search router in `backend/src/api/routes/search.ts`: register route (GET /search)
+- [ ] **T071** Create admin notes router in `backend/src/api/admin/notes.ts`: register routes (POST /notes, PUT /notes/:id, DELETE /notes/:id), apply admin auth
 
-- [ ] **T076** Create search controller in `backend/src/api/controllers/SearchController.ts`: search terms using SearchService, apply pagination, filter by collections/types, return enriched results with relationship counts
+- [ ] **T072** Create admin notes controller in `backend/src/api/controllers/AdminNotesController.ts`: createNote, updateNote, deleteNote
 
-- [ ] **T077** Create export router in `backend/src/api/routes/export.ts`: register routes (GET /export/csv, future: GET /export/skos, GET /export/rdf)
+- [ ] **T073** Create admin sources router in `backend/src/api/admin/sources.ts`: register CRUD routes, apply admin auth
 
-- [ ] **T078** Create export controller in `backend/src/api/controllers/ExportController.ts`: exportCSV (query terms with filters, call ExportService, stream CSV response with proper headers), track export in audit log
+- [ ] **T074** Create admin sources controller in `backend/src/api/controllers/AdminSourcesController.ts`: CRUD operations, check source usage before deletion
 
-- [ ] **T079** Create auth router in `backend/src/api/routes/auth.ts`: register routes (GET /auth/google, GET /auth/google/callback, POST /auth/logout, GET /auth/me)
+- [ ] **T075** Create admin collections router in `backend/src/api/admin/collections.ts`: register CRUD routes, apply admin auth
 
-- [ ] **T080** Create auth controller in `backend/src/api/controllers/AuthController.ts`: initiate Google OAuth, handle callback (call AuthService, set JWT cookie), logout (clear cookie), getCurrentUser
+- [ ] **T076** Create admin collections controller in `backend/src/api/controllers/AdminCollectionsController.ts`: CRUD operations, get terms by collection
 
-- [ ] **T081** Create admin router in `backend/src/api/routes/admin.ts`: register routes (GET /admin/dashboard, PUT /admin/users/:id/role, GET /admin/audit-logs)
+- [ ] **T077** Create public search router in `backend/src/api/public/search.ts`: register route (GET /search)
 
-- [ ] **T082** Create admin controller in `backend/src/api/controllers/AdminController.ts`: getDashboard (call DashboardService), updateUserRole (admin only), getAuditLogs (pagination, filtering)
+- [ ] **T078** Create public search controller in `backend/src/api/controllers/PublicSearchController.ts`: search terms using SearchService (MongoDB text search), apply pagination, filter by collections/types, return enriched results with relationship counts
 
-- [ ] **T083** Register all routers in `backend/src/server.ts`: terms, relationships, notes, sources, collections, search, export, auth, admin under /api/v1 prefix
+- [ ] **T079** Create public export router in `backend/src/api/public/export.ts`: register routes (GET /export/csv, future: GET /export/skos, GET /export/rdf)
+
+- [ ] **T080** Create public export controller in `backend/src/api/controllers/PublicExportController.ts`: exportCSV (query terms with filters, call ExportService, stream CSV response with proper headers)
+
+- [ ] **T081** Create admin dashboard router in `backend/src/api/admin/dashboard.ts`: register routes (GET /admin/dashboard, GET /admin/audit-logs), apply admin auth
+
+- [ ] **T082** Create admin dashboard controller in `backend/src/api/controllers/AdminDashboardController.ts`: getDashboard (call DashboardService), getAuditLogs (pagination, filtering)
+
+- [ ] **T083** Register all routers in public and admin servers: `backend/src/server-public.ts` (terms, relationships, search, export) and `backend/src/server-admin.ts` (terms, relationships, notes, sources, collections, dashboard) under /api/v1 prefix
 
 ---
 
@@ -244,9 +242,9 @@ Based on plan.md project structure:
 
 ### Core Components (Term Management)
 
-- [ ] **T084** [P] Create API client in `frontend/src/services/api.ts`: Axios instance with base URL, JWT token interceptor, error handling, typed methods for all endpoints
+- [ ] **T084** [P] Create public API client in `frontend/public/services/api.ts`: Axios instance with public API base URL (port 3000), error handling, typed methods for read-only endpoints
 
-- [ ] **T085** [P] Create auth context in `frontend/src/services/AuthContext.tsx`: React Context for current user, login/logout functions, role checking helpers, persist JWT
+- [ ] **T085** [P] Create admin API client in `frontend/admin/services/api.ts`: Axios instance with admin API base URL (port 3001), API key/basic auth interceptor, error handling, typed methods for all CRUD endpoints
 
 - [ ] **T086** [P] Create TermCard component in `frontend/src/components/term/TermCard.tsx`: display term summary (prefLabel, altLabels, definition snippet), show relationship counts, click handler for details
 
@@ -316,13 +314,13 @@ Based on plan.md project structure:
 
 **Goal**: Complete end-to-end functionality and optimize performance
 
-- [ ] **T111** Create Meilisearch sync handler in `backend/src/lib/meilisearch/sync.ts`: listen for term change events, update Meilisearch index asynchronously, handle sync failures with retry logic, log sync status
+- [ ] **T111** Optimize MongoDB text search indexes in `backend/src/lib/search/optimize.ts`: analyze query patterns, add compound indexes for common filters, configure index weights for relevance tuning
 
 - [ ] **T112** Implement conflict resolution in `backend/src/services/TermService.ts` updateTerm method: detect version mismatch, attempt three-way merge for disjoint fields, log conflicts, notify admin on merge failure
 
 - [ ] **T113** Add comprehensive logging in `backend/src/lib/logger.ts`: Winston or Pino logger, structured JSON logs, log levels (debug, info, warn, error), include request IDs, sanitize sensitive data
 
-- [ ] **T114** Implement CARE Principles features: Add attribution fields to User model, create consent workflow for traditional knowledge contributions in `backend/src/services/CareService.ts`, add cultural sensitivity warnings to admin interface
+- [ ] **T114** Implement CARE Principles features: Ensure attribution fields in Source model, add cultural sensitivity guidelines to admin interface documentation, create export acknowledgment templates
 
 - [ ] **T115** Create database seed script in `backend/scripts/seed.ts`: populate with sample terms, relationships, sources, collections for testing and demonstration
 

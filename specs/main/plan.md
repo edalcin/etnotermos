@@ -34,19 +34,20 @@
 
 ## Summary
 
-EtnoTermos is a comprehensive ethnobotanical terminology management system designed for researchers, students, and traditional community leaders. The system provides structured vocabulary management following ANSI/NISO Z39.19-2005 standards, supporting up to 200,000 terms with complex many-to-many relationships, six note types, and interactive graph visualization. Core capabilities include CRUD operations, advanced search, CSV export (with future SKOS/RDF support), REST API access, and culturally sensitive workflows adhering to CARE Principles for Indigenous Data Governance. Authentication via Google OAuth with role-based permissions ensures secure, collaborative knowledge building.
+EtnoTermos is a comprehensive ethnobotanical terminology management system designed for researchers, students, and traditional community leaders. The system provides structured vocabulary management following ANSI/NISO Z39.19-2005 standards, supporting up to 200,000 terms with complex many-to-many relationships, six note types, and interactive graph visualization. Core capabilities include CRUD operations, advanced search via MongoDB text indexes, CSV export (with future SKOS/RDF support), and REST API access. The system features a dual-port architecture: a public interface for data presentation and search (no authentication required), and a separate admin interface for data entry and curation (protected by access control).
 
 ## Technical Context
 
 **Language/Version**: Node.js 18+ (backend), React 18+ (frontend)
-**Primary Dependencies**: Express.js/Fastify for REST API, MongoDB driver, Meilisearch client, Passport.js (Google OAuth), D3.js/Cytoscape.js (graph visualization)
-**Storage**: MongoDB (primary data store), Meilisearch (search index)
+**Primary Dependencies**: Fastify for REST API, MongoDB driver with Mongoose ODM, Cytoscape.js (graph visualization)
+**Storage**: MongoDB (primary data store with text search indexes)
 **Testing**: Jest (unit/integration), Supertest (API), React Testing Library (frontend)
 **Target Platform**: Docker containers, GitHub Actions deployment, Linux server
 **Project Type**: web (frontend + backend)
+**Architecture**: Dual-port system - Public interface (port 3000, read-only) + Admin interface (port 3001, full CRUD)
 **Performance Goals**: Support 200,000 terms, <500ms search response, handle 5-10 concurrent users, graph rendering for networks up to 1000 visible nodes
 **Constraints**: Small concurrent user base ("almost never" simultaneous edits), conflict resolution via merge-and-notify, Docker-based deployment
-**Scale/Scope**: ~200,000 terms, 6 note types per term, many-to-many relationships, 4 user roles (admin, researcher, student, community leader), REST API with documentation, CSV export (SKOS/RDF/Dublin Core in future phases)
+**Scale/Scope**: ~200,000 terms, 6 note types per term, many-to-many relationships, REST API with documentation, CSV export (SKOS/RDF/Dublin Core in future phases)
 
 ## Constitution Check
 
@@ -88,14 +89,15 @@ specs/[###-feature]/
 ```
 backend/
 ├── src/
-│   ├── models/           # MongoDB schemas (Term, Note, Relationship, Source, Collection, AuditLog, User)
-│   ├── services/         # Business logic (term service, relationship service, search service, auth service)
+│   ├── models/           # MongoDB schemas (Term, Note, Relationship, Source, Collection, AuditLog)
+│   ├── services/         # Business logic (term service, relationship service, search service)
 │   ├── api/
-│   │   ├── routes/       # Express/Fastify route handlers
-│   │   ├── middleware/   # Auth, validation, error handling
+│   │   ├── public/       # Public API routes (read-only, port 3000)
+│   │   ├── admin/        # Admin API routes (full CRUD, port 3001)
+│   │   ├── middleware/   # Validation, error handling, rate limiting
 │   │   └── controllers/  # Request/response handling
 │   ├── lib/
-│   │   ├── meilisearch/  # Search index management
+│   │   ├── search/       # MongoDB text search utilities
 │   │   ├── export/       # CSV/SKOS/RDF exporters
 │   │   └── validation/   # Z39.19 compliance validators
 │   └── config/           # Configuration management
@@ -107,33 +109,41 @@ backend/
     └── openapi.yaml      # REST API specification
 
 frontend/
-├── src/
+├── public/               # Public-facing application (read-only)
 │   ├── components/
-│   │   ├── term/         # Term CRUD components
-│   │   ├── graph/        # D3/Cytoscape graph visualization
+│   │   ├── term/         # Term display components
+│   │   ├── graph/        # Cytoscape graph visualization
 │   │   ├── search/       # Search interface
-│   │   ├── admin/        # Admin dashboard
 │   │   └── common/       # Shared UI components
-│   ├── pages/            # Route-level pages
-│   ├── services/         # API client, auth context
-│   ├── hooks/            # Custom React hooks
-│   └── utils/            # Helper functions
+│   ├── pages/            # Public pages (Home, Search, Term Detail, Graph)
+│   ├── services/         # Public API client
+│   └── hooks/            # Custom React hooks
+├── admin/                # Admin application (full CRUD)
+│   ├── components/
+│   │   ├── term/         # Term CRUD forms
+│   │   ├── dashboard/    # Admin dashboard
+│   │   └── common/       # Shared admin UI components
+│   ├── pages/            # Admin pages (Dashboard, Term Management, Export)
+│   ├── services/         # Admin API client
+│   └── hooks/            # Admin-specific hooks
 ├── tests/
 │   ├── integration/      # E2E tests with API
 │   └── unit/             # Component tests
-└── public/               # Static assets
+└── shared/               # Shared assets and utilities
 
 docker/
-├── backend.Dockerfile
-├── frontend.Dockerfile
-└── docker-compose.yml    # Local dev + MongoDB + Meilisearch
+├── backend-public.Dockerfile
+├── backend-admin.Dockerfile
+├── frontend-public.Dockerfile
+├── frontend-admin.Dockerfile
+└── docker-compose.yml    # Local dev + MongoDB
 
 .github/
 └── workflows/
     └── deploy.yml        # GitHub Actions deployment
 ```
 
-**Structure Decision**: Web application architecture with separate backend (Node.js REST API) and frontend (React SPA). Backend handles all data operations, search indexing, exports, and Google OAuth. Frontend provides CRUD interface, graph visualization, and admin dashboard. Docker Compose orchestrates all services (app, MongoDB, Meilisearch) for consistent deployment.
+**Structure Decision**: Web application architecture with dual-port backend (Node.js REST API) and dual frontend (React SPAs). Backend provides separate APIs for public access (read-only, port 3000) and admin access (full CRUD, port 3001). Frontend consists of two independent React applications: public interface for data presentation/search and admin interface for data management. Docker Compose orchestrates all services (public backend/frontend, admin backend/frontend, MongoDB) for consistent deployment.
 
 ## Phase 0: Outline & Research
 
@@ -202,20 +212,20 @@ The /tasks command will:
 
 1. Load `.specify/templates/tasks-template.md` as base structure
 2. Parse Phase 1 artifacts to generate tasks:
-   - **From contracts/openapi.yaml**: Extract all endpoints → generate contract test tasks for each endpoint
-   - **From data-model.md**: Extract 6 entities (Term, Note, Relationship, Source, Collection, AuditLog, User) → generate Mongoose schema tasks
-   - **From spec.md acceptance scenarios**: Extract 11 scenarios → generate integration test tasks
+   - **From contracts/openapi.yaml**: Extract all endpoints (public + admin) → generate contract test tasks for each endpoint
+   - **From data-model.md**: Extract 6 entities (Term, Note, Relationship, Source, Collection, AuditLog) → generate Mongoose schema tasks
+   - **From spec.md acceptance scenarios**: Extract acceptance scenarios → generate integration test tasks
    - **From functional requirements**: FR-001 through FR-032 → generate validation middleware tasks
 
 3. Task categorization:
-   - **Infrastructure** [P]: Docker setup, MongoDB indexes, Meilisearch configuration
-   - **Contract Tests** [P]: One test per endpoint category (terms, relationships, notes, sources, collections, auth, admin)
+   - **Infrastructure** [P]: Docker setup (public + admin services), MongoDB indexes and text search configuration
+   - **Contract Tests** [P]: One test per endpoint category (public: terms read, search, export; admin: terms CRUD, relationships, notes, sources, collections)
    - **Models** [P]: Mongoose schemas with Z39.19 validation rules
-   - **Services**: Business logic with Z39.19 compliance (term service, relationship service, search sync, auth service, export service)
-   - **API Middleware** [P]: Auth middleware, validation middleware, error handling, rate limiting
-   - **API Routes**: Controller implementation to satisfy contract tests
-   - **Frontend Components** [P]: Term CRUD, graph visualization, search, admin dashboard
-   - **Integration Tests**: Map to 11 acceptance scenarios
+   - **Services**: Business logic with Z39.19 compliance (term service, relationship service, search service, export service)
+   - **API Middleware** [P]: Validation middleware, error handling, rate limiting, basic access control for admin
+   - **API Routes**: Public routes (read-only) + Admin routes (full CRUD) to satisfy contract tests
+   - **Frontend Components** [P]: Public: term display, graph visualization, search; Admin: term CRUD forms, dashboard, data management
+   - **Integration Tests**: Map to acceptance scenarios
    - **Documentation**: API docs generation, quickstart validation
 
 **Ordering Strategy**:
@@ -225,38 +235,44 @@ The /tasks command will:
    - Phase B: Models + Model unit tests [P after Phase A]
    - Phase C: Services + Service unit tests (depend on models)
    - Phase D: Middleware + Middleware tests [P after Phase B]
-   - Phase E: Routes + Make contract tests pass (depend on services + middleware)
-   - Phase F: Frontend components + Component tests [P after Phase E for API integration]
+   - Phase E: Public API Routes + Admin API Routes (depend on services + middleware) [P]
+   - Phase F: Public Frontend + Admin Frontend [P after Phase E for API integration]
    - Phase G: Integration tests (depend on full backend + frontend)
    - Phase H: Documentation + Deployment
 
 2. **Parallelization markers**:
    - [P]: Tasks within same phase that don't share files/dependencies
    - Example: All 6 model schemas can be implemented in parallel
-   - Example: All middleware (auth, validation, rate-limit, error) can be parallel
+   - Example: All middleware (validation, rate-limit, error, access control) can be parallel
+   - Example: Public API and Admin API routes can be developed in parallel
+   - Example: Public frontend and Admin frontend can be developed in parallel
 
 3. **Dependency chains** (sequential):
-   - MongoDB indexes → Models
+   - MongoDB indexes and text search config → Models
    - Models → Services
-   - Services + Middleware → Routes
-   - Routes → Frontend
-   - Frontend → Integration tests
+   - Services + Middleware → Public Routes + Admin Routes
+   - Public Routes → Public Frontend
+   - Admin Routes → Admin Frontend
+   - Both Frontends → Integration tests
 
 **Estimated Output**:
-- ~50-60 numbered, dependency-ordered tasks in tasks.md
-- Breakdown: 5 infrastructure, 8 contract tests, 7 models (6 entities + User), 10 services, 6 middleware, 15 routes, 12 frontend components, 11 integration tests, 3 documentation
+- ~55-65 numbered, dependency-ordered tasks in tasks.md
+- Breakdown: 6 infrastructure (dual services), 10 contract tests (public + admin), 6 models (entities), 8 services, 5 middleware, 18 routes (public + admin), 14 frontend components (public + admin), integration tests, 3 documentation
 
 **Key Task Examples**:
-- Task 1: Setup Docker Compose with MongoDB + Meilisearch [P]
-- Task 2: Create MongoDB index creation script [P]
-- Task 3: Write contract test for GET /api/v1/terms [P]
-- Task 10: Implement Term Mongoose schema with Z39.19 validation [P]
-- Task 20: Implement TermService with relationship reciprocity logic
-- Task 30: Implement auth middleware with JWT validation [P]
-- Task 40: Implement POST /api/v1/terms route (satisfies Task 3 contract)
-- Task 50: Implement TermList React component with pagination [P]
-- Task 55: Implement Cytoscape graph visualization component [P]
-- Task 60: Integration test for acceptance scenario 1 (create term with sources)
+- Task 1: Setup Docker Compose with dual backend/frontend services + MongoDB [P]
+- Task 2: Create MongoDB text search index configuration script [P]
+- Task 3: Write contract test for public GET /api/v1/terms [P]
+- Task 4: Write contract test for admin POST /api/v1/terms [P]
+- Task 12: Implement Term Mongoose schema with Z39.19 validation [P]
+- Task 22: Implement TermService with relationship reciprocity logic
+- Task 30: Implement validation middleware [P]
+- Task 35: Implement public GET /api/v1/terms route (read-only)
+- Task 40: Implement admin POST /api/v1/terms route (CRUD)
+- Task 50: Implement public TermList React component [P]
+- Task 55: Implement admin TermForm React component [P]
+- Task 60: Implement Cytoscape graph visualization component [P]
+- Task 70: Integration test for full CRUD workflow
 
 **IMPORTANT**: This phase is executed by the /tasks command, NOT by /plan
 
