@@ -3,6 +3,8 @@
 Auto-generated from all feature plans. Last updated: 2025-09-28
 
 ## Active Technologies
+- Node.js 18+ (backend), React 18+ (frontend) + Express.js/Fastify for REST API, MongoDB driver, Meilisearch client, Passport.js (Google OAuth), D3.js/Cytoscape.js (graph visualization) (main)
+- MongoDB (primary data store), Meilisearch (search index) (main)
 
 - Node.js 18+ for backend, React 18+ for frontend + Express.js/Fastify for API, MongoDB for storage, Meilisearch for search, Google OAuth for auth (main)
 
@@ -23,6 +25,7 @@ tests/
 Node.js 18+ for backend, React 18+ for frontend: Follow standard conventions
 
 ## Recent Changes
+- main: Added Node.js 18+ (backend), React 18+ (frontend) + Express.js/Fastify for REST API, MongoDB driver, Meilisearch client, Passport.js (Google OAuth), D3.js/Cytoscape.js (graph visualization)
 
 - main: Added Node.js 18+ for backend, React 18+ for frontend + Express.js/Fastify for API, MongoDB for storage, Meilisearch for search, Google OAuth for auth
 
