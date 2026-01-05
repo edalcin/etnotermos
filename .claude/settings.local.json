@@ -10,7 +10,8 @@
       "Bash(git ls-tree:*)",
       "Bash(git commit:*)",
       "Bash(git mv:*)",
-      "Bash(git branch:*)"
+      "Bash(git branch:*)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []
