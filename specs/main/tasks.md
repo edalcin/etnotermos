@@ -6,7 +6,17 @@
 **Prerequisites**: plan.md, research.md, data-model.md, contracts/openapi.yaml
 
 **Generated**: 2026-01-05
+**Updated**: 2026-01-06 (etnoDB integration)
 **Status**: Ready for execution
+
+## etnoDB Integration
+
+**CRITICAL**: This system is visually and functionally integrated with etnoDB:
+- **Shared Database**: MongoDB "etnodb" (collection "etnotermos")
+- **Visual Identity**: Must match etnoDB's "forest" theme colors, fonts, and components exactly
+- **Technology Stack**: HTMX + Alpine.js + Tailwind CSS + EJS (matching etnoDB)
+- **Ports**: 4000 (public), 4001 (admin) - avoiding etnoDB's 3001/3002/3003
+- **Controlled Vocabulary**: Manages terms for etnoDB fields (comunidades.tipo, plantas.tipoUso)
 
 ---
 
@@ -24,49 +34,52 @@ This task list follows Test-Driven Development (TDD) principles:
 
 ## Path Conventions
 
-Based on plan.md project structure:
+Based on plan.md project structure (etnoDB-compatible):
 - Backend: `backend/src/`, `backend/tests/`
-- Frontend: `frontend/src/`, `frontend/tests/`
+- Contexts: `backend/src/contexts/{public,admin}/`
+- Views: `backend/src/contexts/{public,admin}/views/` (EJS templates)
+- Frontend: `frontend/src/` (Tailwind CSS assets only)
+- Shared Styles: `frontend/src/shared/styles/` (forest theme)
 - Docker: `docker/`
-- Contracts: `backend/docs/openapi.yaml`
+- Config: `tailwind.config.js` (forest theme)
 
 ---
 
 ## Phase 3.1: Infrastructure & Setup
 
-**Goal**: Establish project structure, dependencies, and development environment
+**Goal**: Establish project structure, dependencies, and development environment (etnoDB-compatible)
 
-- [ ] **T001** [P] Create backend directory structure: `backend/src/{models,services,api/{public,admin,controllers,middleware},lib/{search,export,validation},config}` and `backend/tests/{contract,integration,unit}`
+- [ ] **T001** [P] Create backend directory structure: `backend/src/{contexts/{public,admin},models,services,lib/{search,export,validation},shared,config}` and `backend/tests/{integration,unit}`
 
-- [ ] **T002** [P] Initialize backend Node.js 18+ project with TypeScript, create `backend/package.json` with dependencies: fastify, @fastify/cors, @fastify/helmet, mongoose, jest, supertest, mongodb-memory-server, ts-node, typescript
+- [ ] **T002** [P] Initialize backend Node.js 20 LTS project, create `backend/package.json` with dependencies: express, ejs, mongodb (official driver), cors, helmet, dotenv, jest, supertest, mongodb-memory-server
 
-- [ ] **T003** [P] Configure TypeScript for backend: create `backend/tsconfig.json` with strict mode, ES2022 target, commonjs module, paths for clean imports
+- [ ] **T003** [P] Create frontend directory structure: `frontend/src/{public/styles,admin/styles,shared/styles}`
 
-- [ ] **T004** [P] Create frontend directory structure: `frontend/{public/{components,pages,services,hooks},admin/{components,pages,services,hooks},shared,tests/{integration,unit}}`
+- [ ] **T004** [P] Initialize frontend with Tailwind CSS, create `frontend/package.json` with dependencies: tailwindcss, postcss, autoprefixer, tailwindcss-cli
 
-- [ ] **T005** [P] Initialize frontend React 18+ project with TypeScript using Vite, create `frontend/package.json` with dependencies: react, react-dom, react-router-dom, cytoscape, axios, @tanstack/react-query, jest, @testing-library/react, @testing-library/jest-dom, vitest
+- [ ] **T005** [P] Create Tailwind configuration in `tailwind.config.js`: define "forest" color theme matching etnoDB (forest-50 to forest-900), configure content paths for EJS templates
 
-- [ ] **T006** [P] Configure TypeScript for frontend: create `frontend/tsconfig.json` with React JSX support, ES2022 target, paths for clean imports
+- [ ] **T006** [P] Create main Tailwind CSS file in `frontend/src/shared/styles/main.css`: import Tailwind directives, define base styles (body, headings), component classes (btn, btn-primary, card, form-input), using forest colors
 
-- [ ] **T007** [P] Setup ESLint and Prettier for both backend and frontend with consistent rules
+- [ ] **T007** [P] Setup ESLint and Prettier for backend with consistent rules
 
-- [ ] **T008** [P] Create Docker Compose configuration in `docker/docker-compose.yml` with services: backend-public (Fastify, port 3000), backend-admin (Fastify, port 3001), frontend-public (Nginx, port 80), frontend-admin (Nginx, port 8080), mongodb (with volume), mongo-init (index creation)
+- [ ] **T008** [P] Create Docker Compose configuration in `docker/docker-compose.yml` with services: etnotermos (Node 20 Alpine, ports 4000/4001), mongodb (volume mounted, database "etnodb")
 
-- [ ] **T009** [P] Create backend Dockerfiles in `docker/backend-public.Dockerfile` and `docker/backend-admin.Dockerfile`: Node 18 alpine, multi-stage build, production optimizations, different entry points for public/admin APIs
+- [ ] **T009** [P] Create Dockerfile in `docker/etnotermos.Dockerfile`: Node 20 alpine base, multi-stage build, install dependencies, build Tailwind CSS, copy backend code, expose ports 4000 and 4001, CMD to start both contexts
 
-- [ ] **T010** [P] Create frontend Dockerfiles in `docker/frontend-public.Dockerfile` and `docker/frontend-admin.Dockerfile`: Node 18 for build, Nginx alpine for serving, copy build artifacts for public/admin apps
+- [ ] **T010** [P] Create MongoDB initialization script in `backend/scripts/init-mongo.sh` for creating "etnodb" database and "etnotermos" collection with indexes
 
-- [ ] **T011** [P] Create MongoDB initialization script in `backend/scripts/init-mongo.sh` for creating databases and users
+- [ ] **T011** [P] Create MongoDB index creation script in `backend/scripts/create-indexes.js` (will be populated in Phase 3.3)
 
-- [ ] **T012** [P] Create MongoDB index creation script in `backend/scripts/create-indexes.ts` (will be populated in Phase 3.3)
+- [ ] **T012** Create backend configuration management in `backend/src/config/index.js`: load environment variables (PUBLIC_PORT=4000, ADMIN_PORT=4001, MONGO_URI with database "etnodb"), validation, export config object
 
-- [ ] **T013** Create backend configuration management in `backend/src/config/index.ts`: load environment variables (PUBLIC_PORT, ADMIN_PORT, MONGO_URI, ADMIN_API_KEY), validation, export typed config object
+- [ ] **T013** Create MongoDB text search configuration in `backend/src/lib/search/config.js`: configure text indexes on "etnotermos" collection, search options, multilingual support
 
-- [ ] **T014** Create MongoDB text search configuration in `backend/src/lib/search/config.ts`: configure text indexes, search options, language support
+- [ ] **T014** Create MongoDB connection setup in `backend/src/shared/database.js`: MongoDB client connection to "etnodb" database, retry logic, connection event handlers, export db and collection references
 
-- [ ] **T015** Create MongoDB connection setup in `backend/src/config/database.ts`: Mongoose connection with retry logic, connection event handlers
+- [ ] **T015** Create public context server in `backend/src/contexts/public/server.js`: initialize Express app, configure EJS views, setup CORS, serve static assets, register routes, start on port 4000
 
-- [ ] **T016** Create backend server entry points in `backend/src/server-public.ts` and `backend/src/server-admin.ts`: initialize Fastify apps, register plugins (cors, helmet), connect to MongoDB, start on different ports
+- [ ] **T016** Create admin context server in `backend/src/contexts/admin/server.js`: initialize Express app, configure EJS views, setup CORS, admin auth middleware, register routes, start on port 4001
 
 ---
 
@@ -236,77 +249,65 @@ Based on plan.md project structure:
 
 ---
 
-## Phase 3.7: Frontend Implementation
+## Phase 3.7: Frontend Implementation (EJS Templates + HTMX)
 
-**Goal**: Build React components and pages for user interface
+**Goal**: Build server-side rendered pages with etnoDB visual identity
 
-### Core Components (Term Management)
+### Public Context Views (Port 4000 - Read-only)
 
-- [ ] **T084** [P] Create public API client in `frontend/public/services/api.ts`: Axios instance with public API base URL (port 3000), error handling, typed methods for read-only endpoints
+- [ ] **T084** [P] Create public layout template in `backend/src/contexts/public/views/layout.ejs`: HTML structure, head with Tailwind CSS link, header with navigation (forest theme), main content area, footer, HTMX and Alpine.js scripts
 
-- [ ] **T085** [P] Create admin API client in `frontend/admin/services/api.ts`: Axios instance with admin API base URL (port 3001), API key/basic auth interceptor, error handling, typed methods for all CRUD endpoints
+- [ ] **T085** [P] Create public home page in `backend/src/contexts/public/views/index.ejs`: welcome message matching etnoDB style, search bar, quick stats cards (forest-600 accents), featured terms list
 
-- [ ] **T086** [P] Create TermCard component in `frontend/src/components/term/TermCard.tsx`: display term summary (prefLabel, altLabels, definition snippet), show relationship counts, click handler for details
+- [ ] **T086** [P] Create term list view in `backend/src/contexts/public/views/terms/list.ejs`: paginated term cards with forest theme, search filters using HTMX, infinite scroll or pagination controls, Alpine.js for filter dropdowns
 
-- [ ] **T087** [P] Create TermDetail component in `frontend/src/components/term/TermDetail.tsx`: full term display with all fields, tabbed interface for notes (by type), source citations, relationship lists, edit/delete buttons (if authorized)
+- [ ] **T087** [P] Create term detail view in `backend/src/contexts/public/views/terms/detail.ejs`: full term display with tabs (notes, relationships, sources), Cytoscape graph visualization, breadcrumb navigation, forest color scheme
 
-- [ ] **T088** [P] Create TermForm component in `frontend/src/components/term/TermForm.tsx`: form for creating/editing terms, multi-language name inputs, note type fields, source selection dropdown, collection tags, validation
+- [ ] **T088** [P] Create search page in `backend/src/contexts/public/views/search.ejs`: search bar with HTMX live search, advanced filters (collections, note types), results container updated via HTMX, highlight matching terms
 
-- [ ] **T089** [P] Create TermList component in `frontend/src/components/term/TermList.tsx`: paginated term list using @tanstack/react-query, search input, filter by collection/status, virtual scrolling for performance
+- [ ] **T089** [P] Create graph visualization page in `backend/src/contexts/public/views/graph.ejs`: full-screen Cytoscape.js graph, pan/zoom controls using Alpine.js, layout selector, filter by relationship type, forest-themed nodes
 
-### Graph Visualization
+- [ ] **T090** [P] Create partial for term card in `backend/src/contexts/public/views/partials/term-card.ejs`: reusable card component with forest styling, term name, definition snippet, relationship counts, HTMX link to detail page
 
-- [ ] **T090** [P] Create GraphVisualization component in `frontend/src/components/graph/GraphVisualization.tsx`: initialize Cytoscape, render term nodes and relationship edges, pan/zoom controls, layout selector (force-directed, hierarchical), node click to expand relationships, context menu for term actions
+### Admin Context Views (Port 4001 - Full CRUD)
 
-- [ ] **T091** [P] Create GraphControls component in `frontend/src/components/graph/GraphControls.tsx`: layout selection, zoom controls, filter by relationship type, search within graph, reset view button
+- [ ] **T091** [P] Create admin layout template in `backend/src/contexts/admin/views/layout.ejs`: similar to public but with admin nav menu (Dashboard, Terms, Sources, Collections), admin-specific forest theme accents
 
-### Search Interface
+- [ ] **T092** [P] Create admin dashboard in `backend/src/contexts/admin/views/dashboard.ejs`: statistics cards (forest-themed), term counts by status, recent changes table, chart placeholders (optional: Google Charts like etnoDB)
 
-- [ ] **T092** [P] Create SearchBar component in `frontend/src/components/search/SearchBar.tsx`: debounced search input (300ms), autocomplete suggestions, filter dropdowns (collections, note types), advanced search toggle
+- [ ] **T093** [P] Create term management list in `backend/src/contexts/admin/views/terms/manage.ejs`: table with all terms, status badges (forest colors), HTMX edit/delete buttons, filter by status, "Create New Term" button
 
-- [ ] **T093** [P] Create SearchResults component in `frontend/src/components/search/SearchResults.tsx`: display search results with highlighting, show relevance scores, pagination, filter sidebar, result count
+- [ ] **T094** [P] Create term form view in `backend/src/contexts/admin/views/terms/form.ejs`: comprehensive form matching etnoDB form styles, multi-language name inputs, note type textareas, source/collection multi-select, Z39.19 validation messages, HTMX form submission
 
-### Admin Dashboard
+- [ ] **T095** [P] Create relationship management view in `backend/src/contexts/admin/views/relationships/manage.ejs`: add/remove relationships, relationship type selector (BT/NT/RT etc.), validation display, HTMX updates
 
-- [ ] **T094** [P] Create Dashboard component in `frontend/src/components/admin/Dashboard.tsx`: statistics cards (term counts, relationship types, user activity), charts using chart library, recent changes list, system health indicators
+- [ ] **T096** [P] Create source management views in `backend/src/contexts/admin/views/sources/{list,form}.ejs`: source CRUD interface, citation format display, terms using source list
 
-- [ ] **T095** [P] Create UserManagement component in `frontend/src/components/admin/UserManagement.tsx`: user list with roles, role assignment dropdown, permissions display, activity history
+- [ ] **T097** [P] Create collection management views in `backend/src/contexts/admin/views/collections/{list,form}.ejs`: collection CRUD interface, terms in collection count, tag-like display with forest colors
 
-### Common Components
+### Shared Partials & Components
 
-- [ ] **T096** [P] Create Header component in `frontend/src/components/common/Header.tsx`: navigation menu, user profile dropdown, login/logout button, search bar integration
+- [ ] **T098** [P] Create header partial in `backend/src/contexts/public/views/partials/header.ejs`: etnoDB-style navigation, logo area, search bar integration, consistent across public/admin
 
-- [ ] **T097** [P] Create Layout component in `frontend/src/components/common/Layout.tsx`: consistent page layout with header, sidebar (optional), main content area, footer
+- [ ] **T099** [P] Create footer partial in `backend/src/contexts/public/views/partials/footer.ejs`: etnoDB-style footer with links, C.A.R.E. principles acknowledgment
 
-- [ ] **T098** [P] Create LoadingSpinner component in `frontend/src/components/common/LoadingSpinner.tsx`: reusable loading indicator
+- [ ] **T100** [P] Create loading indicator partial in `backend/src/contexts/public/views/partials/loading.ejs`: HTMX loading spinner with forest colors, reusable via hx-indicator
 
-- [ ] **T099** [P] Create ErrorBoundary component in `frontend/src/components/common/ErrorBoundary.tsx`: catch React errors, display user-friendly error message, log errors
+- [ ] **T101** [P] Create error message partial in `backend/src/contexts/public/views/partials/error.ejs`: forest-themed error display, used in HTMX error responses
 
-### Pages
+### Alpine.js Components (Client-side Interactivity)
 
-- [ ] **T100** [P] Create Home page in `frontend/src/pages/Home.tsx`: welcome message, quick stats, featured terms, call-to-action for new users
+- [ ] **T102** [P] Create Alpine component for search filters in public pages: dropdown state management, filter application, HTMX trigger on filter change
 
-- [ ] **T101** [P] Create Terms page in `frontend/src/pages/Terms.tsx`: integrate TermList, filters, create new term button
+- [ ] **T103** [P] Create Alpine component for graph controls: layout switching, zoom controls, relationship type filters
 
-- [ ] **T102** [P] Create TermDetailPage in `frontend/src/pages/TermDetailPage.tsx`: integrate TermDetail, relationship graph, breadcrumb navigation
+- [ ] **T104** [P] Create Alpine component for term form: dynamic note field addition, validation feedback, multi-select handling
 
-- [ ] **T103** [P] Create GraphPage in `frontend/src/pages/GraphPage.tsx`: full-screen GraphVisualization with controls, export graph image button
+### Routes & Controllers
 
-- [ ] **T104** [P] Create SearchPage in `frontend/src/pages/SearchPage.tsx`: integrate SearchBar and SearchResults, saved searches feature
+- [ ] **T105** Create public routes in `backend/src/contexts/public/routes/index.js`: GET / (home), GET /terms (list), GET /terms/:id (detail), GET /search, GET /graph, render EJS templates with data from services
 
-- [ ] **T105** [P] Create AdminPage in `frontend/src/pages/AdminPage.tsx`: integrate Dashboard and UserManagement, admin-only route guard
-
-- [ ] **T106** [P] Create LoginPage in `frontend/src/pages/LoginPage.tsx`: Google OAuth login button, redirect after authentication
-
-- [ ] **T107** Setup routing in `frontend/src/App.tsx`: React Router with routes (/, /terms, /terms/:id, /graph, /search, /admin, /login), protected routes using AuthContext, 404 page
-
-### Frontend Tests
-
-- [ ] **T108** [P] Unit test TermCard component in `frontend/tests/unit/TermCard.test.tsx`: render with props, click handler
-
-- [ ] **T109** [P] Unit test SearchBar component in `frontend/tests/unit/SearchBar.test.tsx`: debouncing, filter selection
-
-- [ ] **T110** [P] Integration test term CRUD flow in `frontend/tests/integration/term-crud.test.tsx`: create term, view in list, edit, delete with API mocking
+- [ ] **T106** Create admin routes in `backend/src/contexts/admin/routes/index.js`: GET /dashboard, GET /terms/manage, GET /terms/new, POST /terms, GET /terms/:id/edit, PUT /terms/:id, DELETE /terms/:id, render EJS templates, handle HTMX responses
 
 ---
 
@@ -461,5 +462,12 @@ Before marking Phase 3 complete, verify:
 
 ---
 
-**Status**: Ready for execution
+**Status**: Ready for execution (Updated for etnoDB integration)
 **Next Step**: Begin with T001 (Create backend directory structure)
+
+**Integration Notes**:
+- All tasks updated to reflect HTMX+Alpine.js+EJS stack (matching etnoDB)
+- Ports changed to 4000/4001 (avoiding etnoDB's 3001/3002/3003)
+- Visual identity must match etnoDB's "forest" theme exactly
+- Database "etnodb" shared, collection "etnotermos" separate
+- New FR-034 through FR-040 added for etnoDB integration requirements

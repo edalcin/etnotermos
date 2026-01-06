@@ -34,20 +34,22 @@
 
 ## Summary
 
-EtnoTermos is a comprehensive ethnobotanical terminology management system designed for researchers, students, and traditional community leaders. The system provides structured vocabulary management following ANSI/NISO Z39.19-2005 standards, supporting up to 200,000 terms with complex many-to-many relationships, six note types, and interactive graph visualization. Core capabilities include CRUD operations, advanced search via MongoDB text indexes, CSV export (with future SKOS/RDF support), and REST API access. The system features a dual-port architecture: a public interface for data presentation and search (no authentication required), and a separate admin interface for data entry and curation (protected by access control).
+EtnoTermos is a comprehensive ethnobotanical terminology management system designed for researchers, students, and traditional community leaders. **Visually and functionally integrated with etnoDB**, the system provides structured vocabulary management following ANSI/NISO Z39.19-2005 standards, supporting up to 200,000 terms with complex many-to-many relationships, six note types, and interactive graph visualization. Core capabilities include CRUD operations, advanced search via MongoDB text indexes, CSV export (with future SKOS/RDF support), and API access for etnoDB integration. The system features a dual-port architecture: a public interface for data presentation and search (no authentication required), and a separate admin interface for data entry and curation (protected by access control). **It shares the MongoDB "etnodb" database with etnoDB** (separate collection) and provides **controlled vocabulary for etnoDB fields** (comunidades.tipo, plantas.tipoUso).
 
 ## Technical Context
 
-**Language/Version**: Node.js 18+ (backend), React 18+ (frontend)
-**Primary Dependencies**: Fastify for REST API, MongoDB driver with Mongoose ODM, Cytoscape.js (graph visualization)
-**Storage**: MongoDB (primary data store with text search indexes)
-**Testing**: Jest (unit/integration), Supertest (API), React Testing Library (frontend)
-**Target Platform**: Docker containers, GitHub Actions deployment, Linux server
-**Project Type**: web (frontend + backend)
-**Architecture**: Dual-port system - Public interface (port 3000, read-only) + Admin interface (port 3001, full CRUD)
+**Language/Version**: Node.js 20 LTS (Alpine Linux)
+**Primary Dependencies**: Express.js (web framework), MongoDB Driver (official), EJS (templates), HTMX + Alpine.js (frontend interactivity), Tailwind CSS ("forest" theme matching etnoDB), Cytoscape.js (graph visualization)
+**Storage**: MongoDB 7.0+ database "etnodb" (shared with etnoDB), collection "etnotermos"
+**Testing**: Jest (unit/integration), Supertest (API), mongodb-memory-server
+**Target Platform**: Docker containers (Alpine Linux), compatible with etnoDB infrastructure
+**Project Type**: web (server-side rendered with HTMX)
+**Architecture**: Dual-port system - Public context (port 4000, read-only) + Admin context (port 4001, full CRUD)
+**Visual Integration**: Identical UI/UX to etnoDB - same colors (forest theme), fonts, components, layouts
 **Performance Goals**: Support 200,000 terms, <500ms search response, handle 5-10 concurrent users, graph rendering for networks up to 1000 visible nodes
-**Constraints**: Small concurrent user base ("almost never" simultaneous edits), conflict resolution via merge-and-notify, Docker-based deployment
-**Scale/Scope**: ~200,000 terms, 6 note types per term, many-to-many relationships, REST API with documentation, CSV export (SKOS/RDF/Dublin Core in future phases)
+**Constraints**: Small concurrent user base ("almost never" simultaneous edits), conflict resolution via merge-and-notify, Docker-based deployment, must maintain visual consistency with etnoDB
+**Scale/Scope**: ~200,000 terms, 6 note types per term, many-to-many relationships, API for etnoDB integration, CSV export (SKOS/RDF in future phases)
+**etnoDB Integration**: Manages controlled vocabulary for etnoDB fields, shares database, provides validation API
 
 ## Constitution Check
 
@@ -89,61 +91,46 @@ specs/[###-feature]/
 ```
 backend/
 ├── src/
-│   ├── models/           # MongoDB schemas (Term, Note, Relationship, Source, Collection, AuditLog)
-│   ├── services/         # Business logic (term service, relationship service, search service)
-│   ├── api/
-│   │   ├── public/       # Public API routes (read-only, port 3000)
-│   │   ├── admin/        # Admin API routes (full CRUD, port 3001)
-│   │   ├── middleware/   # Validation, error handling, rate limiting
-│   │   └── controllers/  # Request/response handling
+│   ├── contexts/
+│   │   ├── public/           # Public context (port 4000, read-only)
+│   │   │   ├── routes/       # Express routes
+│   │   │   ├── views/        # EJS templates with etnoDB visual theme
+│   │   │   └── server.js     # Public server entry point
+│   │   └── admin/            # Admin context (port 4001, full CRUD)
+│   │       ├── routes/       # Express routes
+│   │       ├── views/        # EJS templates with etnoDB visual theme
+│   │       └── server.js     # Admin server entry point
+│   ├── models/               # MongoDB schemas (Term, Note, Relationship, Source, Collection, AuditLog)
+│   ├── services/             # Business logic (term, relationship, search, export, validation)
 │   ├── lib/
-│   │   ├── search/       # MongoDB text search utilities
-│   │   ├── export/       # CSV/SKOS/RDF exporters
-│   │   └── validation/   # Z39.19 compliance validators
-│   └── config/           # Configuration management
+│   │   ├── search/           # MongoDB text search utilities
+│   │   ├── export/           # CSV/SKOS/RDF exporters
+│   │   └── validation/       # Z39.19 compliance validators
+│   ├── shared/               # Shared utilities, database connection, logger
+│   └── config/               # Configuration management
 ├── tests/
-│   ├── contract/         # OpenAPI contract tests
-│   ├── integration/      # End-to-end API tests
-│   └── unit/             # Service/model unit tests
-└── docs/
-    └── openapi.yaml      # REST API specification
+│   ├── integration/          # End-to-end tests
+│   └── unit/                 # Service/model unit tests
+└── scripts/                  # Database initialization and seeding
 
 frontend/
-├── public/               # Public-facing application (read-only)
-│   ├── components/
-│   │   ├── term/         # Term display components
-│   │   ├── graph/        # Cytoscape graph visualization
-│   │   ├── search/       # Search interface
-│   │   └── common/       # Shared UI components
-│   ├── pages/            # Public pages (Home, Search, Term Detail, Graph)
-│   ├── services/         # Public API client
-│   └── hooks/            # Custom React hooks
-├── admin/                # Admin application (full CRUD)
-│   ├── components/
-│   │   ├── term/         # Term CRUD forms
-│   │   ├── dashboard/    # Admin dashboard
-│   │   └── common/       # Shared admin UI components
-│   ├── pages/            # Admin pages (Dashboard, Term Management, Export)
-│   ├── services/         # Admin API client
-│   └── hooks/            # Admin-specific hooks
-├── tests/
-│   ├── integration/      # E2E tests with API
-│   └── unit/             # Component tests
-└── shared/               # Shared assets and utilities
+└── src/
+    ├── public/               # Public interface assets
+    │   └── styles/           # Tailwind CSS (forest theme)
+    ├── admin/                # Admin interface assets
+    │   └── styles/           # Tailwind CSS (forest theme)
+    └── shared/               # Shared CSS and assets
+        └── styles/           # Colors, components matching etnoDB
+            └── main.css      # Forest theme colors and base styles
 
 docker/
-├── backend-public.Dockerfile
-├── backend-admin.Dockerfile
-├── frontend-public.Dockerfile
-├── frontend-admin.Dockerfile
-└── docker-compose.yml    # Local dev + MongoDB
+├── etnotermos.Dockerfile     # Single Alpine container with both contexts
+└── docker-compose.yml        # etnotermos + MongoDB "etnodb" (can run alongside etnoDB)
 
-.github/
-└── workflows/
-    └── deploy.yml        # GitHub Actions deployment
+tailwind.config.js            # Forest theme configuration (matching etnoDB)
 ```
 
-**Structure Decision**: Web application architecture with dual-port backend (Node.js REST API) and dual frontend (React SPAs). Backend provides separate APIs for public access (read-only, port 3000) and admin access (full CRUD, port 3001). Frontend consists of two independent React applications: public interface for data presentation/search and admin interface for data management. Docker Compose orchestrates all services (public backend/frontend, admin backend/frontend, MongoDB) for consistent deployment.
+**Structure Decision**: Server-side rendered web application following etnoDB's architecture pattern. Single Node.js 20 backend with two Express servers (public port 4000, admin port 4001) running in one Docker container. EJS templates with HTMX for dynamic interactions and Alpine.js for client-side reactivity. Tailwind CSS with "forest" color theme providing visual consistency with etnoDB. MongoDB connection to shared "etnodb" database using separate "etnotermos" collection. Structure mirrors etnoDB's three-context pattern (Acquisition, Curation, Presentation) adapted for vocabulary management (here: Public browsing, Admin CRUD).
 
 ## Phase 0: Outline & Research
 
