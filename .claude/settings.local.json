@@ -11,7 +11,13 @@
       "Bash(git commit:*)",
       "Bash(git mv:*)",
       "Bash(git branch:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(if [ -d \"etnotermos\" ])",
+      "Bash(then ls -la etnotermos/)",
+      "Bash(else echo \"Pasta etnotermos não existe\")",
+      "Bash(fi)",
+      "Bash(git rm:*)",
+      "Skill(constitution)"
     ],
     "deny": [],
     "ask": []

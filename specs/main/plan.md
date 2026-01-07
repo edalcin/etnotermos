@@ -55,22 +55,25 @@ EtnoTermos is a comprehensive ethnobotanical terminology management system desig
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-**Status**: Constitution not yet ratified (template placeholder exists at `.specify/memory/constitution.md`)
+**Status**: Constitution ratified v1.0.0 (2026-01-07) - See `.specify/memory/constitution.md`
 
-**Initial Assessment**: No constitutional gates defined yet. Proceeding with industry best practices:
-- Test-driven development approach (tests before implementation)
-- Clear separation of concerns (backend/frontend, models/services/controllers)
-- API-first design with OpenAPI contracts
-- Modular architecture for maintainability
-- Docker containerization for deployment consistency
+**Initial Assessment** (against Constitution v1.0.0):
+- ✅ **Principle I (TDD)**: Tests written before implementation (contract tests T017-T029, integration tests T030-T040)
+- ✅ **Principle II (Z39.19)**: Data model maps to Z39.19 relationship types (Term, Relationship, Note models), validation utilities planned (T049)
+- ✅ **Principle III (etnoDB Visual Integration)**: Technology stack matches etnoDB (HTMX+Alpine.js+Tailwind+EJS), forest theme specified
+- ✅ **Principle IV (CARE Principles)**: Source model supports attribution, private notes implemented, cultural guidance planned (T114)
+- ✅ **Principle V (Simplicity)**: Direct MongoDB access (no ORM), service layer justified for Z39.19 validation complexity, standard tech stack
 
-**Action**: Complexity Tracking section will remain empty as no constitutional violations exist to justify.
+**Complexity Justification**:
+- Service layer abstraction: REQUIRED for Z39.19 relationship reciprocity validation, circular hierarchy detection, authority control enforcement
+- Dual-port architecture: REQUIRED for security separation (public read-only vs admin full CRUD)
 
 **Post-Design Re-evaluation** (after Phase 1):
-- ✅ Architecture follows best practices: Clean separation (backend/frontend), API-first design, TDD approach
-- ✅ No unnecessary complexity introduced: Monorepo structure appropriate for scale, technology choices justified in research.md
-- ✅ Design patterns align with industry standards: REST API, JWT auth, hybrid MongoDB relationship model
-- ✅ No constitutional violations detected
+- ✅ All constitutional principles satisfied
+- ✅ TDD approach enforced in task ordering (Phase 3.2 tests before Phase 3.3 implementation)
+- ✅ Z39.19 validation gates defined in data model and service layer
+- ✅ Visual consistency validation planned (manual checklist)
+- ✅ No unjustified complexity introduced
 
 ## Project Structure
 
@@ -301,7 +304,8 @@ The /tasks command will:
 - [x] Complexity deviations documented (N/A - no violations)
 
 ---
-*Constitution not yet ratified - Following industry best practices. See `.specify/memory/constitution.md` for template.*
+*Based on Constitution v1.0.0 - See `.specify/memory/constitution.md`*
 
 **Plan Completed**: 2026-01-05
+**Constitution Ratified**: 2026-01-07
 **Next Command**: `/tasks` to generate tasks.md
