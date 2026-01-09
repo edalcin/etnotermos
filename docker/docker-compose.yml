@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0-alpine
+    container_name: etnotermos-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: etnodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ../backend/scripts/init-mongo.sh:/docker-entrypoint-initdb.d/init-mongo.sh:ro
+    networks:
+      - etnotermos-network
+
+  etnotermos:
+    build:
+      context: ..
+      dockerfile: docker/etnotermos.Dockerfile
+    container_name: etnotermos-app
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+    environment:
+      NODE_ENV: production
+      PUBLIC_PORT: 4000
+      ADMIN_PORT: 4001
+      MONGO_URI: mongodb://mongodb:27017/etnodb
+    ports:
+      - "4000:4000"  # Public interface (read-only)
+      - "4001:4001"  # Admin interface (full CRUD)
+    volumes:
+      - ../backend:/app/backend
+      - /app/backend/node_modules
+    networks:
+      - etnotermos-network
+
+volumes:
+  mongodb_data:
+    driver: local
+
+networks:
+  etnotermos-network:
+    driver: bridge

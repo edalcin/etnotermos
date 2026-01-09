@@ -1,0 +1,22 @@
+{
+  "name": "etnotermos-frontend",
+  "version": "1.0.0",
+  "description": "EtnoTermos frontend - Tailwind CSS build system",
+  "scripts": {
+    "build:css": "tailwindcss -i ./src/shared/styles/main.css -o ../backend/src/contexts/public/views/assets/styles.css --minify",
+    "watch:css": "tailwindcss -i ./src/shared/styles/main.css -o ../backend/src/contexts/public/views/assets/styles.css --watch",
+    "build": "npm run build:css"
+  },
+  "keywords": [
+    "tailwindcss",
+    "etnodb",
+    "forest-theme"
+  ],
+  "author": "EtnoTermos Team",
+  "license": "MIT",
+  "devDependencies": {
+    "tailwindcss": "^3.4.1",
+    "postcss": "^8.4.33",
+    "autoprefixer": "^10.4.16"
+  }
+}
