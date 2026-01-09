@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> | EtnoTermos</title>
+  <link href="/assets/styles.css" rel="stylesheet">
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.13.5/dist/cdn.min.js"></script>
+  <script src="https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
+</head>
+<body class="bg-forest-50 min-h-screen flex flex-col">
+  <%- include('partials/header') %>
+  <main class="flex-grow container mx-auto px-4 py-8">
+
+<div x-data="{
+  term: null,
+  relationships: null,
+  notes: [],
+  loading: true,
+  activeTab: 'details',
+  cy: null,
+  async init() {
+    await this.loadTerm();
+    await this.loadRelationships();
+    await this.loadNotes();
+    this.$nextTick(() => {
+      if (this.activeTab === 'graph') {
+        this.initGraph();
+      }
+    });
+  },
+  async loadTerm() {
+    try {
+      const response = await fetch('/api/v1/terms/<%= termId %>');
+      this.term = await response.json();
+    } catch (error) {
+      console.error('Error loading term:', error);
+    } finally {
+      this.loading = false;
+    }
+  },
+  async loadRelationships() {
+    try {
+      const response = await fetch('/api/v1/relationships?sourceTerm=<%= termId %>');
+      this.relationships = await response.json();
+    } catch (error) {
+      console.error('Error loading relationships:', error);
+    }
+  },
+  async loadNotes() {
+    try {
+      const response = await fetch('/api/v1/notes?termId=<%= termId %>');
+      this.notes = await response.json();
+    } catch (error) {
+      console.error('Error loading notes:', error);
+    }
+  },
+  initGraph() {
+    if (!this.term || !this.relationships || this.cy) return;
+
+    const container = document.getElementById('cy');
+    if (!container) return;
+
+    // Build graph data
+    const nodes = [{ data: { id: this.term._id, label: this.term.prefLabel, type: 'main' } }];
+    const edges = [];
+
+    this.relationships.data?.forEach(rel => {
+      // Add target term node if not exists
+      if (!nodes.find(n => n.data.id === rel.targetTerm._id)) {
+        nodes.push({
+          data: {
+            id: rel.targetTerm._id,
+            label: rel.targetTerm.prefLabel,
+            type: 'related'
+          }
+        });
+      }
+
+      // Add edge
+      edges.push({
+        data: {
+          id: rel._id,
+          source: rel.sourceTerm,
+          target: rel.targetTerm._id,
+          label: rel.type
+        }
+      });
+    });
+
+    // Initialize Cytoscape
+    this.cy = cytoscape({
+      container: container,
+      elements: { nodes, edges },
+      style: [
+        {
+          selector: 'node',
+          style: {
+            'label': 'data(label)',
+            'text-valign': 'center',
+            'text-halign': 'center',
+            'background-color': '#16a34a',
+            'color': '#fff',
+            'text-outline-color': '#16a34a',
+            'text-outline-width': 2,
+            'font-size': '12px',
+            'width': 60,
+            'height': 60
+          }
+        },
+        {
+          selector: 'node[type=\"main\"]',
+          style: {
+            'background-color': '#15803d',
+            'width': 80,
+            'height': 80,
+            'font-size': '14px',
+            'font-weight': 'bold'
+          }
+        },
+        {
+          selector: 'edge',
+          style: {
+            'width': 2,
+            'line-color': '#cbd5e1',
+            'target-arrow-color': '#cbd5e1',
+            'target-arrow-shape': 'triangle',
+            'curve-style': 'bezier',
+            'label': 'data(label)',
+            'font-size': '10px',
+            'text-background-color': '#fff',
+            'text-background-opacity': 1,
+            'text-background-padding': '3px'
+          }
+        }
+      ],
+      layout: {
+        name: 'circle',
+        radius: 200
+      }
+    });
+
+    // Click handler to navigate
+    this.cy.on('tap', 'node', function(evt) {
+      const node = evt.target;
+      const id = node.data('id');
+      if (id !== '<%= termId %>') {
+        window.location.href = `/terms/${id}`;
+      }
+    });
+  },
+  getStatusBadgeClass(status) {
+    const classes = {
+      active: 'bg-green-100 text-green-800',
+      deprecated: 'bg-red-100 text-red-800',
+      candidate: 'bg-yellow-100 text-yellow-800'
+    };
+    return classes[status] || 'bg-gray-100 text-gray-800';
+  },
+  getRelationshipBadgeClass(type) {
+    const classes = {
+      'BT': 'bg-blue-100 text-blue-800',
+      'NT': 'bg-purple-100 text-purple-800',
+      'RT': 'bg-forest-100 text-forest-800',
+      'USE': 'bg-orange-100 text-orange-800',
+      'UF': 'bg-pink-100 text-pink-800'
+    };
+    return classes[type] || 'bg-gray-100 text-gray-800';
+  }
+}">
+
+  <!-- Loading State -->
+  <div x-show="loading" class="text-center py-12">
+    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-forest-600"></div>
+    <p class="text-gray-600 mt-4">Carregando termo...</p>
+  </div>
+
+  <!-- Term Details -->
+  <div x-show="!loading && term">
+    <!-- Breadcrumb -->
+    <nav class="text-sm text-gray-600 mb-4">
+      <a href="/" class="hover:text-forest-600">Início</a>
+      <span class="mx-2">/</span>
+      <a href="/browse" class="hover:text-forest-600">Navegar</a>
+      <span class="mx-2">/</span>
+      <span class="text-gray-800" x-text="term?.prefLabel"></span>
+    </nav>
+
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-md p-8 mb-6">
+      <div class="flex items-start justify-between mb-4">
+        <div>
+          <h1 class="text-3xl font-bold text-forest-700 mb-2" x-text="term?.prefLabel"></h1>
+          <div class="flex items-center gap-2">
+            <span
+              :class="getStatusBadgeClass(term?.status)"
+              class="px-3 py-1 text-sm rounded-full"
+              x-text="term?.status"
+            ></span>
+            <span x-show="term?.language" class="text-sm text-gray-600">
+              Idioma: <span x-text="term?.language"></span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alternative Labels -->
+      <div x-show="term?.altLabels && term.altLabels.length > 0" class="mb-4">
+        <h3 class="text-sm font-semibold text-gray-700 mb-2">Termos Alternativos:</h3>
+        <div class="flex flex-wrap gap-2">
+          <template x-for="label in term?.altLabels" :key="label">
+            <span class="px-3 py-1 bg-forest-50 text-forest-700 rounded-full text-sm" x-text="label"></span>
+          </template>
+        </div>
+      </div>
+
+      <!-- Definition -->
+      <div x-show="term?.definition" class="mb-4">
+        <h3 class="text-sm font-semibold text-gray-700 mb-2">Definição:</h3>
+        <p class="text-gray-800 leading-relaxed" x-text="term?.definition"></p>
+      </div>
+
+      <!-- Scope Note -->
+      <div x-show="term?.scopeNote" class="mb-4 bg-blue-50 border-l-4 border-blue-400 p-4">
+        <h3 class="text-sm font-semibold text-blue-800 mb-2">Nota de Escopo:</h3>
+        <p class="text-blue-900" x-text="term?.scopeNote"></p>
+      </div>
+
+      <!-- Collections -->
+      <div x-show="term?.collections && term.collections.length > 0" class="mb-4">
+        <h3 class="text-sm font-semibold text-gray-700 mb-2">Coleções:</h3>
+        <div class="flex flex-wrap gap-2">
+          <template x-for="collection in term?.collections" :key="collection">
+            <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm" x-text="collection"></span>
+          </template>
+        </div>
+      </div>
+
+      <!-- Metadata -->
+      <div class="text-xs text-gray-500 mt-6 pt-4 border-t border-gray-200">
+        <div>ID: <span x-text="term?._id"></span></div>
+        <div x-show="term?.created">
+          Criado em: <span x-text="new Date(term.created).toLocaleDateString('pt-BR')"></span>
+        </div>
+        <div x-show="term?.modified">
+          Modificado em: <span x-text="new Date(term.modified).toLocaleDateString('pt-BR')"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="bg-white rounded-lg shadow-md mb-6">
+      <div class="border-b border-gray-200">
+        <nav class="flex">
+          <button
+            @click="activeTab = 'details'"
+            :class="activeTab === 'details' ? 'border-forest-600 text-forest-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+            class="px-6 py-4 border-b-2 font-medium transition-colors"
+          >
+            Detalhes
+          </button>
+          <button
+            @click="activeTab = 'relationships'; $nextTick(() => initGraph())"
+            :class="activeTab === 'relationships' ? 'border-forest-600 text-forest-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+            class="px-6 py-4 border-b-2 font-medium transition-colors"
+          >
+            Relacionamentos
+          </button>
+          <button
+            @click="activeTab = 'graph'; $nextTick(() => initGraph())"
+            :class="activeTab === 'graph' ? 'border-forest-600 text-forest-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+            class="px-6 py-4 border-b-2 font-medium transition-colors"
+          >
+            Grafo
+          </button>
+          <button
+            @click="activeTab = 'notes'"
+            :class="activeTab === 'notes' ? 'border-forest-600 text-forest-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+            class="px-6 py-4 border-b-2 font-medium transition-colors"
+          >
+            Notas
+          </button>
+        </nav>
+      </div>
+
+      <!-- Details Tab -->
+      <div x-show="activeTab === 'details'" class="p-6">
+        <div class="space-y-6">
+          <!-- Full Details -->
+          <div x-show="term?.example" class="bg-gray-50 rounded-lg p-4">
+            <h4 class="font-semibold text-gray-800 mb-2">Exemplo de Uso:</h4>
+            <p class="text-gray-700" x-text="term?.example"></p>
+          </div>
+
+          <div x-show="term?.sources && term.sources.length > 0">
+            <h4 class="font-semibold text-gray-800 mb-2">Fontes:</h4>
+            <ul class="space-y-2">
+              <template x-for="source in term?.sources" :key="source">
+                <li class="text-gray-700">• <span x-text="source"></span></li>
+              </template>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Relationships Tab -->
+      <div x-show="activeTab === 'relationships'" class="p-6">
+        <div x-show="!relationships?.data || relationships.data.length === 0" class="text-center py-8 text-gray-600">
+          Nenhum relacionamento encontrado.
+        </div>
+
+        <div x-show="relationships?.data && relationships.data.length > 0" class="space-y-4">
+          <template x-for="rel in relationships?.data" :key="rel._id">
+            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div class="flex items-center gap-4">
+                <span
+                  :class="getRelationshipBadgeClass(rel.type)"
+                  class="px-3 py-1 text-sm font-semibold rounded-full"
+                  x-text="rel.type"
+                ></span>
+                <a
+                  :href="`/terms/${rel.targetTerm._id}`"
+                  class="text-forest-700 hover:text-forest-800 font-medium"
+                  x-text="rel.targetTerm.prefLabel"
+                ></a>
+              </div>
+              <div x-show="rel.note" class="text-sm text-gray-600" x-text="rel.note"></div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- Graph Tab -->
+      <div x-show="activeTab === 'graph'" class="p-6">
+        <div id="cy" class="w-full h-96 border-2 border-gray-200 rounded-lg"></div>
+        <p class="text-sm text-gray-600 mt-4">
+          Clique em um nó para navegar para o termo relacionado.
+        </p>
+      </div>
+
+      <!-- Notes Tab -->
+      <div x-show="activeTab === 'notes'" class="p-6">
+        <div x-show="notes.length === 0" class="text-center py-8 text-gray-600">
+          Nenhuma nota encontrada.
+        </div>
+
+        <div x-show="notes.length > 0" class="space-y-4">
+          <template x-for="note in notes" :key="note._id">
+            <div class="border-l-4 border-forest-600 bg-gray-50 p-4 rounded-r-lg">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-semibold text-gray-700" x-text="note.type"></span>
+                <span class="text-xs text-gray-500" x-text="new Date(note.created).toLocaleDateString('pt-BR')"></span>
+              </div>
+              <p class="text-gray-800" x-text="note.content"></p>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div x-show="!loading && !term" class="bg-white rounded-lg shadow-md p-8 text-center">
+    <div class="text-gray-600">
+      <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+      <h2 class="text-xl font-semibold mb-2">Termo não encontrado</h2>
+      <p class="mb-4">O termo que você procura não existe ou foi removido.</p>
+      <a href="/browse" class="text-forest-600 hover:text-forest-700 font-medium">Voltar para navegação</a>
+    </div>
+  </div>
+</div>
+
+  </main>
+  <%- include('partials/footer') %>
+</body>
+</html>

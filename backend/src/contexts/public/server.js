@@ -46,8 +46,38 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', service: 'public', port: config.publicPort });
 });
 
-// Routes will be registered here in Phase 3.6
-// TODO: Import and register routes
+// Import middlewares
+import { errorHandler, notFoundHandler } from '../../api/middleware/errorHandler.js';
+
+// Import view controller
+import {
+  renderHomePage,
+  renderBrowsePage,
+  renderSearchPage,
+  renderTermDetailPage,
+  renderAboutPage,
+  renderExportPage,
+} from '../../api/controllers/PublicViewController.js';
+
+// View routes (HTML pages)
+app.get('/', renderHomePage);
+app.get('/browse', renderBrowsePage);
+app.get('/search', renderSearchPage);
+app.get('/terms/:id', renderTermDetailPage);
+app.get('/about', renderAboutPage);
+app.get('/export', renderExportPage);
+
+// Import API routes
+import termsRouter from '../../api/public/terms.js';
+import relationshipsRouter from '../../api/public/relationships.js';
+import searchRouter from '../../api/public/search.js';
+import exportRouter from '../../api/public/export.js';
+
+// Register API routes under /api/v1 prefix
+app.use('/api/v1/terms', termsRouter);
+app.use('/api/v1/relationships', relationshipsRouter);
+app.use('/api/v1/search', searchRouter);
+app.use('/api/v1/export', exportRouter);
 
 // 404 handler
 app.use((req, res) => {

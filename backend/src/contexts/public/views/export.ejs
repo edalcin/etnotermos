@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> | EtnoTermos</title>
+  <link href="/assets/styles.css" rel="stylesheet">
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.13.5/dist/cdn.min.js"></script>
+</head>
+<body class="bg-forest-50 min-h-screen flex flex-col">
+  <%- include('partials/header') %>
+  <main class="flex-grow container mx-auto px-4 py-8">
+
+<div class="max-w-4xl mx-auto">
+  <div class="bg-white rounded-lg shadow-md p-8 mb-6">
+    <h1 class="text-3xl font-bold text-forest-700 mb-4">Exportar Vocabulário</h1>
+    <p class="text-gray-600">
+      Baixe o vocabulário controlado em diversos formatos para reutilização em outros sistemas.
+    </p>
+  </div>
+
+  <div x-data="{
+    exportFormat: 'csv',
+    exportOptions: {
+      includeDeprecated: false,
+      includeNotes: true,
+      includeRelationships: true
+    },
+    collections: [],
+    selectedCollections: [],
+    exporting: false,
+    async init() {
+      await this.loadCollections();
+    },
+    async loadCollections() {
+      try {
+        const response = await fetch('/api/v1/collections');
+        this.collections = await response.json();
+      } catch (error) {
+        console.error('Error loading collections:', error);
+      }
+    },
+    async exportData() {
+      this.exporting = true;
+      try {
+        const params = new URLSearchParams({
+          format: this.exportFormat,
+          includeDeprecated: this.exportOptions.includeDeprecated,
+          includeNotes: this.exportOptions.includeNotes,
+          includeRelationships: this.exportOptions.includeRelationships
+        });
+
+        if (this.selectedCollections.length > 0) {
+          params.append('collections', this.selectedCollections.join(','));
+        }
+
+        const response = await fetch(`/api/v1/export?${params}`);
+        const blob = await response.blob();
+
+        // Download file
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `etnotermos-export-${Date.now()}.${this.exportFormat}`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } catch (error) {
+        console.error('Error exporting:', error);
+        alert('Erro ao exportar dados. Tente novamente.');
+      } finally {
+        this.exporting = false;
+      }
+    }
+  }">
+
+    <!-- Export Formats -->
+    <div class="bg-white rounded-lg shadow-md p-8 mb-6">
+      <h2 class="text-2xl font-semibold text-gray-800 mb-6">Escolha o Formato</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- CSV Format -->
+        <label class="cursor-pointer">
+          <input
+            type="radio"
+            x-model="exportFormat"
+            value="csv"
+            class="sr-only peer"
+          >
+          <div class="p-6 border-2 rounded-lg peer-checked:border-forest-600 peer-checked:bg-forest-50 hover:border-forest-400 transition-colors">
+            <div class="text-4xl mb-3">📊</div>
+            <h3 class="text-lg font-semibold text-gray-800 mb-2">CSV</h3>
+            <p class="text-sm text-gray-600 mb-3">
+              Formato tabular compatível com Excel e outras planilhas.
+            </p>
+            <ul class="text-xs text-gray-500 space-y-1">
+              <li>✓ Excel, LibreOffice</li>
+              <li>✓ Análise de dados</li>
+              <li>✓ Codificação UTF-8</li>
+            </ul>
+          </div>
+        </label>
+
+        <!-- SKOS/RDF Format -->
+        <label class="cursor-pointer">
+          <input
+            type="radio"
+            x-model="exportFormat"
+            value="skos"
+            class="sr-only peer"
+          >
+          <div class="p-6 border-2 rounded-lg peer-checked:border-forest-600 peer-checked:bg-forest-50 hover:border-forest-400 transition-colors">
+            <div class="text-4xl mb-3">🔗</div>
+            <h3 class="text-lg font-semibold text-gray-800 mb-2">SKOS/RDF</h3>
+            <p class="text-sm text-gray-600 mb-3">
+              Formato semântico padrão W3C para vocabulários controlados.
+            </p>
+            <ul class="text-xs text-gray-500 space-y-1">
+              <li>✓ Web Semântica</li>
+              <li>✓ Linked Data</li>
+              <li>✓ Interoperabilidade</li>
+            </ul>
+          </div>
+        </label>
+
+        <!-- JSON-LD Format -->
+        <label class="cursor-pointer">
+          <input
+            type="radio"
+            x-model="exportFormat"
+            value="jsonld"
+            class="sr-only peer"
+          >
+          <div class="p-6 border-2 rounded-lg peer-checked:border-forest-600 peer-checked:bg-forest-50 hover:border-forest-400 transition-colors">
+            <div class="text-4xl mb-3">📦</div>
+            <h3 class="text-lg font-semibold text-gray-800 mb-2">JSON-LD</h3>
+            <p class="text-sm text-gray-600 mb-3">
+              JSON com contexto semântico para integração com APIs.
+            </p>
+            <ul class="text-xs text-gray-500 space-y-1">
+              <li>✓ APIs REST</li>
+              <li>✓ Aplicações web</li>
+              <li>✓ Schema.org</li>
+            </ul>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Export Options -->
+    <div class="bg-white rounded-lg shadow-md p-8 mb-6">
+      <h2 class="text-2xl font-semibold text-gray-800 mb-6">Opções de Exportação</h2>
+
+      <div class="space-y-6">
+        <!-- Collections Filter -->
+        <div>
+          <h3 class="text-lg font-semibold text-gray-700 mb-3">Coleções (opcional)</h3>
+          <p class="text-sm text-gray-600 mb-3">
+            Deixe vazio para exportar todos os termos, ou selecione coleções específicas.
+          </p>
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <template x-for="collection in collections" :key="collection._id">
+              <label class="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  :value="collection._id"
+                  x-model="selectedCollections"
+                  class="rounded text-forest-600 focus:ring-forest-500"
+                >
+                <span class="text-sm text-gray-700" x-text="collection.name"></span>
+              </label>
+            </template>
+          </div>
+        </div>
+
+        <!-- Additional Options -->
+        <div>
+          <h3 class="text-lg font-semibold text-gray-700 mb-3">Incluir</h3>
+          <div class="space-y-3">
+            <label class="flex items-center space-x-3 cursor-pointer">
+              <input
+                type="checkbox"
+                x-model="exportOptions.includeDeprecated"
+                class="rounded text-forest-600 focus:ring-forest-500"
+              >
+              <div>
+                <span class="text-gray-800 font-medium">Termos Depreciados</span>
+                <p class="text-sm text-gray-600">Incluir termos marcados como obsoletos</p>
+              </div>
+            </label>
+
+            <label class="flex items-center space-x-3 cursor-pointer">
+              <input
+                type="checkbox"
+                x-model="exportOptions.includeNotes"
+                class="rounded text-forest-600 focus:ring-forest-500"
+              >
+              <div>
+                <span class="text-gray-800 font-medium">Notas</span>
+                <p class="text-sm text-gray-600">Incluir notas de escopo, catalogador, etc.</p>
+              </div>
+            </label>
+
+            <label class="flex items-center space-x-3 cursor-pointer">
+              <input
+                type="checkbox"
+                x-model="exportOptions.includeRelationships"
+                class="rounded text-forest-600 focus:ring-forest-500"
+              >
+              <div>
+                <span class="text-gray-800 font-medium">Relacionamentos</span>
+                <p class="text-sm text-gray-600">Incluir relacionamentos semânticos (BT/NT/RT/USE/UF)</p>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Export Button -->
+    <div class="bg-white rounded-lg shadow-md p-8">
+      <button
+        @click="exportData()"
+        :disabled="exporting"
+        class="w-full py-4 px-6 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors font-semibold text-lg disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+      >
+        <svg x-show="!exporting" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+        <div x-show="exporting" class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+        <span x-text="exporting ? 'Exportando...' : 'Exportar Vocabulário'"></span>
+      </button>
+
+      <p class="text-sm text-gray-600 text-center mt-4">
+        O download iniciará automaticamente após a geração do arquivo.
+      </p>
+    </div>
+
+    <!-- Format Information -->
+    <div class="bg-blue-50 border-l-4 border-blue-600 p-6 rounded-r-lg mt-6">
+      <h3 class="font-semibold text-blue-900 mb-2">Sobre os Formatos</h3>
+      <div class="text-sm text-blue-800 space-y-2">
+        <p>
+          <strong>CSV</strong>: Melhor para análise em planilhas. Cada linha representa um termo com todas suas propriedades.
+        </p>
+        <p>
+          <strong>SKOS/RDF</strong>: Padrão W3C para vocabulários controlados. Ideal para integração com sistemas de web semântica e Linked Data.
+        </p>
+        <p>
+          <strong>JSON-LD</strong>: JSON estruturado com contexto semântico. Recomendado para integração com APIs REST e aplicações web modernas.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+  </main>
+  <%- include('partials/footer') %>
+</body>
+</html>

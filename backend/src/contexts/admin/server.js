@@ -41,42 +41,56 @@ app.use('/assets', express.static(path.join(__dirname, 'views', 'assets')));
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Basic authentication middleware (simple implementation)
-// TODO: Enhance in Phase 3.5 with proper middleware
-const basicAuth = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith('Basic ')) {
-    res.set('WWW-Authenticate', 'Basic realm="EtnoTermos Admin"');
-    return res.status(401).json({ error: 'Authentication required' });
-  }
-
-  const credentials = Buffer.from(authHeader.split(' ')[1], 'base64').toString();
-  const [username, password] = credentials.split(':');
-
-  if (username === config.adminUsername && password === config.adminPassword) {
-    next();
-  } else {
-    res.set('WWW-Authenticate', 'Basic realm="EtnoTermos Admin"');
-    return res.status(401).json({ error: 'Invalid credentials' });
-  }
-};
-
-// Apply basic auth to all admin routes except health check
-app.use((req, res, next) => {
-  if (req.path === '/health') {
-    return next();
-  }
-  basicAuth(req, res, next);
-});
-
 // Health check endpoint (no auth required)
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', service: 'admin', port: config.adminPort });
 });
 
-// Routes will be registered here in Phase 3.6
-// TODO: Import and register admin routes
+// Import view controller
+import {
+  renderDashboard,
+  renderTermsList,
+  renderTermForm,
+  renderRelationshipsList,
+  renderRelationshipForm,
+  renderCollectionsList,
+  renderCollectionForm,
+  renderAuditLogs,
+} from '../../api/controllers/AdminViewController.js';
+
+// Import admin auth middleware for view routes
+import adminAuth from '../../api/middleware/adminAuth.js';
+
+// Apply authentication to all view routes
+app.use('/', adminAuth);
+
+// View routes (HTML pages)
+app.get('/', renderDashboard);
+app.get('/terms', renderTermsList);
+app.get('/terms/new', renderTermForm);
+app.get('/terms/:id/edit', renderTermForm);
+app.get('/relationships', renderRelationshipsList);
+app.get('/relationships/new', renderRelationshipForm);
+app.get('/collections', renderCollectionsList);
+app.get('/collections/new', renderCollectionForm);
+app.get('/collections/:id/edit', renderCollectionForm);
+app.get('/audit', renderAuditLogs);
+
+// Import API routes
+import termsRouter from '../../api/admin/terms.js';
+import relationshipsRouter from '../../api/admin/relationships.js';
+import notesRouter from '../../api/admin/notes.js';
+import sourcesRouter from '../../api/admin/sources.js';
+import collectionsRouter from '../../api/admin/collections.js';
+import dashboardRouter from '../../api/admin/dashboard.js';
+
+// Register API routes under /api/v1 prefix
+app.use('/api/v1/admin/terms', termsRouter);
+app.use('/api/v1/admin/relationships', relationshipsRouter);
+app.use('/api/v1/notes', notesRouter); // Notes available to both public (GET) and admin
+app.use('/api/v1/sources', sourcesRouter); // Sources available to both public (GET) and admin
+app.use('/api/v1/collections', collectionsRouter); // Collections available to both public (GET) and admin
+app.use('/api/v1/admin/dashboard', dashboardRouter);
 
 // 404 handler
 app.use((req, res) => {

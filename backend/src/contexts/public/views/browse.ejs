@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> | EtnoTermos</title>
+  <link href="/assets/styles.css" rel="stylesheet">
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.13.5/dist/cdn.min.js"></script>
+</head>
+<body class="bg-forest-50 min-h-screen flex flex-col">
+  <%- include('partials/header') %>
+  <main class="flex-grow container mx-auto px-4 py-8">
+
+<div class="bg-white rounded-lg shadow-md p-8 mb-6">
+  <h1 class="text-3xl font-bold text-forest-700 mb-4">Navegar Termos</h1>
+  <p class="text-gray-600">
+    Explore o vocabulário controlado por ordem alfabética ou por coleções temáticas.
+  </p>
+</div>
+
+<div x-data="{
+  activeTab: 'alphabetical',
+  selectedLetter: 'A',
+  selectedCollection: null,
+  terms: [],
+  collections: [],
+  loading: false,
+  async init() {
+    await this.loadCollections();
+    await this.loadTermsByLetter('A');
+  },
+  async loadCollections() {
+    try {
+      const response = await fetch('/api/v1/collections');
+      this.collections = await response.json();
+    } catch (error) {
+      console.error('Error loading collections:', error);
+    }
+  },
+  async loadTermsByLetter(letter) {
+    this.loading = true;
+    this.selectedLetter = letter;
+    try {
+      const response = await fetch(`/api/v1/terms?startsWith=${letter}&limit=100`);
+      const data = await response.json();
+      this.terms = data.data || [];
+    } catch (error) {
+      console.error('Error loading terms:', error);
+    } finally {
+      this.loading = false;
+    }
+  },
+  async loadTermsByCollection(collectionId) {
+    this.loading = true;
+    this.selectedCollection = collectionId;
+    try {
+      const response = await fetch(`/api/v1/collections/${collectionId}/terms?limit=100`);
+      const data = await response.json();
+      this.terms = data.data || [];
+    } catch (error) {
+      console.error('Error loading terms:', error);
+    } finally {
+      this.loading = false;
+    }
+  }
+}">
+
+  <!-- Tabs -->
+  <div class="bg-white rounded-lg shadow-md mb-6">
+    <div class="border-b border-gray-200">
+      <nav class="flex">
+        <button
+          @click="activeTab = 'alphabetical'"
+          :class="activeTab === 'alphabetical' ? 'border-forest-600 text-forest-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+          class="px-6 py-4 border-b-2 font-medium transition-colors"
+        >
+          Ordem Alfabética
+        </button>
+        <button
+          @click="activeTab = 'collections'"
+          :class="activeTab === 'collections' ? 'border-forest-600 text-forest-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+          class="px-6 py-4 border-b-2 font-medium transition-colors"
+        >
+          Por Coleções
+        </button>
+      </nav>
+    </div>
+
+    <!-- Alphabetical Browse -->
+    <div x-show="activeTab === 'alphabetical'" class="p-6">
+      <!-- Letter Navigation -->
+      <div class="flex flex-wrap gap-2 mb-6">
+        <template x-for="letter in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')">
+          <button
+            @click="loadTermsByLetter(letter)"
+            :class="selectedLetter === letter ? 'bg-forest-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+            class="px-4 py-2 rounded-lg font-semibold transition-colors"
+            x-text="letter"
+          ></button>
+        </template>
+      </div>
+
+      <!-- Terms List -->
+      <div x-show="loading" class="text-center py-8">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-forest-600"></div>
+        <p class="text-gray-600 mt-2">Carregando termos...</p>
+      </div>
+
+      <div x-show="!loading && terms.length === 0" class="text-center py-8 text-gray-600">
+        Nenhum termo encontrado para a letra <span x-text="selectedLetter"></span>.
+      </div>
+
+      <div x-show="!loading && terms.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <template x-for="term in terms" :key="term._id">
+          <a
+            :href="`/terms/${term._id}`"
+            class="block p-4 bg-forest-50 rounded-lg hover:bg-forest-100 transition-colors"
+          >
+            <div class="font-semibold text-forest-700" x-text="term.prefLabel"></div>
+            <div class="text-sm text-gray-600 mt-1 line-clamp-2" x-text="term.definition || 'Sem definição'"></div>
+          </a>
+        </template>
+      </div>
+    </div>
+
+    <!-- Collections Browse -->
+    <div x-show="activeTab === 'collections'" class="p-6">
+      <!-- Collections List -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <template x-for="collection in collections" :key="collection._id">
+          <button
+            @click="loadTermsByCollection(collection._id)"
+            :class="selectedCollection === collection._id ? 'border-forest-600 bg-forest-50' : 'border-gray-300 hover:border-forest-400'"
+            class="p-4 border-2 rounded-lg text-left transition-colors"
+          >
+            <div class="font-semibold text-forest-700" x-text="collection.name"></div>
+            <div class="text-sm text-gray-600 mt-1" x-text="collection.description || 'Sem descrição'"></div>
+            <div class="text-xs text-gray-500 mt-2" x-text="`${collection.termCount || 0} termos`"></div>
+          </button>
+        </template>
+      </div>
+
+      <!-- Terms from Selected Collection -->
+      <div x-show="selectedCollection">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Termos da Coleção</h3>
+
+        <div x-show="loading" class="text-center py-8">
+          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-forest-600"></div>
+          <p class="text-gray-600 mt-2">Carregando termos...</p>
+        </div>
+
+        <div x-show="!loading && terms.length === 0" class="text-center py-8 text-gray-600">
+          Nenhum termo encontrado nesta coleção.
+        </div>
+
+        <div x-show="!loading && terms.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <template x-for="term in terms" :key="term._id">
+            <a
+              :href="`/terms/${term._id}`"
+              class="block p-4 bg-forest-50 rounded-lg hover:bg-forest-100 transition-colors"
+            >
+              <div class="font-semibold text-forest-700" x-text="term.prefLabel"></div>
+              <div class="text-sm text-gray-600 mt-1 line-clamp-2" x-text="term.definition || 'Sem definição'"></div>
+            </a>
+          </template>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+  </main>
+  <%- include('partials/footer') %>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> | EtnoTermos Admin</title>
+  <link href="/assets/styles.css" rel="stylesheet">
+</head>
+<body class="bg-forest-50 min-h-screen flex flex-col">
+  <%- include('partials/header') %>
+  <main class="flex-grow container mx-auto px-4 py-8">
+
+<div class="flex justify-between items-center mb-6">
+  <div>
+    <h1 class="text-3xl font-bold text-forest-700">Gerenciar Coleções</h1>
+    <p class="text-gray-600 mt-1">Organização temática do vocabulário</p>
+  </div>
+  <a href="/collections/new" class="px-6 py-3 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors font-medium">
+    + Nova Coleção
+  </a>
+</div>
+
+<div class="bg-white rounded-lg shadow-md p-8 text-center">
+  <p class="text-gray-600">Interface de gerenciamento de coleções em desenvolvimento.</p>
+  <p class="text-sm text-gray-500 mt-2">Use a API REST em /api/v1/collections</p>
+</div>
+
+  </main>
+  <%- include('partials/footer') %>
+</body>
+</html>

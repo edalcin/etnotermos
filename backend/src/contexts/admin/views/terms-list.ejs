@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> | EtnoTermos Admin</title>
+  <link href="/assets/styles.css" rel="stylesheet">
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.13.5/dist/cdn.min.js"></script>
+</head>
+<body class="bg-forest-50 min-h-screen flex flex-col">
+  <%- include('partials/header') %>
+  <main class="flex-grow container mx-auto px-4 py-8">
+
+<div x-data="{
+  terms: [],
+  loading: true,
+  page: 1,
+  totalPages: 1,
+  searchQuery: '',
+  statusFilter: '',
+  async init() {
+    await this.loadTerms();
+  },
+  async loadTerms() {
+    this.loading = true;
+    try {
+      const params = new URLSearchParams({
+        page: this.page,
+        limit: 20,
+        ...(this.searchQuery && { q: this.searchQuery }),
+        ...(this.statusFilter && { status: this.statusFilter })
+      });
+
+      const response = await fetch(`/api/v1/admin/terms?${params}`);
+      const data = await response.json();
+      this.terms = data.data || [];
+      this.totalPages = data.pagination?.totalPages || 1;
+    } catch (error) {
+      console.error('Error loading terms:', error);
+    } finally {
+      this.loading = false;
+    }
+  },
+  async deleteTerm(id) {
+    if (!confirm('Tem certeza que deseja excluir este termo?')) return;
+
+    try {
+      const response = await fetch(`/api/v1/admin/terms/${id}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        await this.loadTerms();
+        alert('Termo excluído com sucesso!');
+      } else {
+        alert('Erro ao excluir termo.');
+      }
+    } catch (error) {
+      console.error('Error deleting term:', error);
+      alert('Erro ao excluir termo.');
+    }
+  },
+  async deprecateTerm(id) {
+    if (!confirm('Tem certeza que deseja depreciar este termo?')) return;
+
+    try {
+      const response = await fetch(`/api/v1/admin/terms/${id}/deprecate`, {
+        method: 'POST'
+      });
+
+      if (response.ok) {
+        await this.loadTerms();
+        alert('Termo depreciado com sucesso!');
+      } else {
+        alert('Erro ao depreciar termo.');
+      }
+    } catch (error) {
+      console.error('Error deprecating term:', error);
+      alert('Erro ao depreciar termo.');
+    }
+  },
+  nextPage() {
+    if (this.page < this.totalPages) {
+      this.page++;
+      this.loadTerms();
+    }
+  },
+  prevPage() {
+    if (this.page > 1) {
+      this.page--;
+      this.loadTerms();
+    }
+  }
+}">
+
+  <!-- Header and Actions -->
+  <div class="flex justify-between items-center mb-6">
+    <div>
+      <h1 class="text-3xl font-bold text-forest-700">Gerenciar Termos</h1>
+      <p class="text-gray-600 mt-1">Administração do vocabulário controlado</p>
+    </div>
+    <a
+      href="/terms/new"
+      class="px-6 py-3 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors font-medium"
+    >
+      + Novo Termo
+    </a>
+  </div>
+
+  <!-- Search and Filters -->
+  <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="md:col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Buscar</label>
+        <input
+          type="text"
+          x-model="searchQuery"
+          @keyup.enter="loadTerms()"
+          placeholder="Digite para buscar..."
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-forest-600"
+        >
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+        <select
+          x-model="statusFilter"
+          @change="loadTerms()"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-forest-600"
+        >
+          <option value="">Todos</option>
+          <option value="active">Ativo</option>
+          <option value="candidate">Candidato</option>
+          <option value="deprecated">Depreciado</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div x-show="loading" class="text-center py-12">
+    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-forest-600"></div>
+    <p class="text-gray-600 mt-4">Carregando termos...</p>
+  </div>
+
+  <!-- Terms Table -->
+  <div x-show="!loading" class="bg-white rounded-lg shadow-md overflow-hidden">
+    <div x-show="terms.length === 0" class="text-center py-12 text-gray-600">
+      Nenhum termo encontrado
+    </div>
+
+    <table x-show="terms.length > 0" class="w-full">
+      <thead class="bg-forest-600 text-white">
+        <tr>
+          <th class="px-6 py-3 text-left text-sm font-semibold">Termo Preferencial</th>
+          <th class="px-6 py-3 text-left text-sm font-semibold">Status</th>
+          <th class="px-6 py-3 text-left text-sm font-semibold">Idioma</th>
+          <th class="px-6 py-3 text-left text-sm font-semibold">Modificado</th>
+          <th class="px-6 py-3 text-right text-sm font-semibold">Ações</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200">
+        <template x-for="term in terms" :key="term._id">
+          <tr class="hover:bg-gray-50">
+            <td class="px-6 py-4">
+              <div class="font-medium text-gray-800" x-text="term.prefLabel"></div>
+              <div x-show="term.definition" class="text-sm text-gray-600 line-clamp-1" x-text="term.definition"></div>
+            </td>
+            <td class="px-6 py-4">
+              <span
+                :class="{
+                  'bg-green-100 text-green-800': term.status === 'active',
+                  'bg-yellow-100 text-yellow-800': term.status === 'candidate',
+                  'bg-red-100 text-red-800': term.status === 'deprecated'
+                }"
+                class="px-2 py-1 text-xs rounded-full"
+                x-text="term.status"
+              ></span>
+            </td>
+            <td class="px-6 py-4 text-sm text-gray-600" x-text="term.language || 'pt-BR'"></td>
+            <td class="px-6 py-4 text-sm text-gray-600" x-text="new Date(term.modified || term.created).toLocaleDateString('pt-BR')"></td>
+            <td class="px-6 py-4">
+              <div class="flex items-center justify-end space-x-2">
+                <a
+                  :href="`/terms/${term._id}/edit`"
+                  class="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-sm"
+                >
+                  Editar
+                </a>
+                <button
+                  x-show="term.status !== 'deprecated'"
+                  @click="deprecateTerm(term._id)"
+                  class="px-3 py-1 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 text-sm"
+                >
+                  Depreciar
+                </button>
+                <button
+                  @click="deleteTerm(term._id)"
+                  class="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 text-sm"
+                >
+                  Excluir
+                </button>
+              </div>
+            </td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <div x-show="totalPages > 1" class="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
+      <div class="text-sm text-gray-600">
+        Página <span x-text="page"></span> de <span x-text="totalPages"></span>
+      </div>
+      <div class="flex space-x-2">
+        <button
+          @click="prevPage()"
+          :disabled="page <= 1"
+          :class="page <= 1 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'"
+          class="px-4 py-2 border border-gray-300 rounded-lg transition-colors"
+        >
+          Anterior
+        </button>
+        <button
+          @click="nextPage()"
+          :disabled="page >= totalPages"
+          :class="page >= totalPages ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'"
+          class="px-4 py-2 border border-gray-300 rounded-lg transition-colors"
+        >
+          Próximo
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+  </main>
+  <%- include('partials/footer') %>
+</body>
+</html>

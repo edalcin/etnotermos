@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Vocabulário controlado para etnobotânica">
+  <title><%= title %> | EtnoTermos</title>
+  <link href="/assets/styles.css" rel="stylesheet">
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.13.5/dist/cdn.min.js"></script>
+</head>
+<body class="bg-forest-50 min-h-screen flex flex-col">
+  <%- include('partials/header') %>
+
+  <main class="flex-grow container mx-auto px-4 py-8">
+<!-- Hero Section -->
+<div class="bg-white rounded-lg shadow-md p-8 mb-8">
+  <div class="text-center mb-8">
+    <h1 class="text-4xl font-bold text-forest-700 mb-4">
+      🌿 Bem-vindo ao EtnoTermos
+    </h1>
+    <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+      Vocabulário controlado para etnobotânica seguindo padrões internacionais
+      ANSI/NISO Z39.19-2005 e os Princípios CARE
+    </p>
+  </div>
+
+  <!-- Search Box -->
+  <div class="max-w-2xl mx-auto">
+    <form action="/search" method="GET" class="relative">
+      <input
+        type="text"
+        name="q"
+        placeholder="Buscar termos..."
+        class="w-full px-6 py-4 pr-12 text-lg border-2 border-forest-300 rounded-lg focus:outline-none focus:border-forest-600 transition-colors"
+        autocomplete="off"
+      >
+      <button
+        type="submit"
+        class="absolute right-3 top-1/2 transform -translate-y-1/2 bg-forest-600 text-white p-2 rounded-lg hover:bg-forest-700 transition-colors"
+      >
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Statistics -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+  <div class="bg-white rounded-lg shadow-md p-6">
+    <div class="text-forest-600 text-3xl mb-2">📚</div>
+    <div class="text-2xl font-bold text-gray-800"><%= stats.totalTerms || 0 %></div>
+    <div class="text-gray-600">Termos</div>
+  </div>
+
+  <div class="bg-white rounded-lg shadow-md p-6">
+    <div class="text-forest-600 text-3xl mb-2">🔗</div>
+    <div class="text-2xl font-bold text-gray-800"><%= stats.totalRelationships || 0 %></div>
+    <div class="text-gray-600">Relacionamentos</div>
+  </div>
+
+  <div class="bg-white rounded-lg shadow-md p-6">
+    <div class="text-forest-600 text-3xl mb-2">🏷️</div>
+    <div class="text-2xl font-bold text-gray-800"><%= stats.totalCollections || 0 %></div>
+    <div class="text-gray-600">Coleções</div>
+  </div>
+
+  <div class="bg-white rounded-lg shadow-md p-6">
+    <div class="text-forest-600 text-3xl mb-2">📖</div>
+    <div class="text-2xl font-bold text-gray-800"><%= stats.totalSources || 0 %></div>
+    <div class="text-gray-600">Fontes</div>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+  <a href="/browse" class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+    <div class="text-forest-600 text-4xl mb-3">🗂️</div>
+    <h3 class="text-xl font-semibold text-gray-800 mb-2">Navegar Termos</h3>
+    <p class="text-gray-600">
+      Explore o vocabulário controlado por ordem alfabética ou por coleções temáticas.
+    </p>
+  </a>
+
+  <a href="/search" class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+    <div class="text-forest-600 text-4xl mb-3">🔍</div>
+    <h3 class="text-xl font-semibold text-gray-800 mb-2">Busca Avançada</h3>
+    <p class="text-gray-600">
+      Utilize filtros e operadores para encontrar termos específicos no vocabulário.
+    </p>
+  </a>
+
+  <a href="/export" class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+    <div class="text-forest-600 text-4xl mb-3">💾</div>
+    <h3 class="text-xl font-semibold text-gray-800 mb-2">Exportar Dados</h3>
+    <p class="text-gray-600">
+      Baixe o vocabulário em formatos CSV, SKOS/RDF ou JSON-LD para reutilização.
+    </p>
+  </a>
+</div>
+
+<!-- About Section -->
+<div class="bg-white rounded-lg shadow-md p-8 mt-8">
+  <h2 class="text-2xl font-bold text-forest-700 mb-4">Sobre o EtnoTermos</h2>
+  <div class="prose max-w-none text-gray-700">
+    <p class="mb-4">
+      O <strong>EtnoTermos</strong> é um sistema de gerenciamento de vocabulário controlado
+      desenvolvido especificamente para pesquisa etnobotânica, integrado ao sistema
+      <a href="http://localhost:3001" class="text-forest-600 hover:text-forest-700">etnoDB</a>.
+    </p>
+    <p class="mb-4">
+      Este vocabulário gerencia termos controlados utilizados nos campos do etnoDB, incluindo:
+    </p>
+    <ul class="list-disc list-inside mb-4 space-y-2">
+      <li><strong>comunidades.tipo</strong>: 29 categorias de comunidades tradicionais (Decreto 8.750/2016)</li>
+      <li><strong>comunidades.plantas.tipoUso</strong>: Tipos de uso de plantas (medicinal, alimentício, ritualístico, etc.)</li>
+    </ul>
+    <p class="mb-4">
+      Seguimos rigorosamente o padrão <strong>ANSI/NISO Z39.19-2005</strong> para construção
+      de vocabulários controlados e os <strong>Princípios CARE</strong> (Collective Benefit,
+      Authority to Control, Responsibility, Ethics) para gerenciamento de conhecimento tradicional.
+    </p>
+  </div>
+</div>
+  </main>
+
+  <%- include('partials/footer') %>
+</body>
+</html>

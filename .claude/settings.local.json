@@ -17,7 +17,9 @@
       "Bash(else echo \"Pasta etnotermos não existe\")",
       "Bash(fi)",
       "Bash(git rm:*)",
-      "Skill(constitution)"
+      "Skill(constitution)",
+      "Bash(npm run build:css:*)",
+      "Bash(npm install)"
     ],
     "deny": [],
     "ask": []

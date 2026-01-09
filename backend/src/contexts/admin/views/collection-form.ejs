@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> | EtnoTermos Admin</title>
+  <link href="/assets/styles.css" rel="stylesheet">
+</head>
+<body class="bg-forest-50 min-h-screen flex flex-col">
+  <%- include('partials/header') %>
+  <main class="flex-grow container mx-auto px-4 py-8">
+
+<div class="mb-6">
+  <div class="flex items-center justify-between mb-2">
+    <h1 class="text-3xl font-bold text-forest-700"><%= title %></h1>
+    <a href="/collections" class="text-gray-600 hover:text-gray-800">← Voltar</a>
+  </div>
+</div>
+
+<div class="bg-white rounded-lg shadow-md p-8">
+  <p class="text-gray-600">Formulário de coleções em desenvolvimento.</p>
+  <p class="text-sm text-gray-500 mt-2">Use a API REST: POST /api/v1/collections</p>
+</div>
+
+  </main>
+  <%- include('partials/footer') %>
+</body>
+</html>

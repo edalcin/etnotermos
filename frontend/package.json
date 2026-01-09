@@ -3,8 +3,10 @@
   "version": "1.0.0",
   "description": "EtnoTermos frontend - Tailwind CSS build system",
   "scripts": {
-    "build:css": "tailwindcss -i ./src/shared/styles/main.css -o ../backend/src/contexts/public/views/assets/styles.css --minify",
-    "watch:css": "tailwindcss -i ./src/shared/styles/main.css -o ../backend/src/contexts/public/views/assets/styles.css --watch",
+    "build:css:public": "tailwindcss -i ./src/styles/input.css -o ../backend/src/contexts/public/views/assets/styles.css --minify",
+    "build:css:admin": "tailwindcss -i ./src/styles/input.css -o ../backend/src/contexts/admin/views/assets/styles.css --minify",
+    "build:css": "npm run build:css:public && npm run build:css:admin",
+    "watch:css": "tailwindcss -i ./src/styles/input.css -o ../backend/src/contexts/public/views/assets/styles.css --watch",
     "build": "npm run build:css"
   },
   "keywords": [

@@ -1,0 +1,49 @@
+<header class="bg-forest-600 text-white shadow-lg">
+  <div class="container mx-auto px-4">
+    <nav class="flex items-center justify-between py-4">
+      <!-- Logo and Brand -->
+      <div class="flex items-center space-x-4">
+        <a href="/" class="flex items-center space-x-2 hover:opacity-90 transition-opacity">
+          <span class="text-3xl">🌿</span>
+          <div class="flex flex-col">
+            <span class="text-xl font-bold">EtnoTermos</span>
+            <span class="text-xs text-forest-100">Vocabulário Controlado</span>
+          </div>
+        </a>
+      </div>
+
+      <!-- Navigation Links -->
+      <div class="hidden md:flex items-center space-x-6">
+        <a href="/" class="hover:text-forest-200 transition-colors">Início</a>
+        <a href="/browse" class="hover:text-forest-200 transition-colors">Navegar</a>
+        <a href="/search" class="hover:text-forest-200 transition-colors">Buscar</a>
+        <a href="/about" class="hover:text-forest-200 transition-colors">Sobre</a>
+      </div>
+
+      <!-- Mobile Menu Button -->
+      <button
+        class="md:hidden text-white"
+        @click="mobileMenuOpen = !mobileMenuOpen"
+        x-data="{ mobileMenuOpen: false }"
+      >
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path x-show="!mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+          <path x-show="mobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </nav>
+
+    <!-- Mobile Menu -->
+    <div
+      x-data="{ open: false }"
+      x-show="open"
+      @click.outside="open = false"
+      class="md:hidden py-4 border-t border-forest-500"
+    >
+      <a href="/" class="block py-2 hover:text-forest-200 transition-colors">Início</a>
+      <a href="/browse" class="block py-2 hover:text-forest-200 transition-colors">Navegar</a>
+      <a href="/search" class="block py-2 hover:text-forest-200 transition-colors">Buscar</a>
+      <a href="/about" class="block py-2 hover:text-forest-200 transition-colors">Sobre</a>
+    </div>
+  </div>
+</header>
