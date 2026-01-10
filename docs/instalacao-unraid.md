@@ -120,7 +120,20 @@ Agora vamos instalar a aplicação EtnoTermos que se conectará ao MongoDB exist
     - Se MongoDB está no mesmo UNRAID: `mongodb://172.17.0.1:27017/etnodb`
     - Se MongoDB tem nome específico (ex: `mongodb`): `mongodb://mongodb:27017/etnodb`
     - Se MongoDB está em outro servidor: `mongodb://IP_DO_SERVIDOR:27017/etnodb`
-    - Se MongoDB tem autenticação: `mongodb://usuario:senha@IP:27017/etnodb`
+    - Se MongoDB tem autenticação: `mongodb://usuario:senha@IP:27017/etnodb?authSource=etnodb`
+    - **⚠️ IMPORTANTE - Caracteres especiais em senhas**: Se a senha contiver caracteres especiais, eles **devem ser codificados em URL** (URL-encoded):
+      - `!` → `%21`
+      - `@` → `%40`
+      - `#` → `%23`
+      - `$` → `%24`
+      - `%` → `%25`
+      - `^` → `%5E`
+      - `&` → `%26`
+      - `*` → `%2A`
+      - `(` → `%28`
+      - `)` → `%29`
+      - Exemplo: senha `abc!123*` deve ser escrita como `abc%21123%2A`
+      - Formato completo: `mongodb://usuario:senhacodificada@IP:27017/etnodb?authSource=etnodb`
 
 - **Node Environment:**
   - Clique em **"Add another Path, Port, Variable, Label or Device"**
@@ -403,16 +416,26 @@ docker exec $MONGODB_CONTAINER mongorestore --db=etnodb --drop /tmp/backup_YYYYM
    - Verifique se o container `etnotermos-mongodb` está rodando
    - Teste a conexão: `docker exec etnotermos-mongodb mongosh --eval "db.adminCommand('ping')"`
 
-### Erro "Cannot connect to MongoDB"
+### Erro "Cannot connect to MongoDB" ou "Internal Server Error"
 
-1. **Verificar IP do host:**
+1. **Verificar caracteres especiais na senha:**
+   - **CAUSA COMUM**: Senhas com caracteres especiais (`!`, `*`, `@`, `#`, etc.) não codificados
+   - **SOLUÇÃO**: Codifique os caracteres especiais conforme a tabela acima
+   - Exemplo correto: `qWtnJsbAs!85zg*6` → `qWtnJsbAs%2185zg%2A6`
+   - String correta: `mongodb://etnodb:qWtnJsbAs%2185zg%2A6@192.168.1.10:27017/etnodb?authSource=etnodb`
+
+2. **Verificar IP do host:**
    - Se usar `172.17.0.1`, teste: `ping 172.17.0.1` dentro do container
    - Ou use `--link` conforme descrito na seção 2.1
 
-2. **Usar nome do container:**
+3. **Usar nome do container:**
    - Altere `MONGO_URI` para `mongodb://etnotermos-mongodb:27017/etnodb`
    - Adicione `--link etnotermos-mongodb:mongodb` em Extra Parameters
 
+4. **Verificar logs do container:**
+   - Docker → Container → Logs
+   - Procure por erros de autenticação ou conexão
+   - Mensagens como "MongoServerError: Authentication failed" indicam problema com credenciais
 ### Interface não carrega
 
 1. **Verificar se CSS foi compilado:**
