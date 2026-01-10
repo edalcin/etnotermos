@@ -1,7 +1,7 @@
 # EtnoTermos - Plataforma de Gestão de Terminologia Etnobotânica
 
 <div align="center">
-  <img src="docs/imagens/logoTransparente.png" alt="etnoTermos Logo" width="200">
+  <img src="docs/etnoImagens/etnotermosTrans.png" alt="etnoTermos Logo" width="200">
   
 </div>
 
