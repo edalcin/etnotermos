@@ -3,6 +3,8 @@
 
 import express from 'express';
 import {
+  listTermsHandler,
+  getTermHandler,
   createTermHandler,
   updateTermHandler,
   deleteTermHandler,
@@ -24,6 +26,18 @@ router.use(adminAuth);
 
 // Apply audit logging to all routes
 router.use(auditLog);
+
+/**
+ * GET /api/v1/admin/terms
+ * List all terms with pagination and filtering
+ */
+router.get('/', listTermsHandler);
+
+/**
+ * GET /api/v1/admin/terms/:id
+ * Get a single term by ID
+ */
+router.get('/:id', validateObjectId('id'), getTermHandler);
 
 /**
  * POST /api/v1/admin/terms

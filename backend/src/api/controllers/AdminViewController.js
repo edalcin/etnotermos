@@ -10,6 +10,7 @@ import { asyncHandler } from '../middleware/errorHandler.js';
 export const renderDashboard = asyncHandler(async (req, res) => {
   res.render('dashboard', {
     title: 'Dashboard',
+    currentPage: 'dashboard',
   });
 });
 
@@ -20,6 +21,7 @@ export const renderDashboard = asyncHandler(async (req, res) => {
 export const renderTermsList = asyncHandler(async (req, res) => {
   res.render('terms-list', {
     title: 'Gerenciar Termos',
+    currentPage: 'terms',
   });
 });
 
@@ -33,6 +35,7 @@ export const renderTermForm = asyncHandler(async (req, res) => {
 
   res.render('term-form', {
     title: isEdit ? 'Editar Termo' : 'Novo Termo',
+    currentPage: 'terms',
     termId: id || null,
     isEdit,
   });
@@ -45,6 +48,7 @@ export const renderTermForm = asyncHandler(async (req, res) => {
 export const renderRelationshipsList = asyncHandler(async (req, res) => {
   res.render('relationships-list', {
     title: 'Gerenciar Relacionamentos',
+    currentPage: 'relationships',
   });
 });
 
@@ -55,6 +59,7 @@ export const renderRelationshipsList = asyncHandler(async (req, res) => {
 export const renderRelationshipForm = asyncHandler(async (req, res) => {
   res.render('relationship-form', {
     title: 'Novo Relacionamento',
+    currentPage: 'relationships',
   });
 });
 
@@ -65,6 +70,7 @@ export const renderRelationshipForm = asyncHandler(async (req, res) => {
 export const renderCollectionsList = asyncHandler(async (req, res) => {
   res.render('collections-list', {
     title: 'Gerenciar Coleções',
+    currentPage: 'collections',
   });
 });
 
@@ -78,6 +84,7 @@ export const renderCollectionForm = asyncHandler(async (req, res) => {
 
   res.render('collection-form', {
     title: isEdit ? 'Editar Coleção' : 'Nova Coleção',
+    currentPage: 'collections',
     collectionId: id || null,
     isEdit,
   });
@@ -90,6 +97,7 @@ export const renderCollectionForm = asyncHandler(async (req, res) => {
 export const renderAuditLogs = asyncHandler(async (req, res) => {
   res.render('audit-logs', {
     title: 'Logs de Auditoria',
+    currentPage: 'audit',
   });
 });
 

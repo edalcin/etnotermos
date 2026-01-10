@@ -7,6 +7,8 @@ import {
   deleteTerm,
   deprecateExistingTerm,
   mergeTerms,
+  listTerms,
+  getTermById,
 } from '../../services/TermService.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 
@@ -105,7 +107,52 @@ export const mergeTermsHandler = asyncHandler(async (req, res) => {
   res.status(200).json(result);
 });
 
+/**
+ * List terms with pagination and filtering
+ * GET /api/v1/admin/terms
+ */
+export const listTermsHandler = asyncHandler(async (req, res) => {
+  const { page, limit, status, collections, sortBy, sortOrder, q } = req.query;
+
+  const options = {
+    page: parseInt(page) || 1,
+    limit: parseInt(limit) || 20,
+    sortBy: sortBy || 'modified',
+    sortOrder: sortOrder === 'asc' ? 1 : -1,
+  };
+
+  if (status) {
+    options.status = status;
+  }
+
+  if (collections) {
+    options.collectionIds = Array.isArray(collections) ? collections : [collections];
+  }
+
+  if (q) {
+    options.searchQuery = q;
+  }
+
+  const result = await listTerms(options);
+
+  res.status(200).json(result);
+});
+
+/**
+ * Get a single term by ID
+ * GET /api/v1/admin/terms/:id
+ */
+export const getTermHandler = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const term = await getTermById(id);
+
+  res.status(200).json(term);
+});
+
 export default {
+  listTermsHandler,
+  getTermHandler,
   createTermHandler,
   updateTermHandler,
   deleteTermHandler,
