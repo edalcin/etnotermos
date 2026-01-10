@@ -34,6 +34,8 @@ export async function listTerms(options = {}) {
     collectionIds,
     sortBy = 'createdAt',
     sortOrder = -1,
+    startsWith,
+    searchQuery,
   } = options;
 
   // Build query
@@ -43,6 +45,16 @@ export async function listTerms(options = {}) {
   }
   if (collectionIds && collectionIds.length > 0) {
     query.collectionIds = { $in: collectionIds.map((id) => new ObjectId(id)) };
+  }
+  if (startsWith) {
+    query.prefLabel = { $regex: `^${startsWith}`, $options: 'i' };
+  }
+  if (searchQuery) {
+    query.$or = [
+      { prefLabel: { $regex: searchQuery, $options: 'i' } },
+      { altLabels: { $regex: searchQuery, $options: 'i' } },
+      { definition: { $regex: searchQuery, $options: 'i' } },
+    ];
   }
 
   // Execute query with pagination

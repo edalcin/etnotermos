@@ -9,13 +9,13 @@ import { asyncHandler } from '../middleware/errorHandler.js';
  * GET /api/v1/terms
  */
 export const listTermsHandler = asyncHandler(async (req, res) => {
-  const { page, limit, status, collections, sortBy, sortOrder } = req.query;
+  const { page, limit, status, collections, sortBy, sortOrder, startsWith, q } = req.query;
 
   const options = {
-    page: page || 1,
-    limit: limit || 20,
-    sortBy: sortBy || 'createdAt',
-    sortOrder: sortOrder === 'asc' ? 1 : -1,
+    page: parseInt(page) || 1,
+    limit: parseInt(limit) || 20,
+    sortBy: sortBy || 'prefLabel',
+    sortOrder: sortOrder === 'desc' ? -1 : 1,
   };
 
   if (status) {
@@ -26,9 +26,17 @@ export const listTermsHandler = asyncHandler(async (req, res) => {
     options.collectionIds = Array.isArray(collections) ? collections : [collections];
   }
 
+  if (startsWith) {
+    options.startsWith = startsWith;
+  }
+
+  if (q) {
+    options.searchQuery = q;
+  }
+
   const result = await listTerms(options);
 
-  res.status(200).json(result.data);
+  res.status(200).json(result);
 });
 
 /**
