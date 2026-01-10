@@ -13,11 +13,11 @@ COPY tailwind.config.js ./
 RUN cd backend && npm ci --only=production && npm cache clean --force
 RUN cd frontend && npm ci && npm cache clean --force
 
-# Copy source code
-COPY backend ./backend
+# Copy source code (frontend needs to be copied first for CSS build)
 COPY frontend ./frontend
+COPY backend ./backend
 
-# Build Tailwind CSS
+# Build Tailwind CSS (this compiles CSS directly into backend/src/contexts/*/views/assets/)
 RUN cd frontend && npm run build:css
 
 # Production stage
@@ -29,9 +29,9 @@ RUN apk add --no-cache dumb-init
 # Set working directory
 WORKDIR /app
 
-# Copy built artifacts from builder
+# Copy backend with compiled CSS from builder
+# Note: CSS was already compiled into backend during build stage
 COPY --from=builder /app/backend ./backend
-COPY --from=builder /app/frontend/dist ./frontend/dist
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
