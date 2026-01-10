@@ -1,0 +1,400 @@
+# Instalação do EtnoTermos no UNRAID
+
+Este guia fornece instruções passo a passo para instalar o **EtnoTermos** no UNRAID via interface web, sem necessidade de linha de comando.
+
+## 📋 Pré-requisitos
+
+- Servidor UNRAID em funcionamento
+- Acesso à interface web do UNRAID
+- Espaço em disco disponível (recomendado: mínimo 10 GB)
+- Memória RAM disponível (recomendado: mínimo 2 GB para a aplicação)
+
+## 🚀 Instalação
+
+### Parte 1: Instalação do MongoDB
+
+O EtnoTermos requer o MongoDB como banco de dados. Primeiro, vamos instalar o MongoDB.
+
+#### 1.1 Adicionar Container do MongoDB
+
+1. No painel do UNRAID, clique em **Docker**
+2. Clique no botão **Add Container**
+3. Preencha os campos conforme abaixo:
+
+**Configurações Básicas:**
+- **Name:** `etnotermos-mongodb`
+- **Overview:** Banco de dados MongoDB para o EtnoTermos
+- **Repository:** `mongo:7.0-alpine`
+- **Network Type:** `Bridge`
+- **Console shell command:** `Shell`
+
+**Mapeamento de Portas:**
+- Clique em **"Add another Path, Port, Variable, Label or Device"**
+- Selecione **Port**
+  - **Name:** MongoDB Port
+  - **Container Port:** `27017`
+  - **Host Port:** `27017`
+  - **Connection Type:** `TCP`
+
+**Mapeamento de Volumes (Persistência de Dados):**
+- Clique em **"Add another Path, Port, Variable, Label or Device"**
+- Selecione **Path**
+  - **Name:** MongoDB Data
+  - **Container Path:** `/data/db`
+  - **Host Path:** `/mnt/user/appdata/etnotermos/mongodb`
+  - **Access Mode:** `Read/Write`
+
+**Variáveis de Ambiente:**
+- Clique em **"Add another Path, Port, Variable, Label or Device"**
+- Selecione **Variable**
+  - **Name:** Database Name
+  - **Key:** `MONGO_INITDB_DATABASE`
+  - **Value:** `etnodb`
+
+4. Clique em **Apply** para criar o container do MongoDB
+5. Aguarde o download da imagem e inicialização do container
+
+#### 1.2 Verificar MongoDB
+
+1. No painel **Docker**, verifique se o container `etnotermos-mongodb` está com status **Started** (ícone verde)
+2. Clique no ícone do container e selecione **Logs** para verificar se não há erros
+
+### Parte 2: Instalação do EtnoTermos
+
+Agora vamos instalar a aplicação EtnoTermos.
+
+#### 2.1 Adicionar Container do EtnoTermos
+
+1. No painel do UNRAID, clique em **Docker**
+2. Clique no botão **Add Container**
+3. Preencha os campos conforme abaixo:
+
+**Configurações Básicas:**
+- **Name:** `etnotermos-app`
+- **Overview:** Sistema de Gestão de Terminologia Etnobotânica
+- **Repository:** `ghcr.io/edalcin/etnotermos:latest`
+  - *Nota: Esta imagem será disponibilizada no GitHub Container Registry. Enquanto isso, você pode usar `edalcin/etnotermos:latest` se estiver disponível no Docker Hub, ou construir localmente conforme a seção "Construção Manual" abaixo.*
+- **Network Type:** `Bridge`
+- **Console shell command:** `Shell`
+
+**Mapeamento de Portas:**
+- **Porta Pública (Interface de Consulta):**
+  - Clique em **"Add another Path, Port, Variable, Label or Device"**
+  - Selecione **Port**
+    - **Name:** Public Port
+    - **Container Port:** `4000`
+    - **Host Port:** `4000`
+    - **Connection Type:** `TCP`
+
+- **Porta Admin (Interface Administrativa):**
+  - Clique em **"Add another Path, Port, Variable, Label or Device"**
+  - Selecione **Port**
+    - **Name:** Admin Port
+    - **Container Port:** `4001`
+    - **Host Port:** `4001`
+    - **Connection Type:** `TCP`
+
+**Variáveis de Ambiente:**
+
+- **Node Environment:**
+  - **Name:** Node Environment
+  - **Key:** `NODE_ENV`
+  - **Value:** `production`
+
+- **Public Port:**
+  - **Name:** Public Port Number
+  - **Key:** `PUBLIC_PORT`
+  - **Value:** `4000`
+
+- **Admin Port:**
+  - **Name:** Admin Port Number
+  - **Key:** `ADMIN_PORT`
+  - **Value:** `4001`
+
+- **MongoDB URI:**
+  - **Name:** MongoDB Connection URI
+  - **Key:** `MONGO_URI`
+  - **Value:** `mongodb://172.17.0.1:27017/etnodb`
+  - *Nota: `172.17.0.1` é o IP padrão do host Docker no UNRAID. Se você configurou uma rede customizada, ajuste conforme necessário.*
+
+- **(Opcional) Admin Username:**
+  - **Name:** Admin Username
+  - **Key:** `ADMIN_USERNAME`
+  - **Value:** `admin` (ou outro usuário de sua preferência)
+
+- **(Opcional) Admin Password:**
+  - **Name:** Admin Password
+  - **Key:** `ADMIN_PASSWORD`
+  - **Value:** `sua_senha_segura_aqui`
+
+**Configurações de Rede:**
+- Em **Extra Parameters** (em "Show more settings..."), você pode adicionar:
+  ```
+  --link etnotermos-mongodb:mongodb
+  ```
+  - Isso cria um link direto entre os containers. Se usar esta opção, altere o `MONGO_URI` para `mongodb://mongodb:27017/etnodb`
+
+**Configurações de Reinicialização:**
+- Em **Show more settings...**, localize:
+  - **Restart Policy:** Selecione `unless-stopped` para garantir que o container reinicie automaticamente
+
+4. Clique em **Apply** para criar o container do EtnoTermos
+5. Aguarde o download da imagem e inicialização
+
+#### 2.2 Verificar EtnoTermos
+
+1. No painel **Docker**, verifique se o container `etnotermos-app` está com status **Started**
+2. Clique no ícone do container e selecione **Logs** para verificar se não há erros
+3. Procure por mensagens como:
+   ```
+   Public server listening on port 4000
+   Admin server listening on port 4001
+   MongoDB connected successfully
+   ```
+
+### Parte 3: Inicialização e Configuração
+
+#### 3.1 Acessar a Interface Web
+
+Após a inicialização bem-sucedida:
+
+1. **Interface Pública (Consulta - Read-Only):**
+   - Abra seu navegador e acesse: `http://[IP-DO-UNRAID]:4000`
+   - Esta interface permite visualizar e pesquisar termos, sem necessidade de autenticação
+
+2. **Interface Admin (Gestão - CRUD Completo):**
+   - Abra seu navegador e acesse: `http://[IP-DO-UNRAID]:4001`
+   - Se você configurou autenticação, faça login com as credenciais definidas
+
+*Substitua `[IP-DO-UNRAID]` pelo endereço IP do seu servidor UNRAID na rede local (ex: `192.168.1.100`)*
+
+#### 3.2 Inicializar o Banco de Dados
+
+Para popular o banco de dados com os índices e dados iniciais, execute os comandos via console do container:
+
+1. No painel **Docker**, clique no ícone do container `etnotermos-app`
+2. Selecione **Console** e escolha **>_ /bin/sh**
+3. No console que abrir, execute os seguintes comandos:
+
+```bash
+# Navegar para a pasta backend
+cd /app/backend
+
+# Criar índices no MongoDB
+node scripts/create-indexes.js
+
+# Popular com vocabulário controlado para etnoDB
+node scripts/seed-controlled-vocab.js
+
+# (Opcional) Popular com dados de exemplo
+node scripts/seed.js
+
+# Sair do console
+exit
+```
+
+4. Após executar estes comandos, a aplicação estará pronta para uso
+
+#### 3.3 Verificar Funcionamento
+
+1. Acesse a interface pública: `http://[IP-DO-UNRAID]:4000`
+2. Você deverá ver:
+   - Página inicial com opções de navegação
+   - Barra de busca funcional
+   - Lista de termos (se dados de exemplo foram carregados)
+
+3. Acesse a interface admin: `http://[IP-DO-UNRAID]:4001`
+4. Faça login (se configurou autenticação)
+5. Você deverá ter acesso a:
+   - Criação e edição de termos
+   - Gestão de relacionamentos
+   - Importação/exportação de dados
+   - Dashboard administrativo
+
+## 🔧 Construção Manual da Imagem (Alternativa)
+
+Se a imagem pré-construída não estiver disponível ou você preferir construir localmente:
+
+### Opção A: Usando Docker via Terminal SSH
+
+1. Ative SSH no UNRAID (Settings → Management Access → Enable SSH)
+2. Conecte-se via SSH: `ssh root@[IP-DO-UNRAID]`
+3. Execute:
+
+```bash
+# Navegar para um diretório temporário
+cd /tmp
+
+# Clonar o repositório
+git clone https://github.com/edalcin/etnotermos.git
+cd etnotermos
+
+# Construir a imagem
+docker build -t etnotermos:latest -f docker/etnotermos.Dockerfile .
+
+# Voltar para o diretório anterior
+cd ..
+rm -rf etnotermos
+```
+
+4. Agora você pode usar `etnotermos:latest` como **Repository** ao criar o container via interface web
+
+### Opção B: Usando Docker Compose via SSH
+
+1. Conecte-se via SSH ao UNRAID
+2. Execute:
+
+```bash
+cd /mnt/user/appdata/etnotermos
+git clone https://github.com/edalcin/etnotermos.git .
+cd docker
+docker-compose up -d
+```
+
+3. Os containers serão criados automaticamente com todas as configurações
+
+## 🛡️ Segurança e Acesso Externo
+
+### Acesso via Proxy Reverso (Recomendado)
+
+Se você usa **Nginx Proxy Manager**, **Swag** ou outro proxy reverso no UNRAID:
+
+1. Crie dois proxy hosts:
+   - **etnotermos.seudominio.com** → `http://[IP-UNRAID]:4000` (interface pública)
+   - **admin.etnotermos.seudominio.com** → `http://[IP-UNRAID]:4001` (interface admin)
+
+2. Configure certificados SSL gratuitos com Let's Encrypt
+3. Habilite autenticação básica adicional no proxy para a interface admin (segurança extra)
+
+### Configuração de Firewall
+
+- **Porta 4000**: Pode ser exposta para rede local ou internet (interface pública, read-only)
+- **Porta 4001**: Deve ser restrita apenas à rede local ou protegida com VPN (interface admin com permissões de escrita)
+
+## 🔄 Atualização
+
+Para atualizar o EtnoTermos para uma nova versão:
+
+1. No painel **Docker**, clique no ícone do container `etnotermos-app`
+2. Selecione **Force Update**
+3. Aguarde o download da nova imagem e reinicialização
+4. Verifique os logs para garantir que tudo iniciou corretamente
+
+Ou via SSH:
+
+```bash
+docker stop etnotermos-app
+docker rm etnotermos-app
+docker pull ghcr.io/edalcin/etnotermos:latest
+# Recrie o container via interface web ou docker-compose
+```
+
+## 🔙 Backup
+
+### Backup Automático do MongoDB
+
+Recomenda-se configurar backups regulares do MongoDB:
+
+#### Usando User Scripts no UNRAID
+
+1. Instale o plugin **User Scripts** (Community Applications)
+2. Crie um novo script com o conteúdo:
+
+```bash
+#!/bin/bash
+
+BACKUP_DIR="/mnt/user/backups/etnotermos"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+
+mkdir -p $BACKUP_DIR
+
+# Fazer backup do MongoDB
+docker exec etnotermos-mongodb mongodump --out=/tmp/backup_$TIMESTAMP --db=etnodb
+
+# Copiar backup para o host
+docker cp etnotermos-mongodb:/tmp/backup_$TIMESTAMP $BACKUP_DIR/
+
+# Comprimir
+cd $BACKUP_DIR
+tar -czf backup_$TIMESTAMP.tar.gz backup_$TIMESTAMP
+rm -rf backup_$TIMESTAMP
+
+# Limpar backups antigos (manter 30 dias)
+find $BACKUP_DIR -name "backup_*.tar.gz" -mtime +30 -delete
+
+echo "Backup concluído: backup_$TIMESTAMP.tar.gz"
+```
+
+3. Configure para executar diariamente (ex: 2h da manhã)
+
+### Restaurar Backup
+
+Para restaurar um backup:
+
+```bash
+# Via SSH no UNRAID
+cd /mnt/user/backups/etnotermos
+tar -xzf backup_YYYYMMDD_HHMMSS.tar.gz
+
+# Copiar para o container
+docker cp backup_YYYYMMDD_HHMMSS etnotermos-mongodb:/tmp/
+
+# Restaurar
+docker exec etnotermos-mongodb mongorestore --db=etnodb --drop /tmp/backup_YYYYMMDD_HHMMSS/etnodb
+```
+
+## ❓ Solução de Problemas
+
+### Container não inicia
+
+1. **Verificar logs:**
+   - No painel Docker, clique no container → **Logs**
+   - Procure por mensagens de erro
+
+2. **Verificar portas:**
+   - Certifique-se de que as portas 4000 e 4001 não estão sendo usadas por outros containers
+   - No terminal: `netstat -tulpn | grep -E '4000|4001'`
+
+3. **Verificar conexão com MongoDB:**
+   - Verifique se o container `etnotermos-mongodb` está rodando
+   - Teste a conexão: `docker exec etnotermos-mongodb mongosh --eval "db.adminCommand('ping')"`
+
+### Erro "Cannot connect to MongoDB"
+
+1. **Verificar IP do host:**
+   - Se usar `172.17.0.1`, teste: `ping 172.17.0.1` dentro do container
+   - Ou use `--link` conforme descrito na seção 2.1
+
+2. **Usar nome do container:**
+   - Altere `MONGO_URI` para `mongodb://etnotermos-mongodb:27017/etnodb`
+   - Adicione `--link etnotermos-mongodb:mongodb` em Extra Parameters
+
+### Interface não carrega
+
+1. **Verificar se CSS foi compilado:**
+   - Entre no console do container: `docker exec -it etnotermos-app /bin/sh`
+   - Verifique: `ls -la /app/backend/src/contexts/public/views/assets/css/`
+   - Deve haver arquivos CSS compilados
+
+2. **Limpar cache do navegador:**
+   - Pressione `Ctrl+Shift+R` ou `Cmd+Shift+R` para forçar reload
+
+3. **Verificar logs:**
+   - Procure por erros relacionados a arquivos estáticos ou rotas não encontradas
+
+## 📚 Recursos Adicionais
+
+- **Documentação completa**: [README.md](../README.md)
+- **Guia de deployment**: [deployment.md](./deployment.md)
+- **Modelo de dados**: [specs/main/data-model.md](../specs/main/data-model.md)
+- **Repositório GitHub**: https://github.com/edalcin/etnotermos
+
+## 💬 Suporte
+
+Para problemas, dúvidas ou sugestões:
+- Abra uma **issue** no GitHub: https://github.com/edalcin/etnotermos/issues
+- Consulte a documentação completa no repositório
+
+---
+
+**Desenvolvido para preservar e organizar o conhecimento etnobotânico das comunidades tradicionais do Brasil** 🌿
