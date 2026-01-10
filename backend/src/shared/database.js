@@ -44,12 +44,12 @@ export async function connectToDatabase(retries = 5, delay = 2000) {
 
       // Initialize collection references
       collections = {
-        terms: db.collection('etnotermos'),
-        notes: db.collection('etnotermos-notes'),
-        relationships: db.collection('etnotermos-relationships'),
-        sources: db.collection('etnotermos-sources'),
-        collections: db.collection('etnotermos-collections'),
-        auditLogs: db.collection('etnotermos-audit-logs'),
+        'etnotermos': db.collection('etnotermos'),
+        'etnotermos-notes': db.collection('etnotermos-notes'),
+        'etnotermos-relationships': db.collection('etnotermos-relationships'),
+        'etnotermos-sources': db.collection('etnotermos-sources'),
+        'etnotermos-collections': db.collection('etnotermos-collections'),
+        'etnotermos-audit-logs': db.collection('etnotermos-audit-logs'),
       };
 
       // Setup connection event handlers
