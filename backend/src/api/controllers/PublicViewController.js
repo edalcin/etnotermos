@@ -14,6 +14,7 @@ export const renderHomePage = asyncHandler(async (req, res) => {
   res.render('index', {
     title: 'Início',
     description: 'Vocabulário controlado para etnobotânica',
+    currentPage: 'home',
     stats,
   });
 });
@@ -26,6 +27,7 @@ export const renderBrowsePage = asyncHandler(async (req, res) => {
   res.render('browse', {
     title: 'Navegar Termos',
     description: 'Explore o vocabulário controlado',
+    currentPage: 'browse',
   });
 });
 
@@ -39,6 +41,7 @@ export const renderSearchPage = asyncHandler(async (req, res) => {
   res.render('search', {
     title: 'Buscar Termos',
     description: 'Busca avançada no vocabulário',
+    currentPage: 'search',
     query,
   });
 });
@@ -52,6 +55,7 @@ export const renderTermDetailPage = asyncHandler(async (req, res) => {
 
   res.render('term-detail', {
     title: 'Detalhes do Termo',
+    currentPage: '',
     termId: id,
     includeGraph: true, // Include Cytoscape.js
   });
@@ -65,6 +69,7 @@ export const renderAboutPage = asyncHandler(async (req, res) => {
   res.render('about', {
     title: 'Sobre',
     description: 'Sobre o EtnoTermos',
+    currentPage: 'about',
   });
 });
 
@@ -76,6 +81,7 @@ export const renderExportPage = asyncHandler(async (req, res) => {
   res.render('export', {
     title: 'Exportar Dados',
     description: 'Exportar vocabulário em diversos formatos',
+    currentPage: 'export',
   });
 });
 
