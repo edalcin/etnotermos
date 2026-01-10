@@ -30,6 +30,9 @@ export const config = {
   isDevelopment: process.env.NODE_ENV !== 'production',
   isProduction: process.env.NODE_ENV === 'production',
 
+  // Asset versioning for cache busting
+  assetsVersion: process.env.ASSETS_VERSION || Date.now().toString(),
+
   // CORS
   corsOrigins: process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(',')
