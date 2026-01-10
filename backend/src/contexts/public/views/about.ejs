@@ -67,158 +67,22 @@
       </div>
     </section>
 
-    <!-- Integration with etnoDB -->
-    <section class="mb-8">
-      <h2 class="text-2xl font-semibold text-gray-800 mb-4">Integração com etnoDB</h2>
-      <p class="text-gray-700 leading-relaxed mb-4">
-        O EtnoTermos foi desenvolvido como parte integrante do sistema etnoDB, compartilhando:
+    <!-- GitHub Link -->
+    <section class="mt-8 pt-6 border-t border-gray-200 text-center">
+      <p class="text-gray-700 mb-4">
+        Para mais informações sobre o projeto, visite o repositório no GitHub:
       </p>
-      <ul class="text-gray-700 space-y-2 ml-6 mb-4">
-        <li>• <strong>Banco de Dados</strong>: Mesma instância MongoDB ("etnodb")</li>
-        <li>• <strong>Identidade Visual</strong>: Tema "forest" (verde florestal) consistente</li>
-        <li>• <strong>Stack Tecnológica</strong>: HTMX + Alpine.js + Tailwind CSS</li>
-      </ul>
-      <p class="text-gray-700 leading-relaxed">
-        Os termos gerenciados pelo EtnoTermos são utilizados em campos do etnoDB, incluindo:
-      </p>
-      <ul class="text-gray-700 space-y-2 ml-6 mt-2">
-        <li>• <strong>comunidades.tipo</strong>: 29 categorias de comunidades tradicionais (Decreto 8.750/2016)</li>
-        <li>• <strong>comunidades.plantas.tipoUso</strong>: Tipos de uso de plantas (medicinal, alimentício, ritualístico, etc.)</li>
-      </ul>
-    </section>
-
-    <!-- Architecture -->
-    <section class="mb-8">
-      <h2 class="text-2xl font-semibold text-gray-800 mb-4">Arquitetura</h2>
-      <p class="text-gray-700 leading-relaxed mb-4">
-        O EtnoTermos utiliza uma arquitetura de porta dupla (dual-port):
-      </p>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="bg-forest-50 p-6 rounded-lg">
-          <h3 class="text-lg font-semibold text-forest-800 mb-2">Interface Pública (Porta 4000)</h3>
-          <ul class="text-gray-700 space-y-2">
-            <li>• Acesso somente leitura</li>
-            <li>• Sem autenticação</li>
-            <li>• Busca e navegação</li>
-            <li>• Exportação de dados</li>
-            <li>• Visualização de grafos</li>
-          </ul>
-        </div>
-
-        <div class="bg-blue-50 p-6 rounded-lg">
-          <h3 class="text-lg font-semibold text-blue-800 mb-2">Interface Administrativa (Porta 4001)</h3>
-          <ul class="text-gray-700 space-y-2">
-            <li>• CRUD completo</li>
-            <li>• Autenticação requerida</li>
-            <li>• Gerenciamento de termos</li>
-            <li>• Criação de relacionamentos</li>
-            <li>• Auditoria e logs</li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <!-- Technology Stack -->
-    <section class="mb-8">
-      <h2 class="text-2xl font-semibold text-gray-800 mb-4">Tecnologias</h2>
-      <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <div class="bg-gray-50 p-4 rounded-lg text-center">
-          <div class="text-3xl mb-2">🟢</div>
-          <div class="font-semibold text-gray-800">Node.js 20 LTS</div>
-        </div>
-        <div class="bg-gray-50 p-4 rounded-lg text-center">
-          <div class="text-3xl mb-2">🍃</div>
-          <div class="font-semibold text-gray-800">MongoDB 7.0+</div>
-        </div>
-        <div class="bg-gray-50 p-4 rounded-lg text-center">
-          <div class="text-3xl mb-2">⚡</div>
-          <div class="font-semibold text-gray-800">Express.js</div>
-        </div>
-        <div class="bg-gray-50 p-4 rounded-lg text-center">
-          <div class="text-3xl mb-2">📄</div>
-          <div class="font-semibold text-gray-800">EJS Templates</div>
-        </div>
-        <div class="bg-gray-50 p-4 rounded-lg text-center">
-          <div class="text-3xl mb-2">🎨</div>
-          <div class="font-semibold text-gray-800">Tailwind CSS</div>
-        </div>
-        <div class="bg-gray-50 p-4 rounded-lg text-center">
-          <div class="text-3xl mb-2">🔄</div>
-          <div class="font-semibold text-gray-800">HTMX + Alpine.js</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Features -->
-    <section class="mb-8">
-      <h2 class="text-2xl font-semibold text-gray-800 mb-4">Funcionalidades Principais</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <h3 class="font-semibold text-gray-800 mb-3">Gerenciamento de Vocabulário</h3>
-          <ul class="text-gray-700 space-y-2">
-            <li>✓ Criação e edição de termos</li>
-            <li>✓ Controle de autoridade</li>
-            <li>✓ Versionamento de termos</li>
-            <li>✓ Depreciação de termos obsoletos</li>
-            <li>✓ Mesclagem de termos duplicados</li>
-          </ul>
-        </div>
-        <div>
-          <h3 class="font-semibold text-gray-800 mb-3">Relacionamentos Semânticos</h3>
-          <ul class="text-gray-700 space-y-2">
-            <li>✓ Hierarquia (BT/NT)</li>
-            <li>✓ Associativos (RT)</li>
-            <li>✓ Equivalência (USE/UF)</li>
-            <li>✓ Relacionamentos recíprocos automáticos</li>
-            <li>✓ Detecção de ciclos hierárquicos</li>
-          </ul>
-        </div>
-        <div>
-          <h3 class="font-semibold text-gray-800 mb-3">Busca e Navegação</h3>
-          <ul class="text-gray-700 space-y-2">
-            <li>✓ Busca em texto completo</li>
-            <li>✓ Navegação alfabética</li>
-            <li>✓ Navegação por coleções</li>
-            <li>✓ Visualização de grafos</li>
-            <li>✓ Filtros avançados</li>
-          </ul>
-        </div>
-        <div>
-          <h3 class="font-semibold text-gray-800 mb-3">Exportação e Interoperabilidade</h3>
-          <ul class="text-gray-700 space-y-2">
-            <li>✓ Exportação CSV</li>
-            <li>✓ Exportação SKOS/RDF</li>
-            <li>✓ Exportação JSON-LD</li>
-            <li>✓ API REST completa</li>
-            <li>✓ Auditoria de operações</li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <!-- License and Credits -->
-    <section class="mb-8">
-      <h2 class="text-2xl font-semibold text-gray-800 mb-4">Licença e Créditos</h2>
-      <p class="text-gray-700 leading-relaxed mb-4">
-        O EtnoTermos é software livre, licenciado sob <strong>GNU General Public License v3.0</strong>.
-      </p>
-      <p class="text-gray-700 leading-relaxed">
-        Desenvolvido como parte do projeto etnoDB para suporte à pesquisa etnobotânica e gestão de
-        conhecimento tradicional de comunidades tradicionais brasileiras.
-      </p>
-      <div class="mt-6 pt-6 border-t border-gray-200">
-        <a
-          href="https://github.com/edalcin/etnotermos"
-          target="_blank"
-          rel="noopener"
-          class="inline-flex items-center gap-2 text-forest-600 hover:text-forest-700 font-medium"
-        >
-          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-            <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
-          </svg>
-          Ver no GitHub
-        </a>
-      </div>
+      <a
+        href="https://github.com/edalcin/etnotermos"
+        target="_blank"
+        rel="noopener"
+        class="inline-flex items-center gap-2 text-forest-600 hover:text-forest-700 font-medium text-lg"
+      >
+        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+          <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
+        </svg>
+        https://github.com/edalcin/etnotermos
+      </a>
     </section>
   </div>
 </div>

@@ -19,60 +19,62 @@
   </p>
 </div>
 
-<div x-data="{
-  query: '<%= query %>',
-  results: [],
-  loading: false,
-  searchType: 'fulltext',
-  filters: {
-    status: '',
-    collection: ''
-  },
-  collections: [],
-  async init() {
-    await this.loadCollections();
-    if (this.query) {
-      await this.search();
-    }
-  },
-  async loadCollections() {
-    try {
-      const response = await fetch('/api/v1/collections');
-      this.collections = await response.json();
-    } catch (error) {
-      console.error('Error loading collections:', error);
-    }
-  },
-  async search() {
-    if (!this.query.trim()) return;
+<div
+  x-data="{
+    query: '<%= query %>',
+    results: [],
+    loading: false,
+    searchType: 'fulltext',
+    filters: {
+      status: '',
+      collection: ''
+    },
+    collections: [],
+    async init() {
+      await this.loadCollections();
+      if (this.query) {
+        await this.search();
+      }
+    },
+    async loadCollections() {
+      try {
+        const response = await fetch('/api/v1/collections');
+        this.collections = await response.json();
+      } catch (error) {
+        console.error('Error loading collections:', error);
+      }
+    },
+    async search() {
+      if (!this.query.trim()) return;
 
-    this.loading = true;
-    try {
-      const params = new URLSearchParams({
-        q: this.query,
-        searchType: this.searchType,
-        limit: 50
-      });
+      this.loading = true;
+      try {
+        const params = new URLSearchParams({
+          q: this.query,
+          searchType: this.searchType,
+          limit: 50
+        });
 
-      if (this.filters.status) params.append('status', this.filters.status);
-      if (this.filters.collection) params.append('collection', this.filters.collection);
+        if (this.filters.status) params.append('status', this.filters.status);
+        if (this.filters.collection) params.append('collection', this.filters.collection);
 
-      const response = await fetch(`/api/v1/search?${params}`);
-      const data = await response.json();
-      this.results = data.results || [];
-    } catch (error) {
-      console.error('Error searching:', error);
-      this.results = [];
-    } finally {
-      this.loading = false;
+        const response = await fetch(\`/api/v1/search?\${params}\`);
+        const data = await response.json();
+        this.results = data.results || [];
+      } catch (error) {
+        console.error('Error searching:', error);
+        this.results = [];
+      } finally {
+        this.loading = false;
+      }
+    },
+    highlightMatch(text, query) {
+      if (!text || !query) return text;
+      const regex = new RegExp('(' + query + ')', 'gi');
+      return text.replace(regex, '<mark class=\"bg-yellow-200\">$$1</mark>');
     }
-  },
-  highlightMatch(text, query) {
-    if (!text || !query) return text;
-    const regex = new RegExp(`(${query})`, 'gi');
-    return text.replace(regex, '<mark class=\"bg-yellow-200\">$1</mark>');
-  }
-}" class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+  }"
+  class="grid grid-cols-1 lg:grid-cols-4 gap-6">
 
   <!-- Filters Sidebar -->
   <div class="lg:col-span-1">
