@@ -47,5 +47,5 @@ EXPOSE 4000 4001
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:4000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-# Start both contexts using a simple script
-CMD ["dumb-init", "node", "-e", "import('./backend/src/contexts/public/server.js'); import('./backend/src/contexts/admin/server.js');"]
+# Start both contexts using the start script
+CMD ["dumb-init", "node", "backend/src/start.js"]

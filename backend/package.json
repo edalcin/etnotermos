@@ -5,6 +5,7 @@
   "main": "src/index.js",
   "type": "module",
   "scripts": {
+    "start": "node src/start.js",
     "dev:public": "node --watch src/contexts/public/server.js",
     "dev:admin": "node --watch src/contexts/admin/server.js",
     "start:public": "node src/contexts/public/server.js",
