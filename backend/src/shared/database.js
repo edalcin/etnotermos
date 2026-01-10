@@ -19,6 +19,52 @@ const connectionOptions = {
 };
 
 /**
+ * Ensure text search index exists on etnotermos collection
+ * This is critical for the search functionality to work
+ */
+async function ensureTextSearchIndex() {
+  try {
+    const termsCollection = collections['etnotermos'];
+    const indexes = await termsCollection.indexes();
+
+    // Check if text search index already exists
+    const textIndexExists = indexes.some(idx => idx.name === 'etnotermos_text_search');
+
+    if (!textIndexExists) {
+      console.log('Creating text search index on etnotermos collection...');
+      await termsCollection.createIndex(
+        {
+          prefLabel: 'text',
+          altLabels: 'text',
+          hiddenLabels: 'text',
+          definition: 'text',
+          scopeNote: 'text',
+          example: 'text',
+        },
+        {
+          name: 'etnotermos_text_search',
+          weights: {
+            prefLabel: 10,
+            altLabels: 5,
+            definition: 3,
+            scopeNote: 2,
+            example: 1,
+            hiddenLabels: 1,
+          },
+          default_language: 'portuguese',
+        }
+      );
+      console.log('✓ Text search index created successfully');
+    } else {
+      console.log('✓ Text search index already exists');
+    }
+  } catch (error) {
+    console.error('Warning: Failed to ensure text search index:', error.message);
+    // Don't throw - allow server to start even if index creation fails
+  }
+}
+
+/**
  * Connect to MongoDB with retry logic
  * @param {number} retries - Number of retry attempts
  * @param {number} delay - Delay between retries in ms
@@ -51,6 +97,9 @@ export async function connectToDatabase(retries = 5, delay = 2000) {
         'etnotermos-collections': db.collection('etnotermos-collections'),
         'etnotermos-audit-logs': db.collection('etnotermos-audit-logs'),
       };
+
+      // Ensure text search index exists
+      await ensureTextSearchIndex();
 
       // Setup connection event handlers
       setupEventHandlers(client);

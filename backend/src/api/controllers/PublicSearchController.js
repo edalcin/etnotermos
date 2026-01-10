@@ -20,14 +20,18 @@ export const searchTermsHandler = asyncHandler(async (req, res) => {
   }
 
   const options = {
-    page: page || 1,
-    limit: limit || 20,
+    page: parseInt(page) || 1,
+    limit: parseInt(limit) || 20,
     includeRelationshipCounts: true,
   };
 
   const result = await searchTerms(q, filters, options);
 
-  res.status(200).json(result.data);
+  res.status(200).json({
+    results: result.data,
+    pagination: result.pagination,
+    query: result.query,
+  });
 });
 
 /**

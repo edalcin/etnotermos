@@ -73,13 +73,16 @@ export const supportedLanguages = [
  * @returns {Object} MongoDB query object
  */
 export function buildTextSearchQuery(searchTerm, filters = {}) {
-  const query = {
-    $text: {
+  const query = {};
+
+  // Only add text search if searchTerm is provided
+  if (searchTerm && searchTerm.trim()) {
+    query.$text = {
       $search: searchTerm,
       $caseSensitive: false,
       $diacriticSensitive: false,
-    },
-  };
+    };
+  }
 
   // Add additional filters
   if (filters.status) {
