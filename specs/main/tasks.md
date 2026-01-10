@@ -391,9 +391,9 @@ Based on plan.md project structure (etnoDB-compatible):
 
 - [ ] **T129** [P] Create API documentation site: use Redoc or Swagger UI to render openapi.yaml, deploy to /api/docs endpoint
 
-- [ ] **T130** [P] Write developer quickstart in `README.md`: prerequisites, local setup with Docker Compose, running tests, environment variables, common issues
+- [X] **T130** [P] Write developer quickstart in `README.md`: prerequisites, local setup with Docker Compose, running tests, environment variables, common issues, troubleshooting, and contribution guidelines
 
-- [ ] **T131** [P] Create deployment guide in `docs/deployment.md`: production Docker setup, environment configuration, SSL/TLS setup, backup strategy, monitoring setup
+- [X] **T131** [P] Create deployment guide in `docs/deployment.md`: production Docker setup, environment configuration, SSL/TLS setup with Nginx, backup strategy, monitoring setup, security hardening, troubleshooting
 
 - [ ] **T132** [P] Create GitHub Actions workflow in `.github/workflows/ci-cd.yml`: run tests on pull request, lint checks, build Docker images, push to GitHub Container Registry, deploy to staging on main branch push
 
@@ -401,7 +401,7 @@ Based on plan.md project structure (etnoDB-compatible):
 
 - [ ] **T134** [P] Create user documentation in `docs/user-guide.md`: system overview, common workflows (create term, search, visualize graph, export data), role-specific guides (researcher, student, community leader, admin)
 
-- [ ] **T135** [P] Create CARE Principles compliance document in `docs/care-compliance.md`: document how system implements Collective Benefit, Authority to Control, Responsibility, and Ethics principles
+- [X] **T135** [P] Create CARE Principles compliance document in `docs/care-compliance.md`: document how system implements Collective Benefit, Authority to Control, Responsibility, and Ethics principles with detailed audit of each principle
 
 - [ ] **T136** Run full integration test suite: execute all acceptance scenario tests (T030-T040, T127), verify all pass, generate test coverage report (target 80% overall)
 
