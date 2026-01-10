@@ -59,6 +59,6 @@ Thumbs.db
 .AppleDouble
 .LSOverride
 
-# Generated CSS from Tailwind
-backend/src/contexts/public/views/assets/styles.css
-backend/src/contexts/admin/views/assets/styles.css
+# Generated CSS from Tailwind - DISABLED to commit compiled CSS
+# backend/src/contexts/public/views/assets/styles.css
+# backend/src/contexts/admin/views/assets/styles.css
