@@ -11,19 +11,22 @@ Este guia fornece instruções passo a passo para instalar o **EtnoTermos** no U
 
 ## 🚀 Instalação
 
-### Parte 1: Instalação do MongoDB
+### Pré-requisito: MongoDB
 
-O EtnoTermos requer o MongoDB como banco de dados. Primeiro, vamos instalar o MongoDB.
+**IMPORTANTE**: O EtnoTermos requer um banco de dados MongoDB em execução. Este guia assume que você **já possui um container MongoDB instalado** no seu UNRAID.
 
-#### 1.1 Adicionar Container do MongoDB
+#### Se você ainda não tem o MongoDB instalado:
+
+<details>
+<summary>Clique aqui para ver as instruções de instalação do MongoDB</summary>
 
 1. No painel do UNRAID, clique em **Docker**
 2. Clique no botão **Add Container**
 3. Preencha os campos conforme abaixo:
 
 **Configurações Básicas:**
-- **Name:** `etnotermos-mongodb`
-- **Overview:** Banco de dados MongoDB para o EtnoTermos
+- **Name:** `mongodb` (ou qualquer nome de sua preferência)
+- **Overview:** Banco de dados MongoDB
 - **Repository:** `mongo:7.0-alpine`
 - **Network Type:** `Bridge`
 - **Console shell command:** `Shell`
@@ -41,29 +44,38 @@ O EtnoTermos requer o MongoDB como banco de dados. Primeiro, vamos instalar o Mo
 - Selecione **Path**
   - **Name:** MongoDB Data
   - **Container Path:** `/data/db`
-  - **Host Path:** `/mnt/user/appdata/etnotermos/mongodb`
+  - **Host Path:** `/mnt/user/appdata/mongodb/data`
   - **Access Mode:** `Read/Write`
-
-**Variáveis de Ambiente:**
-- Clique em **"Add another Path, Port, Variable, Label or Device"**
-- Selecione **Variable**
-  - **Name:** Database Name
-  - **Key:** `MONGO_INITDB_DATABASE`
-  - **Value:** `etnodb`
 
 4. Clique em **Apply** para criar o container do MongoDB
 5. Aguarde o download da imagem e inicialização do container
+6. Verifique se o container está com status **Started** (ícone verde)
 
-#### 1.2 Verificar MongoDB
+</details>
 
-1. No painel **Docker**, verifique se o container `etnotermos-mongodb` está com status **Started** (ícone verde)
-2. Clique no ícone do container e selecione **Logs** para verificar se não há erros
+#### Obter a String de Conexão do MongoDB
 
-### Parte 2: Instalação do EtnoTermos
+Antes de instalar o EtnoTermos, você precisa saber a string de conexão do seu MongoDB. O formato típico é:
 
-Agora vamos instalar a aplicação EtnoTermos.
+```
+mongodb://[IP-DO-HOST]:27017/etnodb
+```
 
-#### 2.1 Adicionar Container do EtnoTermos
+Onde:
+- `[IP-DO-HOST]`: Geralmente é `172.17.0.1` (IP padrão do host Docker no UNRAID)
+- `27017`: Porta padrão do MongoDB
+- `etnodb`: Nome do banco de dados que será usado pelo EtnoTermos
+
+**Exemplos de strings de conexão:**
+- Container MongoDB no mesmo UNRAID: `mongodb://172.17.0.1:27017/etnodb`
+- Container MongoDB com nome específico: `mongodb://mongodb:27017/etnodb` (requer link entre containers)
+- MongoDB em outro servidor: `mongodb://192.168.1.100:27017/etnodb`
+
+### Instalação do EtnoTermos
+
+Agora vamos instalar a aplicação EtnoTermos que se conectará ao MongoDB existente.
+
+#### Passo 1: Adicionar Container do EtnoTermos
 
 1. No painel do UNRAID, clique em **Docker**
 2. Clique no botão **Add Container**
@@ -96,65 +108,91 @@ Agora vamos instalar a aplicação EtnoTermos.
 
 **Variáveis de Ambiente:**
 
+> **⚠️ ATENÇÃO**: A variável mais importante é a `MONGO_URI`. Certifique-se de configurá-la corretamente com a string de conexão do seu MongoDB existente.
+
+- **MongoDB URI (OBRIGATÓRIO):**
+  - Clique em **"Add another Path, Port, Variable, Label or Device"**
+  - Selecione **Variable**
+  - **Name:** MongoDB Connection String
+  - **Key:** `MONGO_URI`
+  - **Value:** `mongodb://172.17.0.1:27017/etnodb`
+  - **Descrição:** String de conexão do MongoDB. **Ajuste conforme sua instalação:**
+    - Se MongoDB está no mesmo UNRAID: `mongodb://172.17.0.1:27017/etnodb`
+    - Se MongoDB tem nome específico (ex: `mongodb`): `mongodb://mongodb:27017/etnodb`
+    - Se MongoDB está em outro servidor: `mongodb://IP_DO_SERVIDOR:27017/etnodb`
+    - Se MongoDB tem autenticação: `mongodb://usuario:senha@IP:27017/etnodb`
+
 - **Node Environment:**
+  - Clique em **"Add another Path, Port, Variable, Label or Device"**
+  - Selecione **Variable**
   - **Name:** Node Environment
   - **Key:** `NODE_ENV`
   - **Value:** `production`
 
 - **Public Port:**
+  - Clique em **"Add another Path, Port, Variable, Label or Device"**
+  - Selecione **Variable**
   - **Name:** Public Port Number
   - **Key:** `PUBLIC_PORT`
   - **Value:** `4000`
 
 - **Admin Port:**
+  - Clique em **"Add another Path, Port, Variable, Label or Device"**
+  - Selecione **Variable**
   - **Name:** Admin Port Number
   - **Key:** `ADMIN_PORT`
   - **Value:** `4001`
 
-- **MongoDB URI:**
-  - **Name:** MongoDB Connection URI
-  - **Key:** `MONGO_URI`
-  - **Value:** `mongodb://172.17.0.1:27017/etnodb`
-  - *Nota: `172.17.0.1` é o IP padrão do host Docker no UNRAID. Se você configurou uma rede customizada, ajuste conforme necessário.*
-
 - **(Opcional) Admin Username:**
+  - Clique em **"Add another Path, Port, Variable, Label or Device"**
+  - Selecione **Variable**
   - **Name:** Admin Username
   - **Key:** `ADMIN_USERNAME`
   - **Value:** `admin` (ou outro usuário de sua preferência)
 
 - **(Opcional) Admin Password:**
+  - Clique em **"Add another Path, Port, Variable, Label or Device"**
+  - Selecione **Variable**
   - **Name:** Admin Password
   - **Key:** `ADMIN_PASSWORD`
   - **Value:** `sua_senha_segura_aqui`
 
-**Configurações de Rede:**
-- Em **Extra Parameters** (em "Show more settings..."), você pode adicionar:
-  ```
-  --link etnotermos-mongodb:mongodb
-  ```
-  - Isso cria um link direto entre os containers. Se usar esta opção, altere o `MONGO_URI` para `mongodb://mongodb:27017/etnodb`
+**Configurações Adicionais:**
 
-**Configurações de Reinicialização:**
-- Em **Show more settings...**, localize:
+- **Restart Policy:**
+  - Em **Show more settings...**, localize:
   - **Restart Policy:** Selecione `unless-stopped` para garantir que o container reinicie automaticamente
+
+- **(Opcional) Link com MongoDB:**
+  - Se o seu container MongoDB tem um nome específico (ex: `mongodb`), você pode criar um link direto
+  - Em **Extra Parameters** (em "Show more settings..."), adicione:
+    ```
+    --link mongodb:mongodb
+    ```
+  - Se usar esta opção, altere o `MONGO_URI` para `mongodb://mongodb:27017/etnodb`
 
 4. Clique em **Apply** para criar o container do EtnoTermos
 5. Aguarde o download da imagem e inicialização
 
-#### 2.2 Verificar EtnoTermos
+#### Passo 2: Verificar Instalação
 
-1. No painel **Docker**, verifique se o container `etnotermos-app` está com status **Started**
-2. Clique no ícone do container e selecione **Logs** para verificar se não há erros
-3. Procure por mensagens como:
+1. No painel **Docker**, verifique se o container `etnotermos-app` está com status **Started** (ícone verde)
+2. Clique no ícone do container e selecione **Logs**
+3. Verifique se não há erros e procure por mensagens de sucesso como:
    ```
    Public server listening on port 4000
    Admin server listening on port 4001
    MongoDB connected successfully
    ```
 
-### Parte 3: Inicialização e Configuração
+**Se houver erro de conexão com MongoDB:**
+- Verifique se o container MongoDB está rodando
+- Confirme se a `MONGO_URI` está correta
+- Teste a conectividade entre os containers
 
-#### 3.1 Acessar a Interface Web
+### Configuração Inicial
+
+#### Passo 3: Acessar as Interfaces Web
 
 Após a inicialização bem-sucedida:
 
@@ -168,7 +206,7 @@ Após a inicialização bem-sucedida:
 
 *Substitua `[IP-DO-UNRAID]` pelo endereço IP do seu servidor UNRAID na rede local (ex: `192.168.1.100`)*
 
-#### 3.2 Inicializar o Banco de Dados
+#### Passo 4: Inicializar o Banco de Dados
 
 Para popular o banco de dados com os índices e dados iniciais, execute os comandos via console do container:
 
@@ -195,7 +233,7 @@ exit
 
 4. Após executar estes comandos, a aplicação estará pronta para uso
 
-#### 3.3 Verificar Funcionamento
+#### Passo 5: Verificar Funcionamento
 
 1. Acesse a interface pública: `http://[IP-DO-UNRAID]:4000`
 2. Você deverá ver:
@@ -293,7 +331,7 @@ docker pull ghcr.io/edalcin/etnotermos:latest
 
 ### Backup Automático do MongoDB
 
-Recomenda-se configurar backups regulares do MongoDB:
+Recomenda-se configurar backups regulares do banco de dados MongoDB:
 
 #### Usando User Scripts no UNRAID
 
@@ -305,14 +343,15 @@ Recomenda-se configurar backups regulares do MongoDB:
 
 BACKUP_DIR="/mnt/user/backups/etnotermos"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+MONGODB_CONTAINER="mongodb"  # ⚠️ Ajuste com o nome do seu container MongoDB
 
 mkdir -p $BACKUP_DIR
 
 # Fazer backup do MongoDB
-docker exec etnotermos-mongodb mongodump --out=/tmp/backup_$TIMESTAMP --db=etnodb
+docker exec $MONGODB_CONTAINER mongodump --out=/tmp/backup_$TIMESTAMP --db=etnodb
 
 # Copiar backup para o host
-docker cp etnotermos-mongodb:/tmp/backup_$TIMESTAMP $BACKUP_DIR/
+docker cp $MONGODB_CONTAINER:/tmp/backup_$TIMESTAMP $BACKUP_DIR/
 
 # Comprimir
 cd $BACKUP_DIR
@@ -325,6 +364,8 @@ find $BACKUP_DIR -name "backup_*.tar.gz" -mtime +30 -delete
 echo "Backup concluído: backup_$TIMESTAMP.tar.gz"
 ```
 
+> **⚠️ IMPORTANTE**: Substitua `MONGODB_CONTAINER="mongodb"` pelo nome real do seu container MongoDB
+
 3. Configure para executar diariamente (ex: 2h da manhã)
 
 ### Restaurar Backup
@@ -336,11 +377,14 @@ Para restaurar um backup:
 cd /mnt/user/backups/etnotermos
 tar -xzf backup_YYYYMMDD_HHMMSS.tar.gz
 
+# Substitua "mongodb" pelo nome do seu container MongoDB
+MONGODB_CONTAINER="mongodb"
+
 # Copiar para o container
-docker cp backup_YYYYMMDD_HHMMSS etnotermos-mongodb:/tmp/
+docker cp backup_YYYYMMDD_HHMMSS $MONGODB_CONTAINER:/tmp/
 
 # Restaurar
-docker exec etnotermos-mongodb mongorestore --db=etnodb --drop /tmp/backup_YYYYMMDD_HHMMSS/etnodb
+docker exec $MONGODB_CONTAINER mongorestore --db=etnodb --drop /tmp/backup_YYYYMMDD_HHMMSS/etnodb
 ```
 
 ## ❓ Solução de Problemas
