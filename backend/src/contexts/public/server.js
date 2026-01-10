@@ -1,7 +1,6 @@
 // Public Context Server for EtnoTermos (Port 4000 - Read-only)
 import express from 'express';
 import cors from 'cors';
-import helmet from 'helmet';
 import compression from 'compression';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -18,17 +17,24 @@ const app = express();
 // Trust proxy (for rate limiting behind reverse proxy)
 app.set('trust proxy', 1);
 
-// Middleware
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://unpkg.com"],
-      imgSrc: ["'self'", "data:", "https:"],
-    },
-  },
-}));
+// Security headers middleware (custom for HTTP development)
+app.use((req, res, next) => {
+  // Content Security Policy without HTTPS upgrade
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; " +
+    "style-src 'self' 'unsafe-inline'; " +
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com; " +
+    "img-src 'self' data: https:; " +
+    "font-src 'self' https: data:; " +
+    "connect-src 'self'"
+  );
+  // Basic security headers
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-XSS-Protection', '0');
+  next();
+});
 app.use(cors({ origin: config.corsOrigins }));
 app.use(compression());
 app.use(express.json());
