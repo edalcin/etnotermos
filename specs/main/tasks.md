@@ -343,17 +343,17 @@ Based on plan.md project structure (etnoDB-compatible):
 
 **Goal**: Complete end-to-end functionality and optimize performance
 
-- [ ] **T111** Optimize MongoDB text search indexes in `backend/src/lib/search/optimize.ts`: analyze query patterns, add compound indexes for common filters, configure index weights for relevance tuning
+- [X] **T111** Optimize MongoDB text search indexes in `backend/src/lib/search/optimize.js`: analyze query patterns, add compound indexes for common filters, configure index weights for relevance tuning
 
-- [ ] **T112** Implement conflict resolution in `backend/src/services/TermService.ts` updateTerm method: detect version mismatch, attempt three-way merge for disjoint fields, log conflicts, notify admin on merge failure
+- [ ] **T112** Implement conflict resolution in `backend/src/services/TermService.js` updateTerm method: detect version mismatch, attempt three-way merge for disjoint fields, log conflicts, notify admin on merge failure
 
-- [ ] **T113** Add comprehensive logging in `backend/src/lib/logger.ts`: Winston or Pino logger, structured JSON logs, log levels (debug, info, warn, error), include request IDs, sanitize sensitive data
+- [X] **T113** Add comprehensive logging in `backend/src/lib/logger.js`: Winston logger, structured JSON logs, log levels (debug, info, warn, error), include request IDs, sanitize sensitive data
 
 - [ ] **T114** Implement CARE Principles features: Ensure attribution fields in Source model, add cultural sensitivity guidelines to admin interface documentation, create export acknowledgment templates
 
-- [ ] **T115** Create database seed script in `backend/scripts/seed.ts`: populate with sample terms, relationships, sources, collections for testing and demonstration
+- [X] **T115** Create database seed script in `backend/scripts/seed.js`: populate with sample terms, relationships, sources, collections for testing and demonstration
 
-- [ ] **T116** Create controlled vocabulary seed script in `backend/scripts/seed-controlled-vocab.ts`: populate comunidades.tipo with 29 community types from Brazilian Decree 8.750/2016 (povos indígenas, quilombolas, comunidades tradicionais, etc.), populate plantas.tipoUso with hierarchical use types (medicinal, alimentício, ritualístico, material, etc.), create appropriate relationships and collections
+- [X] **T116** Create controlled vocabulary seed script in `backend/scripts/seed-controlled-vocab.js`: populate comunidades.tipo with 29 community types from Brazilian Decree 8.750/2016 (povos indígenas, quilombolas, comunidades tradicionais, etc.), populate plantas.tipoUso with hierarchical use types (medicinal, alimentício, ritualístico, material, etc.), create appropriate relationships and collections
 
 - [ ] **T117** Performance optimization: Add pagination cursor support to list endpoints, implement field projection for large responses, optimize MongoDB queries with explain analysis, add indexes based on slow query log
 
@@ -361,25 +361,25 @@ Based on plan.md project structure (etnoDB-compatible):
 
 - [ ] **T119** Security audit: Enable Helmet.js security headers, configure CORS whitelist for frontend domain, implement CSRF protection for state-changing operations, sanitize user inputs, add security headers to Nginx config
 
-- [ ] **T120** Create health check endpoint in `backend/src/api/routes/health.ts`: check MongoDB connection, memory usage, return 200 with status object
+- [X] **T120** Create health check endpoint in `backend/src/api/routes/health.js`: check MongoDB connection, memory usage, return 200 with status object
 
-- [ ] **T121** Setup frontend environment configuration in `frontend/src/config.ts`: API base URL from env vars, feature flags, build-time vs runtime config
+- [ ] **T121** Setup frontend environment configuration in `frontend/src/config.js`: API base URL from env vars, feature flags, build-time vs runtime config
 
 - [ ] **T122** Optimize frontend bundle: code splitting by route, lazy load graph visualization component, tree-shaking, analyze bundle size, compression
 
-- [ ] **T123** [P] Implement CSV import parser in `backend/src/lib/import/csvParser.ts`: parse CSV with headers (term_id, preferred_name, alternate_names, scope_note, broader_terms, narrower_terms, related_terms, use_for), validate required fields, handle UTF-8 encoding
+- [X] **T123** [P] Implement CSV import parser in `backend/src/lib/import/csvParser.js`: parse CSV with headers (term_id, preferred_name, alternate_names, scope_note, broader_terms, narrower_terms, related_terms, use_for), validate required fields, handle UTF-8 encoding
 
-- [ ] **T124** [P] Implement SKOS import parser in `backend/src/lib/import/skosParser.ts`: parse SKOS RDF/XML format, map skos:prefLabel to prefLabel, skos:broader to BT relationships, skos:related to RT relationships (future enhancement, may defer)
+- [ ] **T124** [P] Implement SKOS import parser in `backend/src/lib/import/skosParser.js`: parse SKOS RDF/XML format, map skos:prefLabel to prefLabel, skos:broader to BT relationships, skos:related to RT relationships (future enhancement, may defer)
 
-- [ ] **T125** Create ImportService in `backend/src/services/ImportService.ts`: validate imported terms against Z39.19 rules, detect conflicts with existing terms (duplicate IDs, conflicting preferred terms), provide conflict resolution options (skip, overwrite, merge)
+- [X] **T125** Create ImportService in `backend/src/services/ImportService.js`: validate imported terms against Z39.19 rules, detect conflicts with existing terms (duplicate IDs, conflicting preferred terms), provide conflict resolution options (skip, overwrite, merge)
 
-- [ ] **T126** Create admin bulk import routes in `backend/src/api/admin/import.ts`: POST /admin/import/csv (upload file), GET /admin/import/preview (validate and show conflicts), POST /admin/import/confirm (execute import with conflict resolution)
+- [X] **T126** Create admin bulk import routes in `backend/src/api/admin/import.js`: POST /admin/import/upload (upload file), POST /admin/import/execute (execute import with conflict resolution), GET /admin/import/template (download template)
 
-- [ ] **T127** Create admin import controller in `backend/src/api/controllers/AdminImportController.ts`: uploadFile (multipart/form-data), previewImport (call ImportService validation), confirmImport (execute batch insert/update, create audit logs)
+- [X] **T127** Create admin import controller in `backend/src/api/controllers/AdminImportController.js`: uploadAndPreview (multipart/form-data), executeImport (call ImportService validation), downloadTemplate, getImportHistory
 
-- [ ] **T128** Create admin import UI in `backend/src/contexts/admin/views/import/upload.ejs`: file upload form with forest theme, CSV format instructions, import preview table showing conflicts, conflict resolution radio buttons (skip/overwrite/merge), confirm button
+- [X] **T128** Create admin import UI in `backend/src/contexts/admin/views/import/upload.ejs`: file upload form with forest theme, CSV format instructions, import preview table showing conflicts, conflict resolution options (skip/overwrite/merge), confirm button
 
-- [ ] **T129** Integration test for bulk import in `backend/tests/integration/scenario-11-bulk-import.test.ts`: Upload CSV with 50 terms → Validate parsing → Resolve conflicts → Verify terms created with correct relationships and audit logs
+- [ ] **T129** Integration test for bulk import in `backend/tests/integration/scenario-11-bulk-import.test.js`: Upload CSV with 50 terms → Validate parsing → Resolve conflicts → Verify terms created with correct relationships and audit logs
 
 ---
 
