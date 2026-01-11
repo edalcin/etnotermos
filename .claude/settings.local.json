@@ -20,7 +20,8 @@
       "Skill(constitution)",
       "Bash(npm run build:css:*)",
       "Bash(npm install)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(git worktree:*)"
     ],
     "deny": [],
     "ask": []
