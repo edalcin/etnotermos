@@ -29,6 +29,10 @@
   collections: [],
   loading: true,
   saving: false,
+  activeTooltip: null,
+  toggleTooltip(id) {
+    this.activeTooltip = this.activeTooltip === id ? null : id;
+  },
   async init() {
     await this.loadCollections();
     if (this.isEdit) {
@@ -143,25 +147,68 @@
       <div class="space-y-4">
         <!-- Preferred Label -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
+          <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
             Termo Preferencial (PT) *
+            <div class="relative inline-block">
+              <button
+                type="button"
+                @click.stop="toggleTooltip('prefLabel')"
+                class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors cursor-help"
+              >
+                <span class="text-xs font-bold">i</span>
+              </button>
+              <div
+                x-show="activeTooltip === 'prefLabel'"
+                @click.away="activeTooltip = null"
+                class="absolute z-50 w-80 p-3 mt-2 text-sm bg-white border border-gray-200 rounded-lg shadow-xl left-0"
+                style="display: none;"
+              >
+                <h4 class="font-semibold text-gray-900 mb-1">Termo Preferencial</h4>
+                <p class="text-gray-700 mb-2">
+                  A forma autorizada e preferencial do conceito seguindo ANSI/NISO Z39.19. Use substantivos no singular para conceitos (ex: "planta", "raiz") e plural para itens contáveis (ex: "sementes", "folhas").
+                </p>
+                <p class="text-xs text-gray-600 italic">
+                  <strong>Exemplo:</strong> "Ayahuasca" (preferido) em vez de "Daime" ou "Yagé" (alternativos)
+                </p>
+              </div>
+            </div>
           </label>
           <input
             type="text"
             x-model="form.prefLabel"
             required
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-forest-600"
-            placeholder="Ex: Planta Medicinal"
+            placeholder="Ex: Ayahuasca"
           >
-          <p class="text-xs text-gray-500 mt-1">
-            A forma autorizada e preferencial do conceito
-          </p>
         </div>
 
         <!-- Alternative Labels -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
+          <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
             Termos Alternativos (USE/UF)
+            <div class="relative inline-block">
+              <button
+                type="button"
+                @click.stop="toggleTooltip('altLabels')"
+                class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors cursor-help"
+              >
+                <span class="text-xs font-bold">i</span>
+              </button>
+              <div
+                x-show="activeTooltip === 'altLabels'"
+                @click.away="activeTooltip = null"
+                class="absolute z-50 w-80 p-3 mt-2 text-sm bg-white border border-gray-200 rounded-lg shadow-xl left-0"
+                style="display: none;"
+              >
+                <h4 class="font-semibold text-gray-900 mb-1">Termos Alternativos</h4>
+                <p class="text-gray-700 mb-2">
+                  Sinônimos, variantes ortográficas, nomes comuns vs. científicos, terminologia popular vs. técnica. Estabelecem relações de equivalência USE/UF.
+                </p>
+                <p class="text-xs text-gray-600 italic">
+                  <strong>Exemplo:</strong> Para "Cassava" adicionar: "Mandioca", "Manioc", "Yuca", "Manihot esculenta"
+                </p>
+              </div>
+            </div>
           </label>
           <div class="flex gap-2 mb-2">
             <input
@@ -193,16 +240,36 @@
               </span>
             </template>
           </div>
-          <p class="text-xs text-gray-500 mt-1">
-            Sinônimos, variações ortográficas e formas não-preferenciais
-          </p>
         </div>
 
         <!-- Language and Status -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
+            <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
               Idioma
+              <div class="relative inline-block">
+                <button
+                  type="button"
+                  @click.stop="toggleTooltip('language')"
+                  class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors cursor-help"
+                >
+                  <span class="text-xs font-bold">i</span>
+                </button>
+                <div
+                  x-show="activeTooltip === 'language'"
+                  @click.away="activeTooltip = null"
+                  class="absolute z-50 w-80 p-3 mt-2 text-sm bg-white border border-gray-200 rounded-lg shadow-xl left-0"
+                  style="display: none;"
+                >
+                  <h4 class="font-semibold text-gray-900 mb-1">Idioma</h4>
+                  <p class="text-gray-700 mb-2">
+                    Idioma principal do termo. Para termos em línguas indígenas, documente com guias de pronúncia quando possível e respeite preferências de nomenclatura dos detentores de conhecimento.
+                  </p>
+                  <p class="text-xs text-gray-600 italic">
+                    <strong>Exemplo:</strong> Termos Tupi-Guarani podem ser registrados com pronúncia aproximada
+                  </p>
+                </div>
+              </div>
             </label>
             <select
               x-model="form.language"
@@ -215,8 +282,33 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
+            <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
               Status
+              <div class="relative inline-block">
+                <button
+                  type="button"
+                  @click.stop="toggleTooltip('status')"
+                  class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors cursor-help"
+                >
+                  <span class="text-xs font-bold">i</span>
+                </button>
+                <div
+                  x-show="activeTooltip === 'status'"
+                  @click.away="activeTooltip = null"
+                  class="absolute z-50 w-80 p-3 mt-2 text-sm bg-white border border-gray-200 rounded-lg shadow-xl right-0"
+                  style="display: none;"
+                >
+                  <h4 class="font-semibold text-gray-900 mb-1">Status do Termo</h4>
+                  <p class="text-gray-700 mb-2">
+                    <strong>Candidato:</strong> Sob revisão para inclusão.<br>
+                    <strong>Ativo:</strong> Termo aprovado e em uso.<br>
+                    <strong>Depreciado:</strong> Não mais usado, substituído por outro.
+                  </p>
+                  <p class="text-xs text-gray-600 italic">
+                    <strong>Exemplo:</strong> "Cânhamo indiano" (depreciado) → "Cannabis" (ativo)
+                  </p>
+                </div>
+              </div>
             </label>
             <select
               x-model="form.status"
@@ -238,8 +330,31 @@
       <div class="space-y-4">
         <!-- Definition -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
+          <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
             Definição
+            <div class="relative inline-block">
+              <button
+                type="button"
+                @click.stop="toggleTooltip('definition')"
+                class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors cursor-help"
+              >
+                <span class="text-xs font-bold">i</span>
+              </button>
+              <div
+                x-show="activeTooltip === 'definition'"
+                @click.away="activeTooltip = null"
+                class="absolute z-50 w-80 p-3 mt-2 text-sm bg-white border border-gray-200 rounded-lg shadow-xl left-0"
+                style="display: none;"
+              >
+                <h4 class="font-semibold text-gray-900 mb-1">Definição</h4>
+                <p class="text-gray-700 mb-2">
+                  Definição formal e científica do conceito. Seja preciso e objetivo, evitando ambiguidades.
+                </p>
+                <p class="text-xs text-gray-600 italic">
+                  <strong>Exemplo:</strong> "Etnobotânica: O estudo científico do conhecimento e costumes tradicionais de povos em relação às plantas e seus usos medicinais, religiosos e outros."
+                </p>
+              </div>
+            </div>
           </label>
           <textarea
             x-model="form.definition"
@@ -247,15 +362,35 @@
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-forest-600"
             placeholder="Definição clara e concisa do conceito..."
           ></textarea>
-          <p class="text-xs text-gray-500 mt-1">
-            Explicação do significado do termo de forma clara e objetiva
-          </p>
         </div>
 
         <!-- Scope Note -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
+          <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
             Nota de Escopo
+            <div class="relative inline-block">
+              <button
+                type="button"
+                @click.stop="toggleTooltip('scopeNote')"
+                class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors cursor-help"
+              >
+                <span class="text-xs font-bold">i</span>
+              </button>
+              <div
+                x-show="activeTooltip === 'scopeNote'"
+                @click.away="activeTooltip = null"
+                class="absolute z-50 w-80 p-3 mt-2 text-sm bg-white border border-gray-200 rounded-lg shadow-xl left-0"
+                style="display: none;"
+              >
+                <h4 class="font-semibold text-gray-900 mb-1">Nota de Escopo</h4>
+                <p class="text-gray-700 mb-2">
+                  Define limites e contexto de uso do termo. Esclareça quando usar ou não usar este termo, diferenciando de conceitos similares.
+                </p>
+                <p class="text-xs text-gray-600 italic">
+                  <strong>Exemplo:</strong> "Ayahuasca: Refere-se tanto à bebida psicoativa quanto ao contexto cerimonial de uso. Para as espécies vegetais, veja Banisteriopsis caapi e Psychotria viridis."
+                </p>
+              </div>
+            </div>
           </label>
           <textarea
             x-model="form.scopeNote"
@@ -263,15 +398,35 @@
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-forest-600"
             placeholder="Delimite o uso e aplicação do termo..."
           ></textarea>
-          <p class="text-xs text-gray-500 mt-1">
-            Informações sobre o contexto de uso e limitações do termo
-          </p>
         </div>
 
         <!-- Example -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
+          <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
             Exemplo de Uso
+            <div class="relative inline-block">
+              <button
+                type="button"
+                @click.stop="toggleTooltip('example')"
+                class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors cursor-help"
+              >
+                <span class="text-xs font-bold">i</span>
+              </button>
+              <div
+                x-show="activeTooltip === 'example'"
+                @click.away="activeTooltip = null"
+                class="absolute z-50 w-80 p-3 mt-2 text-sm bg-white border border-gray-200 rounded-lg shadow-xl left-0"
+                style="display: none;"
+              >
+                <h4 class="font-semibold text-gray-900 mb-1">Exemplo de Uso</h4>
+                <p class="text-gray-700 mb-2">
+                  Ilustre o uso do termo em contexto prático com exemplos reais de comunidades tradicionais ou pesquisas etnobotânicas.
+                </p>
+                <p class="text-xs text-gray-600 italic">
+                  <strong>Exemplo:</strong> "A comunidade Guarani utiliza a casca do ipê-roxo em decocção para tratamento de inflamações."
+                </p>
+              </div>
+            </div>
           </label>
           <textarea
             x-model="form.example"
@@ -279,16 +434,38 @@
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-forest-600"
             placeholder="Exemplo prático de uso do termo..."
           ></textarea>
-          <p class="text-xs text-gray-500 mt-1">
-            Exemplo contextual que ilustra o uso correto do termo
-          </p>
         </div>
       </div>
     </div>
 
     <!-- Collections -->
     <div class="bg-white rounded-lg shadow-md p-6">
-      <h2 class="text-xl font-semibold text-gray-800 mb-4">Coleções</h2>
+      <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+        Coleções
+        <div class="relative inline-block">
+          <button
+            type="button"
+            @click.stop="toggleTooltip('collections')"
+            class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors cursor-help"
+          >
+            <span class="text-xs font-bold">i</span>
+          </button>
+          <div
+            x-show="activeTooltip === 'collections'"
+            @click.away="activeTooltip = null"
+            class="absolute z-50 w-80 p-3 mt-2 text-sm bg-white border border-gray-200 rounded-lg shadow-xl left-0"
+            style="display: none;"
+          >
+            <h4 class="font-semibold text-gray-900 mb-1">Coleções</h4>
+            <p class="text-gray-700 mb-2">
+              Agrupamentos temáticos para organizar o vocabulário. Um termo pode pertencer a múltiplas coleções.
+            </p>
+            <p class="text-xs text-gray-600 italic">
+              <strong>Exemplo:</strong> "Alho" pode estar em "Plantas Medicinais", "Plantas Alimentícias" e "Plantas Antimicrobianas"
+            </p>
+          </div>
+        </div>
+      </h2>
 
       <div x-show="collections.length === 0" class="text-gray-600">
         Nenhuma coleção disponível
