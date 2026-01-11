@@ -82,6 +82,13 @@ export async function createNewTerm(data, metadata = {}) {
   const terms = getCollection('etnotermos');
   const auditLogs = getCollection('etnotermos-audit-logs');
 
+  // CRITICAL FIX: Remove or normalize invalid language values
+  // MongoDB text index doesn't support "pt-BR", only "portuguese" or null
+  if (data.language === 'pt-BR' || data.language === 'pt') {
+    console.log('[TermService] Removing invalid language value from new term:', data.language);
+    delete data.language;
+  }
+
   // Validate authority control (unique prefLabel)
   const authorityCheck = await validateAuthorityControl(data.prefLabel);
   if (!authorityCheck.valid) {
@@ -120,6 +127,13 @@ export async function updateExistingTerm(termId, updates, expectedVersion, metad
 
   const terms = getCollection('etnotermos');
   const auditLogs = getCollection('etnotermos-audit-logs');
+
+  // CRITICAL FIX: Remove or normalize invalid language values
+  // MongoDB text index doesn't support "pt-BR", only "portuguese" or null
+  if (updates.language === 'pt-BR' || updates.language === 'pt') {
+    console.log('[TermService] Removing invalid language value:', updates.language);
+    delete updates.language;
+  }
 
   // Get existing term
   console.log('[TermService] Getting existing term...');
