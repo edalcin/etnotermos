@@ -142,7 +142,20 @@
         window.location.href = '/relationships';
       } else {
         const error = await response.json();
-        alert('Erro ao criar relacionamento: ' + (error.error || 'Erro desconhecido'));
+        let errorMessage = 'Erro desconhecido';
+
+        if (typeof error.error === 'string') {
+          errorMessage = error.error;
+          if (error.missing && Array.isArray(error.missing)) {
+            errorMessage += ': ' + error.missing.join(', ');
+          }
+        } else if (error.error && error.error.message) {
+          errorMessage = error.error.message;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+
+        alert('Erro ao criar relacionamento: ' + errorMessage);
       }
     } catch (error) {
       console.error('Error creating relationship:', error);

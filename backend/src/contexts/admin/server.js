@@ -89,6 +89,7 @@ import notesRouter from '../../api/admin/notes.js';
 import sourcesRouter from '../../api/admin/sources.js';
 import collectionsRouter from '../../api/admin/collections.js';
 import dashboardRouter from '../../api/admin/dashboard.js';
+import auditLogsRouter from '../../api/admin/audit-logs.js';
 
 // Register API routes under /api/v1 prefix
 app.use('/api/v1/admin/terms', termsRouter);
@@ -97,6 +98,7 @@ app.use('/api/v1/notes', notesRouter); // Notes available to both public (GET) a
 app.use('/api/v1/sources', sourcesRouter); // Sources available to both public (GET) and admin
 app.use('/api/v1/collections', collectionsRouter); // Collections available to both public (GET) and admin
 app.use('/api/v1/admin/dashboard', dashboardRouter);
+app.use('/api/v1/admin/audit-logs', auditLogsRouter);
 
 // 404 handler
 app.use((req, res) => {

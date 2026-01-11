@@ -240,11 +240,11 @@
       <!-- Metadata -->
       <div class="text-xs text-gray-500 mt-6 pt-4 border-t border-gray-200">
         <div>ID: <span x-text="term?._id"></span></div>
-        <div x-show="term?.created">
-          Criado em: <span x-text="new Date(term.created).toLocaleDateString('pt-BR')"></span>
+        <div x-show="term?.createdAt">
+          Criado em: <span x-text="new Date(term.createdAt).toLocaleDateString('pt-BR')"></span>
         </div>
-        <div x-show="term?.modified">
-          Modificado em: <span x-text="new Date(term.modified).toLocaleDateString('pt-BR')"></span>
+        <div x-show="term?.updatedAt">
+          Modificado em: <span x-text="new Date(term.updatedAt).toLocaleDateString('pt-BR')"></span>
         </div>
       </div>
     </div>
