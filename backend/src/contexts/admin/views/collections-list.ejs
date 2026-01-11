@@ -58,7 +58,8 @@
     }
   },
   async deleteCollection(id, name) {
-    if (!confirm('Tem certeza que deseja excluir a coleção "' + name + '"? Ela será removida de todos os termos associados.')) return;
+    const message = 'Tem certeza que deseja excluir a coleção ' + name + '? Ela será removida de todos os termos associados.';
+    if (!confirm(message)) return;
 
     try {
       const response = await fetch(`/api/v1/collections/${id}`, {
