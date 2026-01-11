@@ -116,16 +116,22 @@ export async function createNewTerm(data, metadata = {}) {
  * Update an existing term
  */
 export async function updateExistingTerm(termId, updates, expectedVersion, metadata = {}) {
+  console.log('[TermService] Starting updateExistingTerm for:', termId);
+
   const terms = getCollection('etnotermos');
   const auditLogs = getCollection('etnotermos-audit-logs');
 
   // Get existing term
+  console.log('[TermService] Getting existing term...');
   const existingTerm = await getTermById(termId);
+  console.log('[TermService] Existing term found:', existingTerm.prefLabel);
 
   // Check for authority control if prefLabel is being changed
   if (updates.prefLabel && updates.prefLabel !== existingTerm.prefLabel) {
+    console.log('[TermService] Checking authority control for new prefLabel:', updates.prefLabel);
     const authorityCheck = await validateAuthorityControl(updates.prefLabel, existingTerm._id);
     if (!authorityCheck.valid) {
+      console.error('[TermService] Authority control failed:', authorityCheck.error);
       throw new Error(authorityCheck.error);
     }
   }
@@ -133,13 +139,18 @@ export async function updateExistingTerm(termId, updates, expectedVersion, metad
   // Update term with optimistic locking
   let updatedTerm;
   try {
+    console.log('[TermService] Updating term model...');
     updatedTerm = updateTermModel(existingTerm, updates, expectedVersion);
+    console.log('[TermService] Term model updated successfully');
   } catch (error) {
+    console.error('[TermService] Error updating term model:', error.message);
     // Version conflict - attempt merge
     if (error.message.includes('Version conflict')) {
+      console.log('[TermService] Attempting merge...');
       const mergeResult = await attemptMerge(existingTerm, updates);
       if (mergeResult.success) {
         updatedTerm = mergeResult.term;
+        console.log('[TermService] Merge successful');
       } else {
         throw new Error(
           `Version conflict: ${error.message}. Manual resolution required: ${mergeResult.conflicts.join(', ')}`
@@ -151,15 +162,20 @@ export async function updateExistingTerm(termId, updates, expectedVersion, metad
   }
 
   // Save updated term
+  console.log('[TermService] Saving updated term to database...');
   const result = await terms.replaceOne({ _id: existingTerm._id }, updatedTerm);
+  console.log('[TermService] Database result:', result);
 
   if (result.modifiedCount === 0) {
+    console.error('[TermService] Failed to update term - modifiedCount is 0');
     throw new Error('Failed to update term');
   }
 
   // Create audit log
+  console.log('[TermService] Creating audit log...');
   const auditLog = createAuditLogUpdate('Term', termId, existingTerm, updatedTerm, metadata);
   await auditLogs.insertOne(auditLog);
+  console.log('[TermService] Audit log created successfully');
 
   return updatedTerm;
 }

@@ -38,14 +38,23 @@ export const updateTermHandler = asyncHandler(async (req, res) => {
   const updates = req.body;
   const { version } = req.body;
 
+  console.log('[AdminTermsController] Updating term:', id);
+  console.log('[AdminTermsController] Updates:', JSON.stringify(updates, null, 2));
+  console.log('[AdminTermsController] Version:', version);
+
   const metadata = {
     admin: req.admin?.username,
     ip: req.ip,
   };
 
-  const term = await updateExistingTerm(id, updates, version, metadata);
-
-  res.status(200).json(term);
+  try {
+    const term = await updateExistingTerm(id, updates, version, metadata);
+    console.log('[AdminTermsController] Term updated successfully');
+    res.status(200).json(term);
+  } catch (error) {
+    console.error('[AdminTermsController] Error updating term:', error);
+    throw error;
+  }
 });
 
 /**

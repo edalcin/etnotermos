@@ -107,16 +107,31 @@
         body: JSON.stringify(this.form)
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+
       if (response.ok) {
         alert(this.isEdit ? 'Termo atualizado com sucesso!' : 'Termo criado com sucesso!');
         window.location.href = '/terms';
       } else {
-        const error = await response.json();
-        alert(`Erro: ${error.error?.message || 'Erro ao salvar termo'}`);
+        const errorText = await response.text();
+        console.error('Error response text:', errorText);
+
+        let errorMessage = 'Erro ao salvar termo';
+        try {
+          const errorJson = JSON.parse(errorText);
+          console.error('Error response JSON:', errorJson);
+          errorMessage = errorJson.error || errorJson.message || errorMessage;
+        } catch (e) {
+          console.error('Could not parse error as JSON:', e);
+          errorMessage = errorText || errorMessage;
+        }
+
+        alert(`Erro: ${errorMessage}`);
       }
     } catch (error) {
       console.error('Error saving term:', error);
-      alert('Erro ao salvar termo.');
+      alert('Erro ao salvar termo: ' + error.message);
     } finally {
       this.saving = false;
     }
