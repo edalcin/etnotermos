@@ -33,7 +33,17 @@ export function errorHandler(err, req, res, next) {
   let message = err.message || 'Internal Server Error';
   let isOperational = err.isOperational || false;
 
-  // Log error
+  // ALWAYS log the full error for debugging
+  console.error('============================================');
+  console.error('[ERROR HANDLER] Error caught:');
+  console.error('Message:', err.message);
+  console.error('Name:', err.name);
+  console.error('Status:', statusCode);
+  console.error('Stack:', err.stack);
+  console.error('Full error object:', JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
+  console.error('============================================');
+
+  // Log error with existing function
   logError(err, req, isOperational);
 
   // Handle specific error types
@@ -58,6 +68,7 @@ export function errorHandler(err, req, res, next) {
     ...(config.isDevelopment && {
       type: err.name,
       stack: err.stack,
+      fullError: err,
     }),
   };
 
