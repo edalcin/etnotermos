@@ -5,24 +5,166 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %> | EtnoTermos Admin</title>
   <link href="/assets/styles.css?v=<%= Date.now() %>" rel="stylesheet">
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.13.5/dist/cdn.min.js"></script>
 </head>
 <body class="bg-forest-50 min-h-screen flex flex-col">
   <%- include('partials/header') %>
   <main class="flex-grow container mx-auto px-4 py-8">
 
-<div class="flex justify-between items-center mb-6">
-  <div>
-    <h1 class="text-3xl font-bold text-forest-700">Gerenciar Coleções</h1>
-    <p class="text-gray-600 mt-1">Organização temática do vocabulário</p>
-  </div>
-  <a href="/collections/new" class="px-6 py-3 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors font-medium">
-    + Nova Coleção
-  </a>
-</div>
+<div x-data="{
+  collections: [],
+  loading: true,
+  termCounts: {},
+  async init() {
+    await this.loadCollections();
+  },
+  async loadCollections() {
+    this.loading = true;
+    try {
+      const response = await fetch('/api/v1/collections');
+      this.collections = await response.json();
 
-<div class="bg-white rounded-lg shadow-md p-8 text-center">
-  <p class="text-gray-600">Interface de gerenciamento de coleções em desenvolvimento.</p>
-  <p class="text-sm text-gray-500 mt-2">Use a API REST em /api/v1/collections</p>
+      // Load term counts for each collection
+      for (const collection of this.collections) {
+        await this.loadTermCount(collection._id);
+      }
+    } catch (error) {
+      console.error('Error loading collections:', error);
+    } finally {
+      this.loading = false;
+    }
+  },
+  async loadTermCount(collectionId) {
+    try {
+      const response = await fetch(`/api/v1/collections/${collectionId}/terms?limit=1`);
+      const data = await response.json();
+      this.termCounts[collectionId] = data.pagination?.total || 0;
+    } catch (error) {
+      console.error('Error loading term count:', error);
+      this.termCounts[collectionId] = 0;
+    }
+  },
+  async deleteCollection(id, name) {
+    if (!confirm(`Tem certeza que deseja excluir a coleção \"${name}\"? Ela será removida de todos os termos associados.`)) return;
+
+    try {
+      const response = await fetch(`/api/v1/collections/${id}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        await this.loadCollections();
+        alert('Coleção excluída com sucesso!');
+      } else {
+        alert('Erro ao excluir coleção.');
+      }
+    } catch (error) {
+      console.error('Error deleting collection:', error);
+      alert('Erro ao excluir coleção.');
+    }
+  },
+  truncateText(text, maxLength) {
+    if (!text) return '';
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  },
+  formatDate(dateString) {
+    return new Date(dateString).toLocaleDateString('pt-BR');
+  },
+  exportCollection(id, format) {
+    // Placeholder for future export functionality
+    alert('Funcionalidade de exportação em desenvolvimento. Formato: ' + format);
+  }
+}">
+
+  <!-- Header and Actions -->
+  <div class="flex justify-between items-center mb-6">
+    <div>
+      <h1 class="text-3xl font-bold text-forest-700">Gerenciar Coleções</h1>
+      <p class="text-gray-600 mt-1">Organização temática do vocabulário controlado</p>
+    </div>
+    <a href="/collections/new" class="px-6 py-3 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors font-medium">
+      + Nova Coleção
+    </a>
+  </div>
+
+  <!-- Loading State -->
+  <div x-show="loading" class="bg-white rounded-lg shadow-md p-8 text-center">
+    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-forest-600"></div>
+    <p class="text-gray-600 mt-3">Carregando coleções...</p>
+  </div>
+
+  <!-- Empty State -->
+  <div x-show="!loading && collections.length === 0" class="bg-white rounded-lg shadow-md p-8 text-center">
+    <p class="text-gray-600 mb-4">Nenhuma coleção criada ainda.</p>
+    <a href="/collections/new" class="inline-block px-6 py-3 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors font-medium">
+      Criar Primeira Coleção
+    </a>
+  </div>
+
+  <!-- Collections Grid -->
+  <div x-show="!loading && collections.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <template x-for="collection in collections" :key="collection._id">
+      <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+        <!-- Collection Header -->
+        <div class="mb-4">
+          <h3 class="text-xl font-bold text-forest-700 mb-2" x-text="collection.name"></h3>
+          <p class="text-sm text-gray-600 min-h-[3rem]" x-text="truncateText(collection.description || 'Sem descrição', 100)"></p>
+        </div>
+
+        <!-- Collection Stats -->
+        <div class="mb-4 flex items-center gap-2">
+          <span class="px-3 py-1 bg-forest-100 text-forest-700 rounded-full text-sm font-medium">
+            <span x-text="termCounts[collection._id] || 0"></span> termos
+          </span>
+        </div>
+
+        <!-- Collection Metadata -->
+        <div class="text-xs text-gray-500 mb-4 space-y-1">
+          <div>Criada em: <span x-text="formatDate(collection.createdAt)"></span></div>
+          <div>Atualizada em: <span x-text="formatDate(collection.updatedAt)"></span></div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="grid grid-cols-2 gap-2">
+          <a
+            :href="`/collections/${collection._id}/edit`"
+            class="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-center text-sm font-medium"
+          >
+            ✏️ Editar
+          </a>
+          <button
+            @click="deleteCollection(collection._id, collection.name)"
+            class="px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium"
+          >
+            🗑️ Excluir
+          </button>
+          <a
+            :href="`/terms?collection=${collection._id}`"
+            class="px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-center text-sm font-medium"
+          >
+            👁️ Ver Termos
+          </a>
+          <button
+            @click="exportCollection(collection._id, 'csv')"
+            class="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+          >
+            📥 Exportar
+          </button>
+        </div>
+      </div>
+    </template>
+  </div>
+
+  <!-- Info Box -->
+  <div x-show="!loading && collections.length > 0" class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+    <p class="text-sm text-blue-800">
+      <strong>💡 Dica:</strong> Coleções são usadas para agrupar termos relacionados tematicamente.
+      Ao excluir uma coleção, os termos associados não são excluídos, apenas desassociados da coleção.
+    </p>
+  </div>
+
 </div>
 
   </main>

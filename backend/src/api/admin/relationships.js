@@ -4,12 +4,14 @@
 import express from 'express';
 import {
   createRelationshipHandler,
+  listRelationshipsHandler,
   deleteRelationshipHandler,
 } from '../controllers/AdminRelationshipsController.js';
 import {
   validateRequiredFields,
   validateObjectId,
   validateRelationshipType,
+  validatePagination,
 } from '../middleware/validate.js';
 import adminAuth from '../middleware/adminAuth.js';
 import auditLog from '../middleware/auditLog.js';
@@ -21,6 +23,12 @@ router.use(adminAuth);
 
 // Apply audit logging
 router.use(auditLog);
+
+/**
+ * GET /api/v1/admin/relationships
+ * List all relationships with term details
+ */
+router.get('/', validatePagination, listRelationshipsHandler);
 
 /**
  * POST /api/v1/admin/relationships

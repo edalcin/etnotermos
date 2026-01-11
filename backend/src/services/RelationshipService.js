@@ -243,6 +243,63 @@ export async function getRelationshipStatistics() {
   };
 }
 
+/**
+ * List relationships with populated term details
+ */
+export async function listRelationshipsWithTerms(options = {}) {
+  const relationships = getCollection('etnotermos-relationships');
+  const { page = 1, limit = 20, type } = options;
+
+  // Build query
+  const query = {};
+  if (type) {
+    query.type = type;
+  }
+
+  const skip = (page - 1) * parseInt(limit);
+
+  // Aggregation pipeline with $lookup to populate terms
+  const pipeline = [
+    { $match: query },
+    {
+      $lookup: {
+        from: 'etnotermos',
+        localField: 'sourceTermId',
+        foreignField: '_id',
+        as: 'sourceTerm',
+      },
+    },
+    {
+      $lookup: {
+        from: 'etnotermos',
+        localField: 'targetTermId',
+        foreignField: '_id',
+        as: 'targetTerm',
+      },
+    },
+    { $unwind: { path: '$sourceTerm', preserveNullAndEmptyArrays: true } },
+    { $unwind: { path: '$targetTerm', preserveNullAndEmptyArrays: true } },
+    { $sort: { createdAt: -1 } },
+    { $skip: skip },
+    { $limit: parseInt(limit) },
+  ];
+
+  const [data, total] = await Promise.all([
+    relationships.aggregate(pipeline).toArray(),
+    relationships.countDocuments(query),
+  ]);
+
+  return {
+    data,
+    pagination: {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      total,
+      totalPages: Math.ceil(total / parseInt(limit)),
+    },
+  };
+}
+
 export default {
   createNewRelationship,
   getRelationshipsByTerm,
@@ -250,4 +307,5 @@ export default {
   validateAllReciprocity,
   updateRelationshipValidation,
   getRelationshipStatistics,
+  listRelationshipsWithTerms,
 };

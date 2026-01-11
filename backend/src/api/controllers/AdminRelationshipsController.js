@@ -4,6 +4,7 @@
 import {
   createNewRelationship,
   deleteRelationship,
+  listRelationshipsWithTerms,
 } from '../../services/RelationshipService.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 
@@ -25,6 +26,18 @@ export const createRelationshipHandler = asyncHandler(async (req, res) => {
 });
 
 /**
+ * List relationships with term details
+ * GET /api/v1/admin/relationships
+ */
+export const listRelationshipsHandler = asyncHandler(async (req, res) => {
+  const { page, limit, type } = req.query;
+
+  const result = await listRelationshipsWithTerms({ page, limit, type });
+
+  res.status(200).json(result);
+});
+
+/**
  * Delete a relationship
  * DELETE /api/v1/admin/relationships/:id
  */
@@ -43,5 +56,6 @@ export const deleteRelationshipHandler = asyncHandler(async (req, res) => {
 
 export default {
   createRelationshipHandler,
+  listRelationshipsHandler,
   deleteRelationshipHandler,
 };

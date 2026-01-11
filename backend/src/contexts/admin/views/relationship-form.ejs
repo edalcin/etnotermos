@@ -5,21 +5,332 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %> | EtnoTermos Admin</title>
   <link href="/assets/styles.css?v=<%= Date.now() %>" rel="stylesheet">
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <script defer src="https://unpkg.com/alpinejs@3.13.5/dist/cdn.min.js"></script>
 </head>
 <body class="bg-forest-50 min-h-screen flex flex-col">
   <%- include('partials/header') %>
   <main class="flex-grow container mx-auto px-4 py-8">
 
-<div class="mb-6">
-  <div class="flex items-center justify-between mb-2">
-    <h1 class="text-3xl font-bold text-forest-700">Novo Relacionamento</h1>
-    <a href="/relationships" class="text-gray-600 hover:text-gray-800">← Voltar</a>
-  </div>
-</div>
+<div x-data="{
+  form: {
+    sourceTermId: '',
+    targetTermId: '',
+    type: ''
+  },
+  terms: [],
+  sourceSearch: '',
+  targetSearch: '',
+  filteredSourceTerms: [],
+  filteredTargetTerms: [],
+  selectedSourceTerm: null,
+  selectedTargetTerm: null,
+  showSourceDropdown: false,
+  showTargetDropdown: false,
+  relationshipTypes: [
+    { category: 'Equivalência', types: [
+      { code: 'USE', description: 'Points from non-preferred to preferred term' },
+      { code: 'UF', description: 'Used For - points from preferred to non-preferred terms' }
+    ]},
+    { category: 'Hierárquico', types: [
+      { code: 'BT', description: 'Broader Term - generic hierarchical' },
+      { code: 'NT', description: 'Narrower Term - generic hierarchical' },
+      { code: 'BTG', description: 'Broader Term Generic - generic-specific' },
+      { code: 'NTG', description: 'Narrower Term Generic - specific-generic' },
+      { code: 'BTP', description: 'Broader Term Partitive - whole-part' },
+      { code: 'NTP', description: 'Narrower Term Partitive - part-whole' },
+      { code: 'BTI', description: 'Broader Term Instance - class-instance' },
+      { code: 'NTI', description: 'Narrower Term Instance - instance-class' }
+    ]},
+    { category: 'Associativo', types: [
+      { code: 'RT', description: 'Related Term - associative connection' }
+    ]}
+  ],
+  loading: true,
+  saving: false,
+  async init() {
+    await this.loadTerms();
+    this.loading = false;
+  },
+  async loadTerms() {
+    try {
+      const response = await fetch('/api/v1/admin/terms?limit=1000');
+      const data = await response.json();
+      this.terms = data.data || [];
+    } catch (error) {
+      console.error('Error loading terms:', error);
+      alert('Erro ao carregar termos.');
+    }
+  },
+  filterSourceTerms() {
+    if (!this.sourceSearch.trim()) {
+      this.filteredSourceTerms = [];
+      return;
+    }
+    const search = this.sourceSearch.toLowerCase();
+    this.filteredSourceTerms = this.terms
+      .filter(t => t.prefLabel.toLowerCase().includes(search))
+      .slice(0, 50);
+  },
+  filterTargetTerms() {
+    if (!this.targetSearch.trim()) {
+      this.filteredTargetTerms = [];
+      return;
+    }
+    const search = this.targetSearch.toLowerCase();
+    this.filteredTargetTerms = this.terms
+      .filter(t => t.prefLabel.toLowerCase().includes(search))
+      .slice(0, 50);
+  },
+  selectSourceTerm(term) {
+    this.selectedSourceTerm = term;
+    this.form.sourceTermId = term._id;
+    this.sourceSearch = '';
+    this.showSourceDropdown = false;
+    this.filteredSourceTerms = [];
+  },
+  selectTargetTerm(term) {
+    this.selectedTargetTerm = term;
+    this.form.targetTermId = term._id;
+    this.targetSearch = '';
+    this.showTargetDropdown = false;
+    this.filteredTargetTerms = [];
+  },
+  clearSourceTerm() {
+    this.selectedSourceTerm = null;
+    this.form.sourceTermId = '';
+  },
+  clearTargetTerm() {
+    this.selectedTargetTerm = null;
+    this.form.targetTermId = '';
+  },
+  async saveRelationship() {
+    // Validation
+    if (!this.form.sourceTermId) {
+      alert('Selecione o termo de origem.');
+      return;
+    }
+    if (!this.form.targetTermId) {
+      alert('Selecione o termo de destino.');
+      return;
+    }
+    if (!this.form.type) {
+      alert('Selecione o tipo de relacionamento.');
+      return;
+    }
+    if (this.form.sourceTermId === this.form.targetTermId) {
+      alert('Um termo não pode ter relacionamento consigo mesmo.');
+      return;
+    }
 
-<div class="bg-white rounded-lg shadow-md p-8">
-  <p class="text-gray-600">Formulário de criação de relacionamentos em desenvolvimento.</p>
-  <p class="text-sm text-gray-500 mt-2">Use a API REST: POST /api/v1/admin/relationships</p>
+    this.saving = true;
+    try {
+      const response = await fetch('/api/v1/admin/relationships', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(this.form)
+      });
+
+      if (response.ok) {
+        alert('Relacionamento criado com sucesso!');
+        window.location.href = '/relationships';
+      } else {
+        const error = await response.json();
+        alert('Erro ao criar relacionamento: ' + (error.error || 'Erro desconhecido'));
+      }
+    } catch (error) {
+      console.error('Error creating relationship:', error);
+      alert('Erro ao criar relacionamento.');
+    } finally {
+      this.saving = false;
+    }
+  }
+}">
+
+  <!-- Loading State -->
+  <div x-show="loading" class="flex justify-center items-center py-12">
+    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-forest-600"></div>
+    <span class="ml-3 text-gray-600">Carregando...</span>
+  </div>
+
+  <!-- Form -->
+  <div x-show="!loading">
+    <!-- Header -->
+    <div class="mb-6">
+      <div class="flex items-center justify-between mb-2">
+        <h1 class="text-3xl font-bold text-forest-700">Criar Relacionamento</h1>
+        <a href="/relationships" class="text-gray-600 hover:text-gray-800">← Voltar</a>
+      </div>
+    </div>
+
+    <!-- Info Box -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+      <p class="text-sm text-blue-800">
+        <strong>Nota:</strong> Ao criar um relacionamento, o relacionamento recíproco será automaticamente criado pelo sistema.
+        Por exemplo, ao criar uma relação BT (Broader Term), a relação NT (Narrower Term) será criada automaticamente.
+      </p>
+    </div>
+
+    <!-- Form Card -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+      <!-- Term Selection Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <!-- Source Term -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Termo de Origem *
+          </label>
+
+          <!-- Selected Term Display -->
+          <div x-show="selectedSourceTerm" class="mb-2">
+            <div class="bg-forest-50 border border-forest-200 rounded-lg p-3 flex items-center justify-between">
+              <div>
+                <span class="text-sm font-medium text-forest-700" x-text="selectedSourceTerm?.prefLabel"></span>
+                <span class="text-xs text-gray-500 ml-2" x-text="'(' + selectedSourceTerm?._id + ')'"></span>
+              </div>
+              <button
+                type="button"
+                @click="clearSourceTerm()"
+                class="text-red-600 hover:text-red-800 text-sm"
+              >
+                ✕ Limpar
+              </button>
+            </div>
+          </div>
+
+          <!-- Autocomplete Input -->
+          <div x-show="!selectedSourceTerm" class="relative">
+            <input
+              type="text"
+              x-model="sourceSearch"
+              @input="filterSourceTerms(); showSourceDropdown = true"
+              @focus="showSourceDropdown = true"
+              @blur="setTimeout(() => showSourceDropdown = false, 200)"
+              placeholder="Digite para buscar um termo..."
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-forest-600"
+            />
+
+            <!-- Dropdown -->
+            <div
+              x-show="showSourceDropdown && filteredSourceTerms.length > 0"
+              class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+            >
+              <template x-for="term in filteredSourceTerms" :key="term._id">
+                <button
+                  type="button"
+                  @click="selectSourceTerm(term)"
+                  class="w-full px-4 py-2 text-left hover:bg-forest-50 border-b border-gray-100 last:border-b-0"
+                >
+                  <div class="font-medium text-gray-800" x-text="term.prefLabel"></div>
+                  <div class="text-xs text-gray-500" x-text="term.definition?.substring(0, 100) || 'Sem definição'"></div>
+                </button>
+              </template>
+            </div>
+          </div>
+
+          <p class="text-xs text-gray-500 mt-1">Total de termos: <span x-text="terms.length"></span></p>
+        </div>
+
+        <!-- Target Term -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Termo de Destino *
+          </label>
+
+          <!-- Selected Term Display -->
+          <div x-show="selectedTargetTerm" class="mb-2">
+            <div class="bg-forest-50 border border-forest-200 rounded-lg p-3 flex items-center justify-between">
+              <div>
+                <span class="text-sm font-medium text-forest-700" x-text="selectedTargetTerm?.prefLabel"></span>
+                <span class="text-xs text-gray-500 ml-2" x-text="'(' + selectedTargetTerm?._id + ')'"></span>
+              </div>
+              <button
+                type="button"
+                @click="clearTargetTerm()"
+                class="text-red-600 hover:text-red-800 text-sm"
+              >
+                ✕ Limpar
+              </button>
+            </div>
+          </div>
+
+          <!-- Autocomplete Input -->
+          <div x-show="!selectedTargetTerm" class="relative">
+            <input
+              type="text"
+              x-model="targetSearch"
+              @input="filterTargetTerms(); showTargetDropdown = true"
+              @focus="showTargetDropdown = true"
+              @blur="setTimeout(() => showTargetDropdown = false, 200)"
+              placeholder="Digite para buscar um termo..."
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-forest-600"
+            />
+
+            <!-- Dropdown -->
+            <div
+              x-show="showTargetDropdown && filteredTargetTerms.length > 0"
+              class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+            >
+              <template x-for="term in filteredTargetTerms" :key="term._id">
+                <button
+                  type="button"
+                  @click="selectTargetTerm(term)"
+                  class="w-full px-4 py-2 text-left hover:bg-forest-50 border-b border-gray-100 last:border-b-0"
+                >
+                  <div class="font-medium text-gray-800" x-text="term.prefLabel"></div>
+                  <div class="text-xs text-gray-500" x-text="term.definition?.substring(0, 100) || 'Sem definição'"></div>
+                </button>
+              </template>
+            </div>
+          </div>
+
+          <p class="text-xs text-gray-500 mt-1">Total de termos: <span x-text="terms.length"></span></p>
+        </div>
+      </div>
+
+      <!-- Relationship Type -->
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Tipo de Relacionamento *
+        </label>
+        <select
+          x-model="form.type"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-forest-600"
+        >
+          <option value="">Selecione um tipo...</option>
+          <template x-for="category in relationshipTypes" :key="category.category">
+            <optgroup :label="category.category">
+              <template x-for="type in category.types" :key="type.code">
+                <option :value="type.code" x-text="type.code + ' - ' + type.description"></option>
+              </template>
+            </optgroup>
+          </template>
+        </select>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex gap-4">
+        <button
+          type="button"
+          @click="saveRelationship()"
+          :disabled="saving"
+          class="px-6 py-3 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+        >
+          <span x-show="!saving">Criar Relacionamento</span>
+          <span x-show="saving">Salvando...</span>
+        </button>
+        <a
+          href="/relationships"
+          class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors inline-block"
+        >
+          Cancelar
+        </a>
+      </div>
+    </div>
+  </div>
+
 </div>
 
   </main>
