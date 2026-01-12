@@ -21,7 +21,20 @@
       "Bash(npm run build:css:*)",
       "Bash(npm install)",
       "Bash(git pull:*)",
-      "Bash(git worktree:*)"
+      "Bash(git worktree:*)",
+      "Bash(node scripts/seed-tipos-uso.js:*)",
+      "Bash(node scripts/create-indexes.js:*)",
+      "Bash(node scripts/fix-language-and-indexes.js:*)",
+      "Bash(curl:*)",
+      "Bash(node scripts/test-search.js:*)",
+      "Bash(node scripts/remove-duplicates.js:*)",
+      "Bash(node scripts/generate-report.js:*)",
+      "Bash(mongo etnodb:*)",
+      "Bash(node scripts/check-collections.js:*)",
+      "Bash(node scripts/test-collections-api.js:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(node scripts/test-collections-service.js:*)"
     ],
     "deny": [],
     "ask": []
