@@ -89,6 +89,16 @@ export async function createNewTerm(data, metadata = {}) {
     delete data.language;
   }
 
+  // Convert collectionIds from strings to ObjectIds
+  if (data.collectionIds && Array.isArray(data.collectionIds)) {
+    data.collectionIds = data.collectionIds.map(id => {
+      if (typeof id === 'string') {
+        return new ObjectId(id);
+      }
+      return id;
+    });
+  }
+
   // Validate authority control (unique prefLabel)
   const authorityCheck = await validateAuthorityControl(data.prefLabel);
   if (!authorityCheck.valid) {
@@ -133,6 +143,16 @@ export async function updateExistingTerm(termId, updates, expectedVersion, metad
   if (updates.language === 'pt-BR' || updates.language === 'pt') {
     console.log('[TermService] Removing invalid language value:', updates.language);
     delete updates.language;
+  }
+
+  // Convert collectionIds from strings to ObjectIds
+  if (updates.collectionIds && Array.isArray(updates.collectionIds)) {
+    updates.collectionIds = updates.collectionIds.map(id => {
+      if (typeof id === 'string') {
+        return new ObjectId(id);
+      }
+      return id;
+    });
   }
 
   // Get existing term

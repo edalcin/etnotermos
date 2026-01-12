@@ -34,7 +34,8 @@
       "Bash(node scripts/test-collections-api.js:*)",
       "Bash(netstat:*)",
       "Bash(findstr:*)",
-      "Bash(node scripts/test-collections-service.js:*)"
+      "Bash(node scripts/test-collections-service.js:*)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []

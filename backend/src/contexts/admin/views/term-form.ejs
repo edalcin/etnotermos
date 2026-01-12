@@ -22,7 +22,7 @@
     scopeNote: '',
     example: '',
     status: 'active',
-    collections: []
+    collectionIds: []
   },
   altLabelInput: '',
   collections: [],
@@ -59,7 +59,7 @@
         example: term.example || '',
         language: term.language || 'pt-BR',
         status: term.status || 'active',
-        collections: term.collections || []
+        collectionIds: (term.collectionIds || []).map(id => id.toString())
       };
     } catch (error) {
       console.error('Error loading term:', error);
@@ -76,11 +76,11 @@
     this.form.altLabels.splice(index, 1);
   },
   toggleCollection(collectionId) {
-    const index = this.form.collections.indexOf(collectionId);
+    const index = this.form.collectionIds.indexOf(collectionId);
     if (index > -1) {
-      this.form.collections.splice(index, 1);
+      this.form.collectionIds.splice(index, 1);
     } else {
-      this.form.collections.push(collectionId);
+      this.form.collectionIds.push(collectionId);
     }
   },
   async saveTerm() {
@@ -503,7 +503,7 @@
             <input
               type="checkbox"
               :value="collection._id"
-              :checked="form.collections.includes(collection._id)"
+              :checked="form.collectionIds.includes(collection._id)"
               @change="toggleCollection(collection._id)"
               class="rounded text-forest-600 focus:ring-forest-500"
             >
