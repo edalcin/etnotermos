@@ -91,7 +91,10 @@
       };
     });
 
-    // Build parent-child relationships using BOTH BT (broader) and NT (narrower)
+    // Build parent-child relationships using ONLY BT (broader terms)
+    // This is sufficient because BT defines the complete hierarchy:
+    // - If term has BT → it's a child of that parent
+    // - If term has NO BT → it's a root term
     this.terms.forEach(term => {
       const rels = this.relationships[term._id];
 
@@ -99,22 +102,7 @@
       if (rels && rels.broaderTerms && rels.broaderTerms.length > 0) {
         rels.broaderTerms.forEach(parentId => {
           if (termMap[parentId]) {
-            // Avoid duplicates
-            if (!termMap[parentId].children.some(c => c._id === term._id)) {
-              termMap[parentId].children.push(termMap[term._id]);
-            }
-          }
-        });
-      }
-
-      // If this term has narrower terms (NT), attach them as children
-      if (rels && rels.narrowerTerms && rels.narrowerTerms.length > 0) {
-        rels.narrowerTerms.forEach(childId => {
-          if (termMap[childId]) {
-            // Avoid duplicates
-            if (!termMap[term._id].children.some(c => c._id === childId)) {
-              termMap[term._id].children.push(termMap[childId]);
-            }
+            termMap[parentId].children.push(termMap[term._id]);
           }
         });
       }
@@ -144,6 +132,10 @@
     sortTerms(rootTerms);
     this.termTree = rootTerms;
     this.totalRootTerms = rootTerms.length;
+
+    // Debug: log root terms to console
+    console.log('Root terms count:', this.termTree.length);
+    console.log('Root terms:', this.termTree.map(t => t.prefLabel));
   },
 
   // Flatten tree for rendering (only show expanded nodes with pagination)
