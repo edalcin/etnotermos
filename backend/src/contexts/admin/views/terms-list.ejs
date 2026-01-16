@@ -13,20 +13,31 @@
   <main class="flex-grow container mx-auto px-4 py-8">
 
 <div x-data="{
+  // Data
   terms: [],
+  relationships: {},
+  termTree: [],
+  visibleNodes: [],
+  expandedTerms: {},
+  selectedTerm: null,
+  showModal: false,
+
+  // Filters and search
   loading: true,
-  page: 1,
-  totalPages: 1,
   searchQuery: '',
   statusFilter: '',
   collectionFilter: new URLSearchParams(window.location.search).get('collection') || '',
   collectionName: '',
+
+  // Initialize
   async init() {
     if (this.collectionFilter) {
       await this.loadCollectionName();
     }
-    await this.loadTerms();
+    await this.loadHierarchy();
   },
+
+  // Load collection name for filter badge
   async loadCollectionName() {
     try {
       const response = await fetch(`/api/v1/collections/${this.collectionFilter}`);
@@ -36,30 +47,131 @@
       console.error('Error loading collection name:', error);
     }
   },
-  async loadTerms() {
+
+  // Load terms and relationships from hierarchy endpoint
+  async loadHierarchy() {
     this.loading = true;
     try {
       const params = new URLSearchParams({
-        page: this.page,
-        limit: 20,
         ...(this.searchQuery && { q: this.searchQuery }),
         ...(this.statusFilter && { status: this.statusFilter }),
         ...(this.collectionFilter && { collections: this.collectionFilter })
       });
 
-      const response = await fetch(`/api/v1/admin/terms?${params}`);
+      const response = await fetch(`/api/v1/admin/terms/hierarchy?${params}`);
       const data = await response.json();
-      this.terms = data.data || [];
-      this.totalPages = data.pagination?.totalPages || 1;
+
+      this.terms = data.terms || [];
+      this.relationships = data.relationships || {};
+
+      // Build tree structure
+      this.buildTree();
+      this.flattenTree();
     } catch (error) {
-      console.error('Error loading terms:', error);
+      console.error('Error loading hierarchy:', error);
     } finally {
       this.loading = false;
     }
   },
+
+  // Build tree structure from flat terms + relationships
+  buildTree() {
+    // Create term lookup map
+    const termMap = {};
+    this.terms.forEach(term => {
+      termMap[term._id] = {
+        ...term,
+        children: []
+      };
+    });
+
+    // Identify root terms (terms with no broader terms = no BT relationships)
+    const rootTerms = [];
+
+    this.terms.forEach(term => {
+      const rels = this.relationships[term._id];
+      const hasBroaderTerm = rels && rels.broaderTerms && rels.broaderTerms.length > 0;
+
+      if (!hasBroaderTerm) {
+        // This is a root term
+        rootTerms.push(termMap[term._id]);
+      } else {
+        // Attach to parent(s)
+        rels.broaderTerms.forEach(parentId => {
+          if (termMap[parentId]) {
+            termMap[parentId].children.push(termMap[term._id]);
+          }
+        });
+      }
+    });
+
+    // Sort alphabetically at each level
+    const sortTerms = (terms) => {
+      terms.sort((a, b) => a.prefLabel.localeCompare(b.prefLabel));
+      terms.forEach(term => {
+        if (term.children.length > 0) {
+          sortTerms(term.children);
+        }
+      });
+    };
+
+    sortTerms(rootTerms);
+    this.termTree = rootTerms;
+  },
+
+  // Flatten tree for rendering (only show expanded nodes)
+  flattenTree() {
+    const result = [];
+
+    const traverse = (nodes, level = 0) => {
+      nodes.forEach(node => {
+        result.push({ ...node, level });
+
+        if (this.isExpanded(node._id) && node.children && node.children.length > 0) {
+          traverse(node.children, level + 1);
+        }
+      });
+    };
+
+    traverse(this.termTree);
+    this.visibleNodes = result;
+  },
+
+  // Toggle expand/collapse
+  toggleExpand(termId) {
+    this.expandedTerms[termId] = !this.expandedTerms[termId];
+    this.flattenTree();
+  },
+
+  // Check if term is expanded
+  isExpanded(termId) {
+    return this.expandedTerms[termId] === true;
+  },
+
+  // Check if term has children
+  hasChildren(term) {
+    return term.children && term.children.length > 0;
+  },
+
+  // Open modal with term details
+  openTermModal(term) {
+    this.selectedTerm = term;
+    this.showModal = true;
+    document.body.style.overflow = 'hidden';
+  },
+
+  // Close modal
+  closeModal() {
+    this.showModal = false;
+    this.selectedTerm = null;
+    document.body.style.overflow = '';
+  },
+
+  // Actions
   clearCollectionFilter() {
     window.location.href = '/terms';
   },
+
   async deleteTerm(id) {
     if (!confirm('Tem certeza que deseja excluir este termo?')) return;
 
@@ -69,7 +181,8 @@
       });
 
       if (response.ok) {
-        await this.loadTerms();
+        this.closeModal();
+        await this.loadHierarchy();
         alert('Termo excluído com sucesso!');
       } else {
         alert('Erro ao excluir termo.');
@@ -79,16 +192,20 @@
       alert('Erro ao excluir termo.');
     }
   },
+
   async deprecateTerm(id) {
     if (!confirm('Tem certeza que deseja depreciar este termo?')) return;
 
     try {
       const response = await fetch(`/api/v1/admin/terms/${id}/deprecate`, {
-        method: 'POST'
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ replacedBy: id, deprecationNote: 'Depreciado via interface admin' })
       });
 
       if (response.ok) {
-        await this.loadTerms();
+        this.closeModal();
+        await this.loadHierarchy();
         alert('Termo depreciado com sucesso!');
       } else {
         alert('Erro ao depreciar termo.');
@@ -96,18 +213,6 @@
     } catch (error) {
       console.error('Error deprecating term:', error);
       alert('Erro ao depreciar termo.');
-    }
-  },
-  nextPage() {
-    if (this.page < this.totalPages) {
-      this.page++;
-      this.loadTerms();
-    }
-  },
-  prevPage() {
-    if (this.page > 1) {
-      this.page--;
-      this.loadTerms();
     }
   }
 }">
@@ -143,7 +248,7 @@
         <input
           type="text"
           x-model="searchQuery"
-          @keyup.enter="loadTerms()"
+          @keyup.enter="loadHierarchy()"
           placeholder="Digite para buscar..."
           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-forest-600"
         >
@@ -152,7 +257,7 @@
         <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
         <select
           x-model="statusFilter"
-          @change="loadTerms()"
+          @change="loadHierarchy()"
           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-forest-600"
         >
           <option value="">Todos</option>
@@ -170,95 +275,252 @@
     <p class="text-gray-600 mt-4">Carregando termos...</p>
   </div>
 
-  <!-- Terms Table -->
+  <!-- Hierarchical Tree View -->
   <div x-show="!loading" class="bg-white rounded-lg shadow-md overflow-hidden">
-    <div x-show="terms.length === 0" class="text-center py-12 text-gray-600">
+    <!-- Empty state -->
+    <div x-show="visibleNodes.length === 0" class="text-center py-12 text-gray-600">
       Nenhum termo encontrado
     </div>
 
-    <table x-show="terms.length > 0" class="w-full">
-      <thead class="bg-forest-600 text-white">
-        <tr>
-          <th class="px-6 py-3 text-left text-sm font-semibold">Termo Preferencial</th>
-          <th class="px-6 py-3 text-left text-sm font-semibold">Status</th>
-          <th class="px-6 py-3 text-left text-sm font-semibold">Idioma</th>
-          <th class="px-6 py-3 text-left text-sm font-semibold">Modificado</th>
-          <th class="px-6 py-3 text-right text-sm font-semibold">Ações</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-gray-200">
-        <template x-for="term in terms" :key="term._id">
-          <tr class="hover:bg-gray-50">
-            <td class="px-6 py-4">
-              <div class="font-medium text-gray-800" x-text="term.prefLabel"></div>
-              <div x-show="term.definition" class="text-sm text-gray-600 line-clamp-1" x-text="term.definition"></div>
-            </td>
-            <td class="px-6 py-4">
+    <!-- Tree structure -->
+    <div x-show="visibleNodes.length > 0" class="divide-y divide-gray-200">
+      <template x-for="node in visibleNodes" :key="node._id">
+        <div
+          class="flex items-center py-3 px-4 hover:bg-forest-50 cursor-pointer transition-colors group"
+          @click="openTermModal(node)"
+          :style="`padding-left: ${node.level * 24 + 16}px`"
+        >
+          <!-- Expand/collapse chevron -->
+          <button
+            x-show="hasChildren(node)"
+            @click.stop="toggleExpand(node._id)"
+            class="mr-2 w-6 h-6 flex items-center justify-center hover:bg-forest-100 rounded transition-colors flex-shrink-0"
+          >
+            <svg
+              class="w-4 h-4 text-gray-600 transition-transform"
+              :class="{ 'rotate-90': isExpanded(node._id) }"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+
+          <!-- Spacer for terms without children -->
+          <div x-show="!hasChildren(node)" class="w-6 mr-2 flex-shrink-0"></div>
+
+          <!-- Term content -->
+          <div class="flex-grow min-w-0">
+            <div class="flex items-center gap-3 flex-wrap">
+              <div class="font-medium text-gray-800" x-text="node.prefLabel"></div>
+
+              <!-- Status badge -->
               <span
                 :class="{
-                  'bg-green-100 text-green-800': term.status === 'active',
-                  'bg-yellow-100 text-yellow-800': term.status === 'candidate',
-                  'bg-red-100 text-red-800': term.status === 'deprecated'
+                  'bg-green-100 text-green-800': node.status === 'active',
+                  'bg-yellow-100 text-yellow-800': node.status === 'candidate',
+                  'bg-red-100 text-red-800': node.status === 'deprecated'
                 }"
                 class="px-2 py-1 text-xs rounded-full"
-                x-text="term.status"
+                x-text="node.status"
               ></span>
-            </td>
-            <td class="px-6 py-4 text-sm text-gray-600" x-text="term.language || 'pt-BR'"></td>
-            <td class="px-6 py-4 text-sm text-gray-600" x-text="new Date(term.updatedAt || term.createdAt).toLocaleDateString('pt-BR')"></td>
-            <td class="px-6 py-4">
-              <div class="flex items-center justify-end space-x-2">
-                <a
-                  :href="`/terms/${term._id}/edit`"
-                  class="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-sm"
-                >
-                  Editar
-                </a>
-                <button
-                  x-show="term.status !== 'deprecated'"
-                  @click="deprecateTerm(term._id)"
-                  class="px-3 py-1 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 text-sm"
-                >
-                  Depreciar
-                </button>
-                <button
-                  @click="deleteTerm(term._id)"
-                  class="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 text-sm"
-                >
-                  Excluir
-                </button>
-              </div>
-            </td>
-          </tr>
-        </template>
-      </tbody>
-    </table>
 
-    <!-- Pagination -->
-    <div x-show="totalPages > 1" class="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
-      <div class="text-sm text-gray-600">
-        Página <span x-text="page"></span> de <span x-text="totalPages"></span>
-      </div>
-      <div class="flex space-x-2">
-        <button
-          @click="prevPage()"
-          :disabled="page <= 1"
-          :class="page <= 1 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'"
-          class="px-4 py-2 border border-gray-300 rounded-lg transition-colors"
-        >
-          Anterior
-        </button>
-        <button
-          @click="nextPage()"
-          :disabled="page >= totalPages"
-          :class="page >= totalPages ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'"
-          class="px-4 py-2 border border-gray-300 rounded-lg transition-colors"
-        >
-          Próximo
-        </button>
+              <!-- Child count badge -->
+              <span
+                x-show="hasChildren(node)"
+                class="px-2 py-1 text-xs bg-forest-100 text-forest-700 rounded-full"
+                x-text="`${node.children.length} ${node.children.length === 1 ? 'termo' : 'termos'}`"
+              ></span>
+            </div>
+
+            <!-- Definition preview -->
+            <div
+              x-show="node.definition"
+              class="text-sm text-gray-600 truncate mt-1"
+              x-text="node.definition"
+            ></div>
+          </div>
+
+          <!-- Quick actions (visible on hover) -->
+          <div class="flex items-center gap-2 ml-4 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+            <a
+              :href="`/terms/${node._id}/edit`"
+              @click.stop
+              class="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-sm"
+              title="Editar termo"
+            >
+              Editar
+            </a>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- Term Details Modal -->
+  <div
+    x-show="showModal"
+    @keydown.escape.window="closeModal()"
+    class="fixed inset-0 z-50 overflow-y-auto"
+    style="display: none;"
+  >
+    <!-- Backdrop -->
+    <div
+      class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+      @click="closeModal()"
+    ></div>
+
+    <!-- Modal Content -->
+    <div class="flex items-center justify-center min-h-screen p-4">
+      <div
+        class="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
+        @click.stop
+      >
+        <!-- Header -->
+        <div class="bg-forest-600 text-white px-6 py-4 flex items-center justify-between">
+          <h2 class="text-2xl font-bold" x-text="selectedTerm?.prefLabel || 'Detalhes do Termo'"></h2>
+          <button
+            @click="closeModal()"
+            class="text-white hover:text-forest-100 transition-colors"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Body (scrollable) -->
+        <div class="overflow-y-auto max-h-[calc(90vh-140px)] p-6">
+          <template x-if="selectedTerm">
+            <div class="space-y-6">
+              <!-- Basic Information -->
+              <div>
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">Informações Básicas</h3>
+
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="text-sm font-medium text-gray-600">Termo Preferencial</label>
+                    <p class="text-gray-900 mt-1" x-text="selectedTerm.prefLabel"></p>
+                  </div>
+
+                  <div>
+                    <label class="text-sm font-medium text-gray-600">Status</label>
+                    <div class="mt-1">
+                      <span
+                        :class="{
+                          'bg-green-100 text-green-800': selectedTerm.status === 'active',
+                          'bg-yellow-100 text-yellow-800': selectedTerm.status === 'candidate',
+                          'bg-red-100 text-red-800': selectedTerm.status === 'deprecated'
+                        }"
+                        class="px-3 py-1 text-sm rounded-full"
+                        x-text="selectedTerm.status"
+                      ></span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="text-sm font-medium text-gray-600">Idioma</label>
+                    <p class="text-gray-900 mt-1" x-text="selectedTerm.language || 'pt-BR'"></p>
+                  </div>
+
+                  <div>
+                    <label class="text-sm font-medium text-gray-600">Última Modificação</label>
+                    <p class="text-gray-900 mt-1" x-text="new Date(selectedTerm.updatedAt || selectedTerm.createdAt).toLocaleDateString('pt-BR')"></p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Alternative Labels -->
+              <div x-show="selectedTerm.altLabels && selectedTerm.altLabels.length > 0">
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">Termos Alternativos</h3>
+                <div class="flex flex-wrap gap-2">
+                  <template x-for="alt in selectedTerm.altLabels" :key="alt">
+                    <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm" x-text="alt"></span>
+                  </template>
+                </div>
+              </div>
+
+              <!-- Definition -->
+              <div x-show="selectedTerm.definition">
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">Definição</h3>
+                <p class="text-gray-700 leading-relaxed" x-text="selectedTerm.definition"></p>
+              </div>
+
+              <!-- Scope Note -->
+              <div x-show="selectedTerm.scopeNote">
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">Nota de Escopo</h3>
+                <p class="text-gray-700 leading-relaxed" x-text="selectedTerm.scopeNote"></p>
+              </div>
+
+              <!-- Example -->
+              <div x-show="selectedTerm.example">
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">Exemplo de Uso</h3>
+                <p class="text-gray-700 leading-relaxed italic" x-text="selectedTerm.example"></p>
+              </div>
+
+              <!-- Collections -->
+              <div x-show="selectedTerm.collectionIds && selectedTerm.collectionIds.length > 0">
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">Coleções</h3>
+                <div class="flex flex-wrap gap-2">
+                  <template x-for="collId in selectedTerm.collectionIds" :key="collId">
+                    <span class="px-3 py-1 bg-forest-100 text-forest-700 rounded-full text-sm" x-text="collId"></span>
+                  </template>
+                </div>
+              </div>
+
+              <!-- Relationships Summary -->
+              <div>
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">Relacionamentos</h3>
+                <div class="grid grid-cols-2 gap-4">
+                  <div class="bg-gray-50 p-3 rounded">
+                    <p class="text-sm font-medium text-gray-600">Termos Mais Amplos (BT)</p>
+                    <p class="text-2xl font-bold text-gray-900 mt-1">
+                      <span x-text="relationships[selectedTerm._id]?.broaderTerms?.length || 0"></span>
+                    </p>
+                  </div>
+                  <div class="bg-gray-50 p-3 rounded">
+                    <p class="text-sm font-medium text-gray-600">Termos Mais Específicos (NT)</p>
+                    <p class="text-2xl font-bold text-gray-900 mt-1">
+                      <span x-text="relationships[selectedTerm._id]?.narrowerTerms?.length || 0"></span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <!-- Footer (Actions) -->
+        <div class="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
+          <div class="flex gap-3">
+            <a
+              :href="`/terms/${selectedTerm?._id}/edit`"
+              class="px-6 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors font-medium"
+            >
+              Editar Termo
+            </a>
+
+            <button
+              x-show="selectedTerm?.status !== 'deprecated'"
+              @click="deprecateTerm(selectedTerm._id)"
+              class="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors font-medium"
+            >
+              Depreciar
+            </button>
+          </div>
+
+          <button
+            @click="deleteTerm(selectedTerm._id)"
+            class="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium"
+          >
+            Excluir Termo
+          </button>
+        </div>
       </div>
     </div>
   </div>
+
 </div>
 
   </main>

@@ -10,6 +10,7 @@ import {
   deleteTermHandler,
   deprecateTermHandler,
   mergeTermsHandler,
+  getTermsHierarchyHandler,
 } from '../controllers/AdminTermsController.js';
 import {
   validateRequiredFields,
@@ -32,6 +33,12 @@ router.use(auditLog);
  * List all terms with pagination and filtering
  */
 router.get('/', listTermsHandler);
+
+/**
+ * GET /api/v1/admin/terms/hierarchy
+ * Get all terms with BT/NT relationships for tree building
+ */
+router.get('/hierarchy', getTermsHierarchyHandler);
 
 /**
  * GET /api/v1/admin/terms/:id

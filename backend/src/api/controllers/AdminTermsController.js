@@ -159,6 +159,77 @@ export const getTermHandler = asyncHandler(async (req, res) => {
   res.status(200).json(term);
 });
 
+/**
+ * Get all terms with their BT/NT relationships for hierarchy building
+ * GET /api/v1/admin/terms/hierarchy
+ */
+export const getTermsHierarchyHandler = asyncHandler(async (req, res) => {
+  const { status, collections, q } = req.query;
+
+  // Import dependencies needed
+  const { getCollection } = await import('../../shared/db.js');
+  const { ObjectId } = await import('mongodb');
+
+  const termsCollection = getCollection('etnotermos');
+  const relationshipsCollection = getCollection('etnotermos-relationships');
+
+  // Build query for terms
+  const termQuery = {};
+  if (status) termQuery.status = status;
+  if (collections) {
+    termQuery.collectionIds = { $in: [new ObjectId(collections)] };
+  }
+  if (q) {
+    termQuery.$or = [
+      { prefLabel: { $regex: q, $options: 'i' } },
+      { altLabels: { $regex: q, $options: 'i' } },
+      { definition: { $regex: q, $options: 'i' } }
+    ];
+  }
+
+  // Fetch all terms
+  const allTerms = await termsCollection.find(termQuery).sort({ prefLabel: 1 }).toArray();
+
+  // Fetch all BT/NT relationships (broader/narrower)
+  const hierarchicalTypes = ['BT', 'NT', 'BTG', 'NTG', 'BTP', 'NTP', 'BTI', 'NTI'];
+  const allRelationships = await relationshipsCollection.find({
+    type: { $in: hierarchicalTypes }
+  }).toArray();
+
+  // Build a map of term relationships
+  const termRelationships = {};
+
+  allTerms.forEach(term => {
+    termRelationships[term._id.toString()] = {
+      broaderTerms: [],  // BT relationships (parents)
+      narrowerTerms: []  // NT relationships (children)
+    };
+  });
+
+  // Populate relationships
+  allRelationships.forEach(rel => {
+    const sourceId = rel.sourceTermId.toString();
+    const targetId = rel.targetTermId.toString();
+
+    if (rel.type.startsWith('BT')) {
+      // Source term has a broader term (target is parent)
+      if (termRelationships[sourceId]) {
+        termRelationships[sourceId].broaderTerms.push(targetId);
+      }
+    } else if (rel.type.startsWith('NT')) {
+      // Source term has a narrower term (target is child)
+      if (termRelationships[sourceId]) {
+        termRelationships[sourceId].narrowerTerms.push(targetId);
+      }
+    }
+  });
+
+  res.status(200).json({
+    terms: allTerms,
+    relationships: termRelationships
+  });
+});
+
 export default {
   listTermsHandler,
   getTermHandler,
@@ -167,4 +238,5 @@ export default {
   deleteTermHandler,
   deprecateTermHandler,
   mergeTermsHandler,
+  getTermsHierarchyHandler,
 };
