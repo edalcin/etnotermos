@@ -132,10 +132,6 @@
     sortTerms(rootTerms);
     this.termTree = rootTerms;
     this.totalRootTerms = rootTerms.length;
-
-    // Debug: log root terms to console
-    console.log('Root terms count:', this.termTree.length);
-    console.log('Root terms:', this.termTree.map(t => t.prefLabel));
   },
 
   // Flatten tree for rendering (only show expanded nodes with pagination)
