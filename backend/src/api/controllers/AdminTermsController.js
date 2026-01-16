@@ -11,6 +11,8 @@ import {
   getTermById,
 } from '../../services/TermService.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
+import { ObjectId } from 'mongodb';
+import { getCollection } from '../../shared/database.js';
 
 /**
  * Create a new term
@@ -165,10 +167,6 @@ export const getTermHandler = asyncHandler(async (req, res) => {
  */
 export const getTermsHierarchyHandler = asyncHandler(async (req, res) => {
   const { status, collections, q } = req.query;
-
-  // Import dependencies needed
-  const { getCollection } = await import('../../shared/db.js');
-  const { ObjectId } = await import('mongodb');
 
   const termsCollection = getCollection('etnotermos');
   const relationshipsCollection = getCollection('etnotermos-relationships');
