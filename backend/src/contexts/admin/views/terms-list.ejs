@@ -22,6 +22,11 @@
   selectedTerm: null,
   showModal: false,
 
+  // Pagination
+  currentPage: 1,
+  itemsPerPage: 20,
+  totalRootTerms: 0,
+
   // Filters and search
   loading: true,
   searchQuery: '',
@@ -51,6 +56,7 @@
   // Load terms and relationships from hierarchy endpoint
   async loadHierarchy() {
     this.loading = true;
+    this.resetPagination();
     try {
       const params = new URLSearchParams({
         ...(this.searchQuery && { q: this.searchQuery }),
@@ -85,23 +91,43 @@
       };
     });
 
+    // Build parent-child relationships using BOTH BT (broader) and NT (narrower)
+    this.terms.forEach(term => {
+      const rels = this.relationships[term._id];
+
+      // If this term has broader terms (BT), attach it as child to those parents
+      if (rels && rels.broaderTerms && rels.broaderTerms.length > 0) {
+        rels.broaderTerms.forEach(parentId => {
+          if (termMap[parentId]) {
+            // Avoid duplicates
+            if (!termMap[parentId].children.some(c => c._id === term._id)) {
+              termMap[parentId].children.push(termMap[term._id]);
+            }
+          }
+        });
+      }
+
+      // If this term has narrower terms (NT), attach them as children
+      if (rels && rels.narrowerTerms && rels.narrowerTerms.length > 0) {
+        rels.narrowerTerms.forEach(childId => {
+          if (termMap[childId]) {
+            // Avoid duplicates
+            if (!termMap[term._id].children.some(c => c._id === childId)) {
+              termMap[term._id].children.push(termMap[childId]);
+            }
+          }
+        });
+      }
+    });
+
     // Identify root terms (terms with no broader terms = no BT relationships)
     const rootTerms = [];
-
     this.terms.forEach(term => {
       const rels = this.relationships[term._id];
       const hasBroaderTerm = rels && rels.broaderTerms && rels.broaderTerms.length > 0;
 
       if (!hasBroaderTerm) {
-        // This is a root term
         rootTerms.push(termMap[term._id]);
-      } else {
-        // Attach to parent(s)
-        rels.broaderTerms.forEach(parentId => {
-          if (termMap[parentId]) {
-            termMap[parentId].children.push(termMap[term._id]);
-          }
-        });
       }
     });
 
@@ -117,11 +143,17 @@
 
     sortTerms(rootTerms);
     this.termTree = rootTerms;
+    this.totalRootTerms = rootTerms.length;
   },
 
-  // Flatten tree for rendering (only show expanded nodes)
+  // Flatten tree for rendering (only show expanded nodes with pagination)
   flattenTree() {
     const result = [];
+
+    // Apply pagination to root terms
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
+    const paginatedRoots = this.termTree.slice(startIndex, endIndex);
 
     const traverse = (nodes, level = 0) => {
       nodes.forEach(node => {
@@ -133,8 +165,37 @@
       });
     };
 
-    traverse(this.termTree);
+    traverse(paginatedRoots);
     this.visibleNodes = result;
+  },
+
+  // Get total pages for pagination
+  get totalPages() {
+    return Math.ceil(this.totalRootTerms / this.itemsPerPage);
+  },
+
+  // Navigate to next page
+  nextPage() {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+      this.flattenTree();
+    }
+  },
+
+  // Navigate to previous page
+  prevPage() {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+      this.flattenTree();
+    }
+  },
+
+  // Go to specific page
+  goToPage(page) {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage = page;
+      this.flattenTree();
+    }
   },
 
   // Toggle expand/collapse
@@ -170,6 +231,11 @@
   // Actions
   clearCollectionFilter() {
     window.location.href = '/terms';
+  },
+
+  // Reset to first page when filters change
+  resetPagination() {
+    this.currentPage = 1;
   },
 
   async deleteTerm(id) {
@@ -355,6 +421,53 @@
           </div>
         </div>
       </template>
+    </div>
+
+    <!-- Pagination Controls -->
+    <div x-show="totalPages > 1" class="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
+      <div class="text-sm text-gray-600">
+        <span>Mostrando termos raiz </span>
+        <span x-text="`${(currentPage - 1) * itemsPerPage + 1}-${Math.min(currentPage * itemsPerPage, totalRootTerms)}`"></span>
+        <span> de </span>
+        <span x-text="totalRootTerms"></span>
+        <span> (Página </span>
+        <span x-text="currentPage"></span>
+        <span> de </span>
+        <span x-text="totalPages"></span>
+        <span>)</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button
+          @click="prevPage()"
+          :disabled="currentPage <= 1"
+          :class="currentPage <= 1 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'"
+          class="px-4 py-2 border border-gray-300 rounded-lg transition-colors font-medium"
+        >
+          ← Anterior
+        </button>
+
+        <!-- Page numbers (show current and adjacent pages) -->
+        <template x-for="pageNum in Array.from({length: totalPages}, (_, i) => i + 1).filter(p => p === 1 || p === totalPages || (p >= currentPage - 1 && p <= currentPage + 1))" :key="pageNum">
+          <button
+            @click="goToPage(pageNum)"
+            :class="{
+              'bg-forest-600 text-white': pageNum === currentPage,
+              'bg-white text-gray-700 hover:bg-gray-50': pageNum !== currentPage
+            }"
+            class="px-4 py-2 border border-gray-300 rounded-lg transition-colors font-medium"
+            x-text="pageNum"
+          ></button>
+        </template>
+
+        <button
+          @click="nextPage()"
+          :disabled="currentPage >= totalPages"
+          :class="currentPage >= totalPages ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'"
+          class="px-4 py-2 border border-gray-300 rounded-lg transition-colors font-medium"
+        >
+          Próximo →
+        </button>
+      </div>
     </div>
   </div>
 
