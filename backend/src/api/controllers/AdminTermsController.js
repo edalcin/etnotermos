@@ -185,14 +185,33 @@ export const getTermsHierarchyHandler = asyncHandler(async (req, res) => {
     ];
   }
 
-  // Fetch all terms
-  const allTerms = await termsCollection.find(termQuery).sort({ prefLabel: 1 }).toArray();
+  // Fetch filtered terms
+  const filteredTerms = await termsCollection.find(termQuery).sort({ prefLabel: 1 }).toArray();
+  const filteredTermIds = new Set(filteredTerms.map(t => t._id.toString()));
 
-  // Fetch all BT/NT relationships (broader/narrower)
+  // Fetch all BT/NT relationships (broader/narrower) that involve filtered terms
   const hierarchicalTypes = ['BT', 'NT', 'BTG', 'NTG', 'BTP', 'NTP', 'BTI', 'NTI'];
   const allRelationships = await relationshipsCollection.find({
-    type: { $in: hierarchicalTypes }
+    type: { $in: hierarchicalTypes },
+    $or: [
+      { sourceTermId: { $in: filteredTerms.map(t => t._id) } },
+      { targetTermId: { $in: filteredTerms.map(t => t._id) } }
+    ]
   }).toArray();
+
+  // Collect all term IDs that appear in relationships (including related terms not in filter)
+  const allRelatedTermIds = new Set();
+  filteredTermIds.forEach(id => allRelatedTermIds.add(id));
+
+  allRelationships.forEach(rel => {
+    allRelatedTermIds.add(rel.sourceTermId.toString());
+    allRelatedTermIds.add(rel.targetTermId.toString());
+  });
+
+  // Fetch all related terms (including those not in original filter)
+  const allTerms = await termsCollection.find({
+    _id: { $in: Array.from(allRelatedTermIds).map(id => new ObjectId(id)) }
+  }).sort({ prefLabel: 1 }).toArray();
 
   // Build a map of term relationships
   const termRelationships = {};
