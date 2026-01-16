@@ -223,20 +223,30 @@ export const getTermsHierarchyHandler = asyncHandler(async (req, res) => {
     };
   });
 
-  // Populate relationships
+  // Populate relationships bidirectionally
   allRelationships.forEach(rel => {
     const sourceId = rel.sourceTermId.toString();
     const targetId = rel.targetTermId.toString();
 
     if (rel.type.startsWith('BT')) {
       // Source term has a broader term (target is parent)
+      // BT: source -> target means "source is narrower than target"
       if (termRelationships[sourceId]) {
         termRelationships[sourceId].broaderTerms.push(targetId);
       }
+      // Reciprocal: target has source as narrower term
+      if (termRelationships[targetId]) {
+        termRelationships[targetId].narrowerTerms.push(sourceId);
+      }
     } else if (rel.type.startsWith('NT')) {
       // Source term has a narrower term (target is child)
+      // NT: source -> target means "source is broader than target"
       if (termRelationships[sourceId]) {
         termRelationships[sourceId].narrowerTerms.push(targetId);
+      }
+      // Reciprocal: target has source as broader term
+      if (termRelationships[targetId]) {
+        termRelationships[targetId].broaderTerms.push(sourceId);
       }
     }
   });
