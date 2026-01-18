@@ -76,8 +76,30 @@ export async function getDashboardStatistics() {
   const termLimitPercentage = (totalTerms / 200000) * 100;
   const termLimitWarning = termLimitPercentage > 90;
 
+  // Calculate Z39.19 compliance statistics
+  const hierarchicalTypes = ['BT', 'NT', 'BTG', 'NTG', 'BTP', 'NTP', 'BTI', 'NTI'];
+  const equivalenceTypes = ['USE', 'UF'];
+
+  const hierarchicalRelationships = relationshipsByType
+    .filter(item => hierarchicalTypes.includes(item._id))
+    .reduce((sum, item) => sum + item.count, 0);
+
+  const associativeRelationships = relationshipsByType
+    .filter(item => item._id === 'RT')
+    .reduce((sum, item) => sum + item.count, 0);
+
+  const equivalenceRelationships = relationshipsByType
+    .filter(item => equivalenceTypes.includes(item._id))
+    .reduce((sum, item) => sum + item.count, 0);
+
+  // Count terms with definitions
+  const termsWithDefinitions = await terms.countDocuments({
+    definition: { $exists: true, $ne: '' }
+  });
+
   return {
     totalTerms,
+    activeTerms: termsByStatus.find(item => item._id === 'active')?.count || 0,
     termsByStatus: termsByStatus.reduce((acc, item) => {
       acc[item._id] = item.count;
       return acc;
@@ -104,6 +126,11 @@ export async function getDashboardStatistics() {
       percentage: termLimitPercentage.toFixed(2),
       warning: termLimitWarning,
     },
+    // Z39.19 compliance statistics
+    hierarchicalRelationships,
+    associativeRelationships,
+    equivalenceRelationships,
+    termsWithDefinitions,
   };
 }
 
