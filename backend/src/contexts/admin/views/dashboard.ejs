@@ -14,7 +14,6 @@
 
 <div x-data="{
   stats: null,
-  recentChanges: [],
   popularCollections: [],
   loading: true,
   async init() {
@@ -25,7 +24,6 @@
       const response = await fetch('/api/v1/admin/dashboard');
       const data = await response.json();
       this.stats = data.statistics;
-      this.recentChanges = data.recentChanges || [];
       this.popularCollections = data.popularCollections || [];
     } catch (error) {
       console.error('Error loading dashboard:', error);
@@ -124,41 +122,8 @@
       </a>
     </div>
 
-    <!-- Recent Changes and Popular Collections -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <!-- Recent Changes -->
-      <div class="bg-white rounded-lg shadow-md p-6">
-        <h2 class="text-xl font-semibold text-gray-800 mb-4">Alterações Recentes</h2>
-
-        <div x-show="recentChanges.length === 0" class="text-center py-8 text-gray-600">
-          Nenhuma alteração recente
-        </div>
-
-        <div x-show="recentChanges.length > 0" class="space-y-4">
-          <template x-for="change in recentChanges" :key="change._id">
-            <div class="border-l-4 border-forest-600 bg-forest-50 p-4 rounded-r-lg">
-              <div class="flex items-start justify-between mb-2">
-                <div class="font-semibold text-gray-800" x-text="change.action"></div>
-                <div class="text-xs text-gray-500" x-text="new Date(change.timestamp).toLocaleString('pt-BR')"></div>
-              </div>
-              <div class="text-sm text-gray-700">
-                <span x-text="change.entityType"></span>:
-                <span class="font-medium" x-text="change.entityId"></span>
-              </div>
-              <div x-show="change.admin" class="text-xs text-gray-600 mt-1">
-                Por: <span x-text="change.admin"></span>
-              </div>
-            </div>
-          </template>
-        </div>
-
-        <div class="mt-6">
-          <a href="/audit" class="text-forest-600 hover:text-forest-700 font-medium text-sm">
-            Ver todos os logs →
-          </a>
-        </div>
-      </div>
-
+    <!-- Popular Collections -->
+    <div class="max-w-2xl">
       <!-- Popular Collections -->
       <div class="bg-white rounded-lg shadow-md p-6">
         <h2 class="text-xl font-semibold text-gray-800 mb-4">Coleções Populares</h2>
