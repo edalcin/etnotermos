@@ -36,7 +36,13 @@
       "Bash(findstr:*)",
       "Bash(node scripts/test-collections-service.js:*)",
       "Bash(ls:*)",
-      "Bash(node scripts/migrate-collections-field.js:*)"
+      "Bash(node scripts/migrate-collections-field.js:*)",
+      "Bash(npm run dev:admin:*)",
+      "Bash(timeout /t 3)",
+      "Bash(ping:*)",
+      "Bash(taskkill:*)",
+      "Bash(npm test)",
+      "Bash(node --check:*)"
     ],
     "deny": [],
     "ask": []

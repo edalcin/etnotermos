@@ -232,13 +232,15 @@ export async function getPopularCollections(limit = 10) {
     ])
     .toArray();
 
-  // Enrich with collection names
+  // Enrich with collection data
   const enriched = await Promise.all(
     popular.map(async (item) => {
       const collection = await collections.findOne({ _id: item._id });
       return {
         _id: item._id,
         name: collection ? collection.name : 'Unknown',
+        description: collection ? collection.description : null,
+        modified: collection ? collection.modified : null,
         termCount: item.count,
       };
     })

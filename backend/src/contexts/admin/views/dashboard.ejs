@@ -135,7 +135,7 @@
         <div x-show="popularCollections.length > 0" class="space-y-4">
           <template x-for="collection in popularCollections" :key="collection._id">
             <a
-              :href="`/collections/${collection._id}`"
+              :href="`/collections/${collection._id}/edit`"
               class="block p-4 border border-gray-200 rounded-lg hover:border-forest-400 hover:bg-forest-50 transition-colors"
             >
               <div class="font-semibold text-forest-700 mb-1" x-text="collection.name"></div>
