@@ -15,23 +15,26 @@
 <div x-data="{
   // Data
   terms: [],
-  relationships: {},
-  termTree: [],
-  visibleNodes: [],
   expandedTerms: {},
-  selectedTerm: null,
-  showModal: false,
+  loadingRelationships: {},
+  relationshipsData: {},
+
+  // Modal state
+  selectedRelationship: null,
+  showRelModal: false,
 
   // Pagination
   currentPage: 1,
   itemsPerPage: 20,
-  totalRootTerms: 0,
+  totalTerms: 0,
+  totalPages: 1,
 
   // Filters and search
   loading: true,
   searchQuery: '',
-  statusFilter: '',
+  statusFilter: new URLSearchParams(window.location.search).get('status') || '',
   collectionFilter: new URLSearchParams(window.location.search).get('collection') || '',
+  filterMode: new URLSearchParams(window.location.search).get('filter') || '',
   collectionName: '',
 
   // Initialize
@@ -39,7 +42,7 @@
     if (this.collectionFilter) {
       await this.loadCollectionName();
     }
-    await this.loadHierarchy();
+    await this.loadTerms();
   },
 
   // Load collection name for filter badge
@@ -53,143 +56,63 @@
     }
   },
 
-  // Load terms and relationships from hierarchy endpoint
-  async loadHierarchy() {
+  // Load terms with pagination
+  async loadTerms() {
     this.loading = true;
-    this.resetPagination();
     try {
+      let endpoint = '/api/v1/admin/terms';
       const params = new URLSearchParams({
+        page: this.currentPage,
+        limit: this.itemsPerPage,
+        includeCounts: 'true',
         ...(this.searchQuery && { q: this.searchQuery }),
         ...(this.statusFilter && { status: this.statusFilter }),
         ...(this.collectionFilter && { collections: this.collectionFilter })
       });
 
-      const response = await fetch(`/api/v1/admin/terms/hierarchy?${params}`);
+      // Handle special filter modes
+      if (this.filterMode === 'orphans') {
+        endpoint = '/api/v1/admin/terms/orphans';
+      }
+
+      const response = await fetch(`${endpoint}?${params}`);
       const data = await response.json();
 
-      this.terms = data.terms || [];
-      this.relationships = data.relationships || {};
-
-      // Build tree structure
-      this.buildTree();
-      this.flattenTree();
+      this.terms = data.data || [];
+      this.totalTerms = data.pagination?.total || 0;
+      this.totalPages = data.pagination?.totalPages || 1;
     } catch (error) {
-      console.error('Error loading hierarchy:', error);
+      console.error('Error loading terms:', error);
     } finally {
       this.loading = false;
     }
   },
 
-  // Build tree structure from flat terms + relationships
-  buildTree() {
-    // Create term lookup map
-    const termMap = {};
-    this.terms.forEach(term => {
-      termMap[term._id] = {
-        ...term,
-        children: []
-      };
-    });
-
-    // Build parent-child relationships using ONLY BT (broader terms)
-    // This is sufficient because BT defines the complete hierarchy:
-    // - If term has BT → it's a child of that parent
-    // - If term has NO BT → it's a root term
-    this.terms.forEach(term => {
-      const rels = this.relationships[term._id];
-
-      // If this term has broader terms (BT), attach it as child to those parents
-      if (rels && rels.broaderTerms && rels.broaderTerms.length > 0) {
-        rels.broaderTerms.forEach(parentId => {
-          if (termMap[parentId]) {
-            termMap[parentId].children.push(termMap[term._id]);
-          }
-        });
+  // Toggle term expansion
+  async toggleExpand(termId) {
+    if (this.expandedTerms[termId]) {
+      this.expandedTerms[termId] = false;
+    } else {
+      this.expandedTerms[termId] = true;
+      // Load relationships if not already loaded
+      if (!this.relationshipsData[termId]) {
+        await this.loadRelationships(termId);
       }
-    });
-
-    // Identify root terms (terms with no broader terms = no BT relationships)
-    const rootTerms = [];
-    this.terms.forEach(term => {
-      const rels = this.relationships[term._id];
-      const hasBroaderTerm = rels && rels.broaderTerms && rels.broaderTerms.length > 0;
-
-      if (!hasBroaderTerm) {
-        rootTerms.push(termMap[term._id]);
-      }
-    });
-
-    // Sort alphabetically at each level
-    const sortTerms = (terms) => {
-      terms.sort((a, b) => a.prefLabel.localeCompare(b.prefLabel));
-      terms.forEach(term => {
-        if (term.children.length > 0) {
-          sortTerms(term.children);
-        }
-      });
-    };
-
-    sortTerms(rootTerms);
-    this.termTree = rootTerms;
-    this.totalRootTerms = rootTerms.length;
-  },
-
-  // Flatten tree for rendering (only show expanded nodes with pagination)
-  flattenTree() {
-    const result = [];
-
-    // Apply pagination to root terms
-    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-    const endIndex = startIndex + this.itemsPerPage;
-    const paginatedRoots = this.termTree.slice(startIndex, endIndex);
-
-    const traverse = (nodes, level = 0) => {
-      nodes.forEach(node => {
-        result.push({ ...node, level });
-
-        if (this.isExpanded(node._id) && node.children && node.children.length > 0) {
-          traverse(node.children, level + 1);
-        }
-      });
-    };
-
-    traverse(paginatedRoots);
-    this.visibleNodes = result;
-  },
-
-  // Get total pages for pagination
-  get totalPages() {
-    return Math.ceil(this.totalRootTerms / this.itemsPerPage);
-  },
-
-  // Navigate to next page
-  nextPage() {
-    if (this.currentPage < this.totalPages) {
-      this.currentPage++;
-      this.flattenTree();
     }
   },
 
-  // Navigate to previous page
-  prevPage() {
-    if (this.currentPage > 1) {
-      this.currentPage--;
-      this.flattenTree();
+  // Load relationships for a term
+  async loadRelationships(termId) {
+    this.loadingRelationships[termId] = true;
+    try {
+      const response = await fetch(`/api/v1/admin/terms/${termId}/relationships`);
+      const data = await response.json();
+      this.relationshipsData[termId] = data;
+    } catch (error) {
+      console.error('Error loading relationships:', error);
+    } finally {
+      this.loadingRelationships[termId] = false;
     }
-  },
-
-  // Go to specific page
-  goToPage(page) {
-    if (page >= 1 && page <= this.totalPages) {
-      this.currentPage = page;
-      this.flattenTree();
-    }
-  },
-
-  // Toggle expand/collapse
-  toggleExpand(termId) {
-    this.expandedTerms[termId] = !this.expandedTerms[termId];
-    this.flattenTree();
   },
 
   // Check if term is expanded
@@ -197,77 +120,160 @@
     return this.expandedTerms[termId] === true;
   },
 
-  // Check if term has children
-  hasChildren(term) {
-    return term.children && term.children.length > 0;
+  // Check if term has any relationships
+  hasRelationships(term) {
+    if (!term.relationshipCounts) return false;
+    const counts = term.relationshipCounts;
+    return (counts.BT + counts.NT + counts.RT + counts.USE + counts.UF) > 0;
   },
 
-  // Open modal with term details
-  openTermModal(term) {
-    this.selectedTerm = term;
-    this.showModal = true;
+  // Get total relationship count
+  getTotalRelCount(term) {
+    if (!term.relationshipCounts) return 0;
+    const counts = term.relationshipCounts;
+    return counts.BT + counts.NT + counts.RT + counts.USE + counts.UF;
+  },
+
+  // Get relationship categories that have data
+  getRelationshipCategories(termId) {
+    const data = this.relationshipsData[termId];
+    if (!data) return [];
+
+    const categories = [];
+
+    // Hierarchical
+    const hierCount = Object.values(data.hierarchical || {}).flat().length;
+    if (hierCount > 0) {
+      categories.push({
+        name: 'Hierarquicos',
+        bgColor: 'bg-blue-50',
+        borderColor: 'border-blue-200',
+        types: data.hierarchical
+      });
+    }
+
+    // Associative
+    const assocCount = Object.values(data.associative || {}).flat().length;
+    if (assocCount > 0) {
+      categories.push({
+        name: 'Associativos',
+        bgColor: 'bg-gray-50',
+        borderColor: 'border-gray-200',
+        types: data.associative
+      });
+    }
+
+    // Equivalence
+    const equivCount = Object.values(data.equivalence || {}).flat().length;
+    if (equivCount > 0) {
+      categories.push({
+        name: 'Equivalencia',
+        bgColor: 'bg-green-50',
+        borderColor: 'border-green-200',
+        types: data.equivalence
+      });
+    }
+
+    return categories;
+  },
+
+  // Open relationship modal
+  openRelationshipModal(rel) {
+    this.selectedRelationship = rel;
+    this.showRelModal = true;
     document.body.style.overflow = 'hidden';
   },
 
-  // Close modal
-  closeModal() {
-    this.showModal = false;
-    this.selectedTerm = null;
+  // Close relationship modal
+  closeRelModal() {
+    this.showRelModal = false;
+    this.selectedRelationship = null;
     document.body.style.overflow = '';
   },
 
-  // Actions
-  clearCollectionFilter() {
-    window.location.href = '/terms';
-  },
-
-  // Reset to first page when filters change
-  resetPagination() {
-    this.currentPage = 1;
-  },
-
-  async deleteTerm(id) {
-    if (!confirm('Tem certeza que deseja excluir este termo?')) return;
+  // Delete a relationship
+  async deleteRelationship(relId, termId) {
+    if (!confirm('Tem certeza que deseja remover este relacionamento?')) return;
 
     try {
-      const response = await fetch(`/api/v1/admin/terms/${id}`, {
+      const response = await fetch(`/api/v1/admin/relationships/${relId}`, {
         method: 'DELETE'
       });
 
       if (response.ok) {
-        this.closeModal();
-        await this.loadHierarchy();
-        alert('Termo excluído com sucesso!');
+        this.closeRelModal();
+        // Reload relationships for this term
+        delete this.relationshipsData[termId];
+        await this.loadRelationships(termId);
+        // Reload terms to update counts
+        await this.loadTerms();
       } else {
-        alert('Erro ao excluir termo.');
+        alert('Erro ao remover relacionamento.');
       }
     } catch (error) {
-      console.error('Error deleting term:', error);
-      alert('Erro ao excluir termo.');
+      console.error('Error deleting relationship:', error);
+      alert('Erro ao remover relacionamento.');
     }
   },
 
-  async deprecateTerm(id) {
-    if (!confirm('Tem certeza que deseja depreciar este termo?')) return;
-
-    try {
-      const response = await fetch(`/api/v1/admin/terms/${id}/deprecate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ replacedBy: id, deprecationNote: 'Depreciado via interface admin' })
-      });
-
-      if (response.ok) {
-        this.closeModal();
-        await this.loadHierarchy();
-        alert('Termo depreciado com sucesso!');
-      } else {
-        alert('Erro ao depreciar termo.');
-      }
-    } catch (error) {
-      console.error('Error deprecating term:', error);
-      alert('Erro ao depreciar termo.');
+  // Pagination
+  nextPage() {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+      this.loadTerms();
     }
+  },
+
+  prevPage() {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+      this.loadTerms();
+    }
+  },
+
+  goToPage(page) {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage = page;
+      this.loadTerms();
+    }
+  },
+
+  // Search and filter
+  search() {
+    this.currentPage = 1;
+    this.loadTerms();
+  },
+
+  clearFilters() {
+    window.location.href = '/terms';
+  },
+
+  // Status badge class
+  getStatusClass(status) {
+    switch(status) {
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'candidate': return 'bg-yellow-100 text-yellow-800';
+      case 'deprecated': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  },
+
+  // Relationship type label
+  getTypeLabel(type) {
+    const labels = {
+      'BT': 'Termo Mais Amplo',
+      'BTG': 'Termo Mais Amplo (Generico)',
+      'BTP': 'Termo Mais Amplo (Partitivo)',
+      'BTI': 'Termo Mais Amplo (Instancia)',
+      'NT': 'Termo Mais Especifico',
+      'NTG': 'Termo Mais Especifico (Generico)',
+      'NTP': 'Termo Mais Especifico (Partitivo)',
+      'NTI': 'Termo Mais Especifico (Instancia)',
+      'RT': 'Termo Relacionado',
+      'USE': 'Use',
+      'UF': 'Usado Para'
+    };
+    return labels[type] || type;
   }
 }">
 
@@ -275,15 +281,28 @@
   <div class="flex justify-between items-center mb-6">
     <div>
       <h1 class="text-3xl font-bold text-forest-700">Gerenciar Termos</h1>
-      <p class="text-gray-600 mt-1">Administração do vocabulário controlado</p>
-      <!-- Collection Filter Badge -->
-      <div x-show="collectionFilter" class="mt-2">
-        <span class="inline-flex items-center gap-2 px-3 py-1 bg-forest-100 text-forest-700 rounded-full text-sm font-medium">
-          <span>Filtrando por coleção: <strong x-text="collectionName"></strong></span>
-          <button @click="clearCollectionFilter()" class="hover:text-forest-900" title="Remover filtro">
-            ✕
-          </button>
-        </span>
+      <p class="text-gray-600 mt-1">
+        <template x-if="filterMode === 'orphans'">
+          <span>Termos sem relacionamentos</span>
+        </template>
+        <template x-if="filterMode !== 'orphans'">
+          <span>Lista paginada de todos os termos com relacionamentos</span>
+        </template>
+      </p>
+      <!-- Active Filters -->
+      <div class="flex gap-2 mt-2">
+        <template x-if="filterMode">
+          <span class="inline-flex items-center gap-2 px-3 py-1 bg-forest-100 text-forest-700 rounded-full text-sm font-medium">
+            <span x-text="filterMode === 'orphans' ? 'Orfaos' : 'Por Status'"></span>
+            <button @click="clearFilters()" class="hover:text-forest-900" title="Remover filtro">x</button>
+          </span>
+        </template>
+        <template x-if="collectionFilter">
+          <span class="inline-flex items-center gap-2 px-3 py-1 bg-forest-100 text-forest-700 rounded-full text-sm font-medium">
+            <span>Colecao: <strong x-text="collectionName"></strong></span>
+            <button @click="clearFilters()" class="hover:text-forest-900" title="Remover filtro">x</button>
+          </span>
+        </template>
       </div>
     </div>
     <a
@@ -302,7 +321,7 @@
         <input
           type="text"
           x-model="searchQuery"
-          @keyup.enter="loadHierarchy()"
+          @keyup.enter="search()"
           placeholder="Digite para buscar..."
           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-forest-600"
         >
@@ -311,7 +330,7 @@
         <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
         <select
           x-model="statusFilter"
-          @change="loadHierarchy()"
+          @change="search()"
           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-forest-600"
         >
           <option value="">Todos</option>
@@ -329,83 +348,132 @@
     <p class="text-gray-600 mt-4">Carregando termos...</p>
   </div>
 
-  <!-- Hierarchical Tree View -->
+  <!-- Terms List -->
   <div x-show="!loading" class="bg-white rounded-lg shadow-md overflow-hidden">
     <!-- Empty state -->
-    <div x-show="visibleNodes.length === 0" class="text-center py-12 text-gray-600">
+    <div x-show="terms.length === 0" class="text-center py-12 text-gray-600">
       Nenhum termo encontrado
     </div>
 
-    <!-- Tree structure -->
-    <div x-show="visibleNodes.length > 0" class="divide-y divide-gray-200">
-      <template x-for="node in visibleNodes" :key="node._id">
-        <div
-          class="flex items-center py-3 px-4 hover:bg-forest-50 cursor-pointer transition-colors group"
-          @click="openTermModal(node)"
-          :style="`padding-left: ${node.level * 24 + 16}px`"
-        >
-          <!-- Expand/collapse chevron -->
-          <button
-            x-show="hasChildren(node)"
-            @click.stop="toggleExpand(node._id)"
-            class="mr-2 w-6 h-6 flex items-center justify-center hover:bg-forest-100 rounded transition-colors flex-shrink-0"
+    <!-- List -->
+    <div x-show="terms.length > 0" class="divide-y divide-gray-200">
+      <template x-for="term in terms" :key="term._id">
+        <div class="border-b border-gray-100 last:border-b-0">
+          <!-- Term Row -->
+          <div
+            class="flex items-center py-3 px-4 hover:bg-forest-50 transition-colors group"
           >
-            <svg
-              class="w-4 h-4 text-gray-600 transition-transform"
-              :class="{ 'rotate-90': isExpanded(node._id) }"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+            <!-- Expand/collapse button -->
+            <button
+              @click="toggleExpand(term._id)"
+              class="mr-3 w-8 h-8 flex items-center justify-center hover:bg-forest-100 rounded transition-colors flex-shrink-0"
+              :class="{ 'opacity-50 cursor-not-allowed': !hasRelationships(term) }"
+              :disabled="!hasRelationships(term)"
             >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
+              <svg
+                class="w-5 h-5 text-gray-600 transition-transform"
+                :class="{ 'rotate-90': isExpanded(term._id) }"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
 
-          <!-- Spacer for terms without children -->
-          <div x-show="!hasChildren(node)" class="w-6 mr-2 flex-shrink-0"></div>
+            <!-- Term content -->
+            <div class="flex-grow min-w-0">
+              <div class="flex items-center gap-3 flex-wrap">
+                <span class="font-medium text-gray-800" x-text="term.prefLabel"></span>
 
-          <!-- Term content -->
-          <div class="flex-grow min-w-0">
-            <div class="flex items-center gap-3 flex-wrap">
-              <div class="font-medium text-gray-800" x-text="node.prefLabel"></div>
+                <!-- Status badge -->
+                <span
+                  :class="getStatusClass(term.status)"
+                  class="px-2 py-0.5 text-xs rounded-full"
+                  x-text="term.status"
+                ></span>
 
-              <!-- Status badge -->
-              <span
-                :class="{
-                  'bg-green-100 text-green-800': node.status === 'active',
-                  'bg-yellow-100 text-yellow-800': node.status === 'candidate',
-                  'bg-red-100 text-red-800': node.status === 'deprecated'
-                }"
-                class="px-2 py-1 text-xs rounded-full"
-                x-text="node.status"
-              ></span>
+                <!-- Relationship count badges -->
+                <template x-if="term.relationshipCounts">
+                  <div class="flex gap-1">
+                    <template x-if="term.relationshipCounts.BT > 0">
+                      <span class="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full" x-text="term.relationshipCounts.BT + ' BT'"></span>
+                    </template>
+                    <template x-if="term.relationshipCounts.NT > 0">
+                      <span class="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full" x-text="term.relationshipCounts.NT + ' NT'"></span>
+                    </template>
+                    <template x-if="term.relationshipCounts.RT > 0">
+                      <span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-700 rounded-full" x-text="term.relationshipCounts.RT + ' RT'"></span>
+                    </template>
+                    <template x-if="term.relationshipCounts.USE > 0">
+                      <span class="px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded-full" x-text="term.relationshipCounts.USE + ' USE'"></span>
+                    </template>
+                    <template x-if="term.relationshipCounts.UF > 0">
+                      <span class="px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded-full" x-text="term.relationshipCounts.UF + ' UF'"></span>
+                    </template>
+                  </div>
+                </template>
+              </div>
 
-              <!-- Child count badge -->
-              <span
-                x-show="hasChildren(node)"
-                class="px-2 py-1 text-xs bg-forest-100 text-forest-700 rounded-full"
-                x-text="`${node.children.length} ${node.children.length === 1 ? 'termo' : 'termos'}`"
-              ></span>
+              <!-- Definition preview -->
+              <div
+                x-show="term.definition"
+                class="text-sm text-gray-600 truncate mt-1"
+                x-text="term.definition"
+              ></div>
             </div>
 
-            <!-- Definition preview -->
-            <div
-              x-show="node.definition"
-              class="text-sm text-gray-600 truncate mt-1"
-              x-text="node.definition"
-            ></div>
+            <!-- Actions -->
+            <div class="flex items-center gap-2 ml-4 flex-shrink-0">
+              <a
+                :href="`/terms/${term._id}/edit`"
+                class="px-3 py-1 bg-forest-100 text-forest-700 rounded hover:bg-forest-200 text-sm font-medium"
+              >
+                Editar
+              </a>
+            </div>
           </div>
 
-          <!-- Quick actions (visible on hover) -->
-          <div class="flex items-center gap-2 ml-4 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-            <a
-              :href="`/terms/${node._id}/edit`"
-              @click.stop
-              class="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-sm"
-              title="Editar termo"
-            >
-              Editar
-            </a>
+          <!-- Relationships Section (expanded) -->
+          <div
+            x-show="isExpanded(term._id)"
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 transform -translate-y-2"
+            x-transition:enter-end="opacity-100 transform translate-y-0"
+            class="px-4 pb-4 bg-gray-50"
+          >
+            <!-- Loading relationships -->
+            <div x-show="loadingRelationships[term._id]" class="py-4 text-center">
+              <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-forest-600"></div>
+              <p class="text-sm text-gray-500 mt-2">Carregando relacionamentos...</p>
+            </div>
+
+            <!-- Relationship categories -->
+            <div x-show="!loadingRelationships[term._id] && relationshipsData[term._id]" class="space-y-4 pt-3">
+              <template x-for="category in getRelationshipCategories(term._id)" :key="category.name">
+                <div :class="[category.bgColor, category.borderColor]" class="rounded-lg p-4 border">
+                  <h4 class="font-medium text-gray-700 mb-3 uppercase text-xs tracking-wide" x-text="category.name"></h4>
+                  <div class="flex flex-wrap gap-2">
+                    <template x-for="(rels, type) in category.types" :key="type">
+                      <template x-for="rel in rels" :key="rel._id">
+                        <button
+                          @click="openRelationshipModal({ ...rel, sourceTermId: term._id })"
+                          class="inline-flex items-center gap-2 px-3 py-2 bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md hover:border-forest-300 transition-all cursor-pointer text-left"
+                        >
+                          <span class="text-xs font-bold text-forest-600 uppercase" x-text="rel.type"></span>
+                          <span class="text-gray-800" x-text="rel.targetTerm?.prefLabel || 'Termo removido'"></span>
+                        </button>
+                      </template>
+                    </template>
+                  </div>
+                </div>
+              </template>
+
+              <!-- No relationships message -->
+              <div x-show="getRelationshipCategories(term._id).length === 0" class="py-4 text-center text-gray-500">
+                Nenhum relacionamento encontrado
+              </div>
+            </div>
           </div>
         </div>
       </template>
@@ -414,15 +482,11 @@
     <!-- Pagination Controls -->
     <div x-show="totalPages > 1" class="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
       <div class="text-sm text-gray-600">
-        <span>Mostrando termos raiz </span>
-        <span x-text="`${(currentPage - 1) * itemsPerPage + 1}-${Math.min(currentPage * itemsPerPage, totalRootTerms)}`"></span>
+        <span>Mostrando </span>
+        <span x-text="`${(currentPage - 1) * itemsPerPage + 1}-${Math.min(currentPage * itemsPerPage, totalTerms)}`"></span>
         <span> de </span>
-        <span x-text="totalRootTerms"></span>
-        <span> (Página </span>
-        <span x-text="currentPage"></span>
-        <span> de </span>
-        <span x-text="totalPages"></span>
-        <span>)</span>
+        <span x-text="totalTerms"></span>
+        <span> termos</span>
       </div>
       <div class="flex items-center gap-2">
         <button
@@ -431,10 +495,10 @@
           :class="currentPage <= 1 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'"
           class="px-4 py-2 border border-gray-300 rounded-lg transition-colors font-medium"
         >
-          ← Anterior
+          Anterior
         </button>
 
-        <!-- Page numbers (show current and adjacent pages) -->
+        <!-- Page numbers -->
         <template x-for="pageNum in Array.from({length: totalPages}, (_, i) => i + 1).filter(p => p === 1 || p === totalPages || (p >= currentPage - 1 && p <= currentPage + 1))" :key="pageNum">
           <button
             @click="goToPage(pageNum)"
@@ -453,36 +517,36 @@
           :class="currentPage >= totalPages ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50'"
           class="px-4 py-2 border border-gray-300 rounded-lg transition-colors font-medium"
         >
-          Próximo →
+          Proximo
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Term Details Modal -->
+  <!-- Relationship Details Modal -->
   <div
-    x-show="showModal"
-    @keydown.escape.window="closeModal()"
+    x-show="showRelModal"
+    @keydown.escape.window="closeRelModal()"
     class="fixed inset-0 z-50 overflow-y-auto"
     style="display: none;"
   >
     <!-- Backdrop -->
     <div
       class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
-      @click="closeModal()"
+      @click="closeRelModal()"
     ></div>
 
     <!-- Modal Content -->
     <div class="flex items-center justify-center min-h-screen p-4">
       <div
-        class="relative bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
+        class="relative bg-white rounded-lg shadow-xl max-w-lg w-full"
         @click.stop
       >
         <!-- Header -->
-        <div class="bg-forest-600 text-white px-6 py-4 flex items-center justify-between">
-          <h2 class="text-2xl font-bold" x-text="selectedTerm?.prefLabel || 'Detalhes do Termo'"></h2>
+        <div class="bg-forest-600 text-white px-6 py-4 rounded-t-lg flex items-center justify-between">
+          <h2 class="text-xl font-bold">Detalhes do Relacionamento</h2>
           <button
-            @click="closeModal()"
+            @click="closeRelModal()"
             class="text-white hover:text-forest-100 transition-colors"
           >
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -491,131 +555,60 @@
           </button>
         </div>
 
-        <!-- Body (scrollable) -->
-        <div class="overflow-y-auto max-h-[calc(90vh-140px)] p-6">
-          <template x-if="selectedTerm">
-            <div class="space-y-6">
-              <!-- Basic Information -->
+        <!-- Body -->
+        <div class="p-6">
+          <template x-if="selectedRelationship">
+            <div class="space-y-4">
               <div>
-                <h3 class="text-lg font-semibold text-gray-800 mb-3">Informações Básicas</h3>
-
-                <div class="grid grid-cols-2 gap-4">
-                  <div>
-                    <label class="text-sm font-medium text-gray-600">Termo Preferencial</label>
-                    <p class="text-gray-900 mt-1" x-text="selectedTerm.prefLabel"></p>
-                  </div>
-
-                  <div>
-                    <label class="text-sm font-medium text-gray-600">Status</label>
-                    <div class="mt-1">
-                      <span
-                        :class="{
-                          'bg-green-100 text-green-800': selectedTerm.status === 'active',
-                          'bg-yellow-100 text-yellow-800': selectedTerm.status === 'candidate',
-                          'bg-red-100 text-red-800': selectedTerm.status === 'deprecated'
-                        }"
-                        class="px-3 py-1 text-sm rounded-full"
-                        x-text="selectedTerm.status"
-                      ></span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label class="text-sm font-medium text-gray-600">Idioma</label>
-                    <p class="text-gray-900 mt-1" x-text="selectedTerm.language || 'pt-BR'"></p>
-                  </div>
-
-                  <div>
-                    <label class="text-sm font-medium text-gray-600">Última Modificação</label>
-                    <p class="text-gray-900 mt-1" x-text="new Date(selectedTerm.updatedAt || selectedTerm.createdAt).toLocaleDateString('pt-BR')"></p>
-                  </div>
+                <label class="text-sm font-medium text-gray-600">Tipo de Relacionamento</label>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="px-3 py-1 bg-forest-100 text-forest-700 rounded-full font-bold" x-text="selectedRelationship.type"></span>
+                  <span class="text-gray-600" x-text="getTypeLabel(selectedRelationship.type)"></span>
                 </div>
               </div>
 
-              <!-- Alternative Labels -->
-              <div x-show="selectedTerm.altLabels && selectedTerm.altLabels.length > 0">
-                <h3 class="text-lg font-semibold text-gray-800 mb-3">Termos Alternativos</h3>
-                <div class="flex flex-wrap gap-2">
-                  <template x-for="alt in selectedTerm.altLabels" :key="alt">
-                    <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm" x-text="alt"></span>
-                  </template>
-                </div>
-              </div>
-
-              <!-- Definition -->
-              <div x-show="selectedTerm.definition">
-                <h3 class="text-lg font-semibold text-gray-800 mb-3">Definição</h3>
-                <p class="text-gray-700 leading-relaxed" x-text="selectedTerm.definition"></p>
-              </div>
-
-              <!-- Scope Note -->
-              <div x-show="selectedTerm.scopeNote">
-                <h3 class="text-lg font-semibold text-gray-800 mb-3">Nota de Escopo</h3>
-                <p class="text-gray-700 leading-relaxed" x-text="selectedTerm.scopeNote"></p>
-              </div>
-
-              <!-- Example -->
-              <div x-show="selectedTerm.example">
-                <h3 class="text-lg font-semibold text-gray-800 mb-3">Exemplo de Uso</h3>
-                <p class="text-gray-700 leading-relaxed italic" x-text="selectedTerm.example"></p>
-              </div>
-
-              <!-- Collections -->
-              <div x-show="selectedTerm.collectionIds && selectedTerm.collectionIds.length > 0">
-                <h3 class="text-lg font-semibold text-gray-800 mb-3">Coleções</h3>
-                <div class="flex flex-wrap gap-2">
-                  <template x-for="collId in selectedTerm.collectionIds" :key="collId">
-                    <span class="px-3 py-1 bg-forest-100 text-forest-700 rounded-full text-sm" x-text="collId"></span>
-                  </template>
-                </div>
-              </div>
-
-              <!-- Relationships Summary -->
               <div>
-                <h3 class="text-lg font-semibold text-gray-800 mb-3">Relacionamentos</h3>
-                <div class="grid grid-cols-2 gap-4">
-                  <div class="bg-gray-50 p-3 rounded">
-                    <p class="text-sm font-medium text-gray-600">Termos Mais Amplos (BT)</p>
-                    <p class="text-2xl font-bold text-gray-900 mt-1">
-                      <span x-text="relationships[selectedTerm._id]?.broaderTerms?.length || 0"></span>
-                    </p>
-                  </div>
-                  <div class="bg-gray-50 p-3 rounded">
-                    <p class="text-sm font-medium text-gray-600">Termos Mais Específicos (NT)</p>
-                    <p class="text-2xl font-bold text-gray-900 mt-1">
-                      <span x-text="relationships[selectedTerm._id]?.narrowerTerms?.length || 0"></span>
-                    </p>
+                <label class="text-sm font-medium text-gray-600">Termo Destino</label>
+                <p class="text-lg text-gray-900 mt-1" x-text="selectedRelationship.targetTerm?.prefLabel || 'Termo nao encontrado'"></p>
+              </div>
+
+              <template x-if="selectedRelationship.targetTerm?.definition">
+                <div>
+                  <label class="text-sm font-medium text-gray-600">Definicao</label>
+                  <p class="text-gray-700 mt-1" x-text="selectedRelationship.targetTerm.definition"></p>
+                </div>
+              </template>
+
+              <template x-if="selectedRelationship.targetTerm?.status">
+                <div>
+                  <label class="text-sm font-medium text-gray-600">Status</label>
+                  <div class="mt-1">
+                    <span
+                      :class="getStatusClass(selectedRelationship.targetTerm.status)"
+                      class="px-2 py-1 text-sm rounded-full"
+                      x-text="selectedRelationship.targetTerm.status"
+                    ></span>
                   </div>
                 </div>
-              </div>
+              </template>
             </div>
           </template>
         </div>
 
         <!-- Footer (Actions) -->
-        <div class="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
-          <div class="flex gap-3">
-            <a
-              :href="`/terms/${selectedTerm?._id}/edit`"
-              class="px-6 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors font-medium"
-            >
-              Editar Termo
-            </a>
-
-            <button
-              x-show="selectedTerm?.status !== 'deprecated'"
-              @click="deprecateTerm(selectedTerm._id)"
-              class="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors font-medium"
-            >
-              Depreciar
-            </button>
-          </div>
+        <div class="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200 rounded-b-lg">
+          <a
+            :href="`/terms/${selectedRelationship?.targetTerm?._id}/edit`"
+            class="px-4 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 transition-colors font-medium"
+          >
+            Ver Termo Destino
+          </a>
 
           <button
-            @click="deleteTerm(selectedTerm._id)"
-            class="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium"
+            @click="deleteRelationship(selectedRelationship._id, selectedRelationship.sourceTermId)"
+            class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium"
           >
-            Excluir Termo
+            Remover Relacionamento
           </button>
         </div>
       </div>

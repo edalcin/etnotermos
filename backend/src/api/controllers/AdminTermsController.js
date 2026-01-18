@@ -10,6 +10,11 @@ import {
   listTerms,
   getTermById,
 } from '../../services/TermService.js';
+import {
+  getGroupedRelationshipsByTerm,
+  getRelationshipCountsBatch,
+  getOrphanTerms,
+} from '../../services/RelationshipService.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 import { ObjectId } from 'mongodb';
 import { getCollection } from '../../shared/database.js';
@@ -123,7 +128,7 @@ export const mergeTermsHandler = asyncHandler(async (req, res) => {
  * GET /api/v1/admin/terms
  */
 export const listTermsHandler = asyncHandler(async (req, res) => {
-  const { page, limit, status, collections, sortBy, sortOrder, q } = req.query;
+  const { page, limit, status, collections, sortBy, sortOrder, q, includeCounts } = req.query;
 
   const options = {
     page: parseInt(page) || 1,
@@ -145,6 +150,17 @@ export const listTermsHandler = asyncHandler(async (req, res) => {
   }
 
   const result = await listTerms(options);
+
+  // If includeCounts is true, add relationship counts for each term
+  if (includeCounts === 'true' && result.data.length > 0) {
+    const termIds = result.data.map(t => t._id.toString());
+    const counts = await getRelationshipCountsBatch(termIds);
+
+    result.data = result.data.map(term => ({
+      ...term,
+      relationshipCounts: counts[term._id.toString()] || { BT: 0, NT: 0, RT: 0, USE: 0, UF: 0 }
+    }));
+  }
 
   res.status(200).json(result);
 });
@@ -257,6 +273,38 @@ export const getTermsHierarchyHandler = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * Get grouped relationships for a term
+ * GET /api/v1/admin/terms/:id/relationships
+ */
+export const getTermRelationshipsHandler = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  // Verify term exists
+  await getTermById(id);
+
+  const relationships = await getGroupedRelationshipsByTerm(id);
+
+  res.status(200).json(relationships);
+});
+
+/**
+ * Get orphan terms (terms without relationships)
+ * GET /api/v1/admin/terms/orphans
+ */
+export const getOrphanTermsHandler = asyncHandler(async (req, res) => {
+  const { page, limit } = req.query;
+
+  const options = {
+    page: parseInt(page) || 1,
+    limit: parseInt(limit) || 20,
+  };
+
+  const result = await getOrphanTerms(options);
+
+  res.status(200).json(result);
+});
+
 export default {
   listTermsHandler,
   getTermHandler,
@@ -266,4 +314,6 @@ export default {
   deprecateTermHandler,
   mergeTermsHandler,
   getTermsHierarchyHandler,
+  getTermRelationshipsHandler,
+  getOrphanTermsHandler,
 };

@@ -213,6 +213,193 @@ export async function updateRelationshipValidation(relationshipId) {
 }
 
 /**
+ * Get grouped relationships for a term (organized by category)
+ * Returns relationships grouped into hierarchical, associative, and equivalence categories
+ */
+export async function getGroupedRelationshipsByTerm(termId) {
+  const relationships = getCollection('etnotermos-relationships');
+  const terms = getCollection('etnotermos');
+
+  // Get all relationships where this term is the source
+  const rels = await relationships.find({
+    sourceTermId: new ObjectId(termId)
+  }).toArray();
+
+  // Collect all target term IDs
+  const targetTermIds = [...new Set(rels.map(r => r.targetTermId.toString()))];
+
+  // Fetch all target terms at once
+  const targetTerms = await terms.find({
+    _id: { $in: targetTermIds.map(id => new ObjectId(id)) }
+  }).toArray();
+
+  // Create lookup map
+  const termMap = {};
+  targetTerms.forEach(t => {
+    termMap[t._id.toString()] = {
+      _id: t._id,
+      prefLabel: t.prefLabel,
+      status: t.status,
+      definition: t.definition
+    };
+  });
+
+  // Organize by category and type
+  const result = {
+    hierarchical: { BT: [], NT: [], BTG: [], NTG: [], BTP: [], NTP: [], BTI: [], NTI: [] },
+    associative: { RT: [] },
+    equivalence: { USE: [], UF: [] }
+  };
+
+  rels.forEach(rel => {
+    const targetTerm = termMap[rel.targetTermId.toString()];
+    const relData = {
+      _id: rel._id,
+      type: rel.type,
+      targetTermId: rel.targetTermId,
+      targetTerm: targetTerm || { prefLabel: 'Termo não encontrado', status: 'unknown' },
+      createdAt: rel.createdAt
+    };
+
+    // Categorize by type
+    if (['BT', 'BTG', 'BTP', 'BTI', 'NT', 'NTG', 'NTP', 'NTI'].includes(rel.type)) {
+      if (result.hierarchical[rel.type]) {
+        result.hierarchical[rel.type].push(relData);
+      }
+    } else if (rel.type === 'RT') {
+      result.associative.RT.push(relData);
+    } else if (['USE', 'UF'].includes(rel.type)) {
+      if (result.equivalence[rel.type]) {
+        result.equivalence[rel.type].push(relData);
+      }
+    }
+  });
+
+  return result;
+}
+
+/**
+ * Get relationship counts by type for a term
+ */
+export async function getRelationshipCountsByTerm(termId) {
+  const relationships = getCollection('etnotermos-relationships');
+
+  const counts = await relationships.aggregate([
+    { $match: { sourceTermId: new ObjectId(termId) } },
+    { $group: { _id: '$type', count: { $sum: 1 } } }
+  ]).toArray();
+
+  const result = { BT: 0, NT: 0, RT: 0, USE: 0, UF: 0 };
+  counts.forEach(c => {
+    // Aggregate BT variants into BT count
+    if (['BT', 'BTG', 'BTP', 'BTI'].includes(c._id)) {
+      result.BT += c.count;
+    }
+    // Aggregate NT variants into NT count
+    else if (['NT', 'NTG', 'NTP', 'NTI'].includes(c._id)) {
+      result.NT += c.count;
+    }
+    else if (c._id === 'RT') {
+      result.RT = c.count;
+    }
+    else if (c._id === 'USE') {
+      result.USE = c.count;
+    }
+    else if (c._id === 'UF') {
+      result.UF = c.count;
+    }
+  });
+
+  return result;
+}
+
+/**
+ * Get relationship counts for multiple terms at once (batch operation)
+ */
+export async function getRelationshipCountsBatch(termIds) {
+  const relationships = getCollection('etnotermos-relationships');
+
+  const objectIds = termIds.map(id => new ObjectId(id));
+
+  const counts = await relationships.aggregate([
+    { $match: { sourceTermId: { $in: objectIds } } },
+    { $group: {
+      _id: { termId: '$sourceTermId', type: '$type' },
+      count: { $sum: 1 }
+    }}
+  ]).toArray();
+
+  // Initialize result map
+  const result = {};
+  termIds.forEach(id => {
+    result[id] = { BT: 0, NT: 0, RT: 0, USE: 0, UF: 0 };
+  });
+
+  // Populate counts
+  counts.forEach(c => {
+    const termId = c._id.termId.toString();
+    const type = c._id.type;
+
+    if (!result[termId]) return;
+
+    // Aggregate BT variants
+    if (['BT', 'BTG', 'BTP', 'BTI'].includes(type)) {
+      result[termId].BT += c.count;
+    }
+    // Aggregate NT variants
+    else if (['NT', 'NTG', 'NTP', 'NTI'].includes(type)) {
+      result[termId].NT += c.count;
+    }
+    else if (type === 'RT') {
+      result[termId].RT = c.count;
+    }
+    else if (type === 'USE') {
+      result[termId].USE = c.count;
+    }
+    else if (type === 'UF') {
+      result[termId].UF = c.count;
+    }
+  });
+
+  return result;
+}
+
+/**
+ * Get orphan terms (terms without any relationships)
+ */
+export async function getOrphanTerms(options = {}) {
+  const terms = getCollection('etnotermos');
+  const relationships = getCollection('etnotermos-relationships');
+
+  const { page = 1, limit = 20 } = options;
+
+  // Get all term IDs that have relationships
+  const termsWithRelationships = await relationships.aggregate([
+    { $group: { _id: '$sourceTermId' } }
+  ]).toArray();
+
+  const termIdsWithRels = new Set(termsWithRelationships.map(t => t._id.toString()));
+
+  // Find terms not in that set
+  const allTerms = await terms.find({}).toArray();
+  const orphans = allTerms.filter(t => !termIdsWithRels.has(t._id.toString()));
+
+  // Apply pagination
+  const skip = (page - 1) * limit;
+  const paginatedOrphans = orphans.slice(skip, skip + limit);
+
+  return {
+    data: paginatedOrphans,
+    pagination: {
+      page,
+      limit,
+      total: orphans.length,
+      totalPages: Math.ceil(orphans.length / limit)
+    }
+  };
+}
+
+/**
  * Get relationship statistics
  */
 export async function getRelationshipStatistics() {
@@ -308,4 +495,8 @@ export default {
   updateRelationshipValidation,
   getRelationshipStatistics,
   listRelationshipsWithTerms,
+  getGroupedRelationshipsByTerm,
+  getRelationshipCountsByTerm,
+  getRelationshipCountsBatch,
+  getOrphanTerms,
 };

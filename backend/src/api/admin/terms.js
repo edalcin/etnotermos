@@ -11,6 +11,8 @@ import {
   deprecateTermHandler,
   mergeTermsHandler,
   getTermsHierarchyHandler,
+  getTermRelationshipsHandler,
+  getOrphanTermsHandler,
 } from '../controllers/AdminTermsController.js';
 import {
   validateRequiredFields,
@@ -41,10 +43,22 @@ router.get('/', listTermsHandler);
 router.get('/hierarchy', getTermsHierarchyHandler);
 
 /**
+ * GET /api/v1/admin/terms/orphans
+ * Get terms without any relationships
+ */
+router.get('/orphans', getOrphanTermsHandler);
+
+/**
  * GET /api/v1/admin/terms/:id
  * Get a single term by ID
  */
 router.get('/:id', validateObjectId('id'), getTermHandler);
+
+/**
+ * GET /api/v1/admin/terms/:id/relationships
+ * Get grouped relationships for a term
+ */
+router.get('/:id/relationships', validateObjectId('id'), getTermRelationshipsHandler);
 
 /**
  * POST /api/v1/admin/terms

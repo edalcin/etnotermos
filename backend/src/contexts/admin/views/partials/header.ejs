@@ -20,10 +20,41 @@
           Dashboard
         </a>
       </li>
-      <li>
-        <a href="/terms" class="block px-6 py-3 hover:bg-forest-700 transition-colors border-b-2 <%= currentPage === 'terms' ? 'border-forest-400 font-medium' : 'border-transparent hover:border-forest-300' %>">
+      <!-- Termos dropdown menu -->
+      <li class="relative" x-data="{ open: false }" @click.away="open = false">
+        <button
+          @click="open = !open"
+          class="flex items-center gap-1 px-6 py-3 hover:bg-forest-700 transition-colors border-b-2 <%= currentPage === 'terms' ? 'border-forest-400 font-medium' : 'border-transparent hover:border-forest-300' %>"
+        >
           Termos
-        </a>
+          <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        <!-- Dropdown menu -->
+        <div
+          x-show="open"
+          x-transition:enter="transition ease-out duration-100"
+          x-transition:enter-start="transform opacity-0 scale-95"
+          x-transition:enter-end="transform opacity-100 scale-100"
+          x-transition:leave="transition ease-in duration-75"
+          x-transition:leave-start="transform opacity-100 scale-100"
+          x-transition:leave-end="transform opacity-0 scale-95"
+          class="absolute left-0 mt-0 w-48 rounded-b-md shadow-lg bg-forest-700 ring-1 ring-black ring-opacity-5 z-50"
+          style="display: none;"
+        >
+          <div class="py-1">
+            <a href="/terms" class="block px-4 py-2 text-sm hover:bg-forest-800 transition-colors">
+              Todos os Termos
+            </a>
+            <a href="/terms?filter=by-status" class="block px-4 py-2 text-sm hover:bg-forest-800 transition-colors">
+              Por Status
+            </a>
+            <a href="/terms?filter=orphans" class="block px-4 py-2 text-sm hover:bg-forest-800 transition-colors">
+              Termos Orfaos
+            </a>
+          </div>
+        </div>
       </li>
       <li>
         <a href="/relationships" class="block px-6 py-3 hover:bg-forest-700 transition-colors border-b-2 <%= currentPage === 'relationships' ? 'border-forest-400 font-medium' : 'border-transparent hover:border-forest-300' %>">
