@@ -6,14 +6,11 @@
   <title><%= title %> | EtnoTermos</title>
   <link href="/assets/styles.css?v=<%= Date.now() %>" rel="stylesheet">
   <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-  <script defer src="https://unpkg.com/alpinejs@3.13.5/dist/cdn.min.js"></script>
   <script src="https://unpkg.com/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
-</head>
-<body class="bg-forest-50 min-h-screen flex flex-col">
-  <%- include('partials/header') %>
-  <main class="flex-grow container mx-auto px-4 py-8">
-
-<div x-data="{
+  <script>
+    // Register Alpine component before Alpine loads
+    document.addEventListener('alpine:init', () => {
+      Alpine.data('termDetail', () => ({
   term: null,
   relationships: null,
   notes: [],
@@ -32,7 +29,7 @@
   },
   async loadTerm() {
     try {
-      const response = await fetch('/api/v1/terms/<%= termId %>');
+      const response = await fetch(`/api/v1/terms/${this.termId}`);
       this.term = await response.json();
     } catch (error) {
       console.error('Error loading term:', error);
@@ -42,7 +39,7 @@
   },
   async loadRelationships() {
     try {
-      const response = await fetch('/api/v1/relationships?sourceTerm=<%= termId %>');
+      const response = await fetch(`/api/v1/relationships?sourceTerm=${this.termId}`);
       this.relationships = await response.json();
     } catch (error) {
       console.error('Error loading relationships:', error);
@@ -50,7 +47,7 @@
   },
   async loadNotes() {
     try {
-      const response = await fetch('/api/v1/notes?termId=<%= termId %>');
+      const response = await fetch(`/api/v1/notes?termId=${this.termId}`);
       this.notes = await response.json();
     } catch (error) {
       console.error('Error loading notes:', error);
@@ -142,10 +139,10 @@
     });
 
     // Click handler to navigate
-    this.cy.on('tap', 'node', function(evt) {
+    this.cy.on('tap', 'node', (evt) => {
       const node = evt.target;
       const id = node.data('id');
-      if (id !== '<%= termId %>') {
+      if (id !== this.termId) {
         window.location.href = `/terms/${id}`;
       }
     });
@@ -167,8 +164,18 @@
       'UF': 'bg-pink-100 text-pink-800'
     };
     return classes[type] || 'bg-gray-100 text-gray-800';
-  }
-}">
+  },
+  termId: '<%= termId %>'
+}));
+    });
+  </script>
+  <script defer src="https://unpkg.com/alpinejs@3.13.5/dist/cdn.min.js"></script>
+</head>
+<body class="bg-forest-50 min-h-screen flex flex-col">
+  <%- include('partials/header') %>
+  <main class="flex-grow container mx-auto px-4 py-8">
+
+<div x-data="termDetail">
 
   <!-- Loading State -->
   <div x-show="loading" class="text-center py-12">
