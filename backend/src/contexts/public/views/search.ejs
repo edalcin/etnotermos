@@ -206,9 +206,9 @@
 
         <div class="space-y-4">
           <template x-for="result in results" :key="result._id">
-            <a
-              :href="`/terms/${result._id}`"
-              class="block p-4 border border-gray-200 rounded-lg hover:border-forest-400 hover:bg-forest-50 transition-colors"
+            <div
+              @click="window.location.href = `/terms/${result._id}`"
+              class="block p-4 border border-gray-200 rounded-lg hover:border-forest-400 hover:bg-forest-50 transition-colors cursor-pointer"
             >
               <!-- Term Title -->
               <div class="flex items-start justify-between mb-2">
@@ -237,7 +237,7 @@
               <div x-show="result.score" class="mt-2 text-xs text-gray-500">
                 Relevância: <span x-text="Math.round(result.score * 100)"></span>%
               </div>
-            </a>
+            </div>
           </template>
         </div>
       </div>
