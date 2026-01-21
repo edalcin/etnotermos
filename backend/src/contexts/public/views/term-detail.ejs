@@ -39,19 +39,18 @@
   },
   async loadRelationships() {
     try {
-      const response = await fetch(`/api/v1/relationships?sourceTerm=${this.termId}`);
-      this.relationships = await response.json();
+      const response = await fetch(`/api/v1/relationships/${this.termId}`);
+      const data = await response.json();
+      // API returns array, wrap in object for template compatibility
+      this.relationships = { data: data };
     } catch (error) {
       console.error('Error loading relationships:', error);
+      this.relationships = { data: [] };
     }
   },
   async loadNotes() {
-    try {
-      const response = await fetch(`/api/v1/notes?termId=${this.termId}`);
-      this.notes = await response.json();
-    } catch (error) {
-      console.error('Error loading notes:', error);
-    }
+    // Notes API not available in public context
+    this.notes = [];
   },
   initGraph() {
     if (!this.term || !this.relationships || this.cy) return;
@@ -79,8 +78,8 @@
       edges.push({
         data: {
           id: rel._id,
-          source: rel.sourceTerm,
-          target: rel.targetTerm._id,
+          source: rel.sourceTermId,
+          target: rel.targetTermId,
           label: rel.type
         }
       });
