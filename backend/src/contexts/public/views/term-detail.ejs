@@ -132,10 +132,19 @@
         }
       ],
       layout: {
-        name: 'circle',
-        radius: 200
+        name: 'cose',
+        animate: false,
+        nodeDimensionsIncludeLabels: true,
+        idealEdgeLength: 150,
+        nodeOverlap: 20,
+        componentSpacing: 100,
+        padding: 50
       }
     });
+
+    // Fit and center the graph
+    this.cy.fit(null, 50);
+    this.cy.center();
 
     // Click handler to navigate
     this.cy.on('tap', 'node', (evt) => {
@@ -339,7 +348,7 @@
 
       <!-- Graph Tab -->
       <div x-show="activeTab === 'graph'" class="p-6">
-        <div id="cy" class="w-full h-96 border-2 border-gray-200 rounded-lg"></div>
+        <div id="cy" class="w-full h-[600px] border-2 border-gray-200 rounded-lg"></div>
         <p class="text-sm text-gray-600 mt-4">
           Clique em um nó para navegar para o termo relacionado.
         </p>
