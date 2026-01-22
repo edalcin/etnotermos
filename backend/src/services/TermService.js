@@ -89,6 +89,9 @@ export async function createNewTerm(data, metadata = {}) {
     delete data.language;
   }
 
+  // BUSINESS RULE: New terms always enter with status "candidate"
+  data.status = 'candidate';
+
   // Convert collectionIds from strings to ObjectIds
   if (data.collectionIds && Array.isArray(data.collectionIds)) {
     data.collectionIds = data.collectionIds.map(id => {

@@ -32,6 +32,37 @@ export async function createNewRelationship(sourceTermId, targetTermId, type, me
     throw new Error(`Target term ${targetTermId} not found`);
   }
 
+  // BUSINESS RULE: Preferred terms cannot be associated as alternatives (USE relationship)
+  // USE means: sourceTerm is a non-preferred term pointing to targetTerm (preferred)
+  // UF means: sourceTerm is a preferred term pointing to targetTerm (non-preferred alias)
+  if (type === 'USE') {
+    // For USE relationship, the source term becomes non-preferred
+    // Check if source term is marked as preferred - if so, we need to change it
+    if (sourceTerm.termType === 'preferred') {
+      // Automatically change the source term to entry (non-preferred)
+      await terms.updateOne(
+        { _id: new ObjectId(sourceTermId) },
+        {
+          $set: {
+            termType: 'entry',
+            useTerm: new ObjectId(targetTermId),
+            updatedAt: new Date()
+          },
+          $inc: { version: 1 }
+        }
+      );
+      console.log(`[RelationshipService] Changed term "${sourceTerm.prefLabel}" from preferred to entry (non-preferred) due to USE relationship`);
+    }
+  }
+
+  if (type === 'UF') {
+    // For UF relationship, the target term is being marked as non-preferred alias of source
+    // Check if target term is preferred - if so, reject the relationship
+    if (targetTerm.termType === 'preferred') {
+      throw new Error(`Termo Preferencial "${targetTerm.prefLabel}" nao pode ser associado como termo alternativo (UF). Termos Preferenciais representam conceitos principais e nao podem ser sinonimos de outros termos.`);
+    }
+  }
+
   // Run Z39.19 validation checks
   const validation = await validateRelationshipFull(
     new ObjectId(sourceTermId),

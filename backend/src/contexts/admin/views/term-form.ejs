@@ -21,9 +21,11 @@
     definition: '',
     scopeNote: '',
     example: '',
-    status: 'active',
+    status: 'candidate',
+    termType: 'preferred',
     collectionIds: []
   },
+  isPreferredTerm: true,
   altLabelInput: '',
   collections: [],
   loading: true,
@@ -58,9 +60,11 @@
         scopeNote: term.scopeNote || '',
         example: term.example || '',
         language: term.language || 'pt-BR',
-        status: term.status || 'active',
+        status: term.status || 'candidate',
+        termType: term.termType || 'preferred',
         collectionIds: (term.collectionIds || []).map(id => id.toString())
       };
+      this.isPreferredTerm = this.form.termType === 'preferred';
     } catch (error) {
       console.error('Error loading term:', error);
       alert('Erro ao carregar termo.');
@@ -86,8 +90,16 @@
   async saveTerm() {
     // Validation
     if (!this.form.prefLabel.trim()) {
-      alert('O termo preferencial é obrigatório.');
+      alert('O termo é obrigatório.');
       return;
+    }
+
+    // Set termType based on checkbox
+    this.form.termType = this.isPreferredTerm ? 'preferred' : 'entry';
+
+    // For new terms, always use 'candidate' status
+    if (!this.isEdit) {
+      this.form.status = 'candidate';
     }
 
     this.saving = true;
@@ -171,10 +183,10 @@
       <h2 class="text-xl font-semibold text-gray-800 mb-4">Informações Básicas</h2>
 
       <div class="space-y-4">
-        <!-- Preferred Label -->
+        <!-- Term Label -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-            Termo Preferencial (PT) *
+            Novo Termo *
             <div class="relative inline-block">
               <button
                 type="button"
@@ -189,12 +201,12 @@
                 class="absolute z-50 w-80 p-3 mt-2 text-sm bg-white border border-gray-200 rounded-lg shadow-xl left-0"
                 style="display: none;"
               >
-                <h4 class="font-semibold text-gray-900 mb-1">Termo Preferencial</h4>
+                <h4 class="font-semibold text-gray-900 mb-1">Novo Termo</h4>
                 <p class="text-gray-700 mb-2">
-                  A forma autorizada e preferencial do conceito seguindo ANSI/NISO Z39.19. Use substantivos no singular para conceitos (ex: "planta", "raiz") e plural para itens contáveis (ex: "sementes", "folhas").
+                  O termo a ser cadastrado seguindo ANSI/NISO Z39.19. Use substantivos no singular para conceitos (ex: "planta", "raiz") e plural para itens contáveis (ex: "sementes", "folhas").
                 </p>
                 <p class="text-xs text-gray-600 italic">
-                  <strong>Exemplo:</strong> "Ayahuasca" (preferido) em vez de "Daime" ou "Yagé" (alternativos)
+                  <strong>Exemplo:</strong> "Ayahuasca", "Mandioca", "Cannabis"
                 </p>
               </div>
             </div>
@@ -206,6 +218,50 @@
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-forest-600"
             placeholder="Ex: Ayahuasca"
           >
+        </div>
+
+        <!-- Is Preferred Term Checkbox -->
+        <div class="flex items-start gap-3 p-4 bg-forest-50 rounded-lg border border-forest-200">
+          <input
+            type="checkbox"
+            id="isPreferredTerm"
+            x-model="isPreferredTerm"
+            class="mt-1 h-5 w-5 rounded text-forest-600 focus:ring-forest-500 border-gray-300"
+          >
+          <div>
+            <label for="isPreferredTerm" class="text-sm font-medium text-gray-700 cursor-pointer flex items-center gap-2">
+              Termo Preferencial
+              <div class="relative inline-block">
+                <button
+                  type="button"
+                  @click.stop="toggleTooltip('isPreferred')"
+                  class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors cursor-help"
+                >
+                  <span class="text-xs font-bold">i</span>
+                </button>
+                <div
+                  x-show="activeTooltip === 'isPreferred'"
+                  @click.away="activeTooltip = null"
+                  class="absolute z-50 w-80 p-3 mt-2 text-sm bg-white border border-gray-200 rounded-lg shadow-xl left-0"
+                  style="display: none;"
+                >
+                  <h4 class="font-semibold text-gray-900 mb-1">Termo Preferencial</h4>
+                  <p class="text-gray-700 mb-2">
+                    <strong>Marcado:</strong> Este termo representa um conceito principal e sera a forma autorizada de referencia. Um novo conceito sera criado para este termo.
+                  </p>
+                  <p class="text-gray-700 mb-2">
+                    <strong>Desmarcado:</strong> Este e um termo de entrada (sinonimo, variante) que podera ser associado a um Termo Preferencial existente atraves de relacoes USE/UF.
+                  </p>
+                  <p class="text-xs text-gray-600 italic">
+                    <strong>Exemplo:</strong> "Ayahuasca" (preferencial) vs "Daime", "Yage" (termos de entrada)
+                  </p>
+                </div>
+              </div>
+            </label>
+            <p class="text-xs text-gray-500 mt-1">
+              Marque se este termo representa um conceito principal. Desmarque para termos alternativos/sinonimos.
+            </p>
+          </div>
         </div>
 
         <!-- Alternative Labels -->
@@ -307,7 +363,8 @@
             </select>
           </div>
 
-          <div>
+          <!-- Status dropdown - only visible in edit mode -->
+          <div x-show="isEdit">
             <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
               Status
               <div class="relative inline-block">
@@ -344,6 +401,15 @@
               <option value="candidate">Candidato</option>
               <option value="deprecated">Depreciado</option>
             </select>
+          </div>
+
+          <!-- Status info for new terms -->
+          <div x-show="!isEdit" class="flex items-center">
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 w-full">
+              <p class="text-sm text-yellow-800">
+                <strong>Status:</strong> Novos termos entram automaticamente como <span class="font-semibold">Candidato</span> para revisão.
+              </p>
+            </div>
           </div>
         </div>
       </div>

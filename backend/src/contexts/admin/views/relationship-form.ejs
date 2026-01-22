@@ -123,8 +123,19 @@
       return;
     }
     if (this.form.sourceTermId === this.form.targetTermId) {
-      alert('Um termo não pode ter relacionamento consigo mesmo.');
+      alert('Um termo nao pode ter relacionamento consigo mesmo.');
       return;
+    }
+    // Validate UF relationship with preferred terms
+    if (this.form.type === 'UF' && this.selectedTargetTerm && this.selectedTargetTerm.termType === 'preferred') {
+      alert('Termos Preferenciais nao podem ser associados como termos alternativos (UF). Altere o tipo do termo de destino primeiro.');
+      return;
+    }
+    // Warn about USE relationship converting preferred term
+    if (this.form.type === 'USE' && this.selectedSourceTerm && this.selectedSourceTerm.termType === 'preferred') {
+      if (!confirm('O termo de origem e um Termo Preferencial. Ao criar esta relacao, ele sera convertido para Termo de Entrada (nao-preferencial). Deseja continuar?')) {
+        return;
+      }
     }
 
     this.saving = true;
@@ -185,8 +196,26 @@
     <!-- Info Box -->
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
       <p class="text-sm text-blue-800">
-        <strong>Nota:</strong> Ao criar um relacionamento, o relacionamento recíproco será automaticamente criado pelo sistema.
-        Por exemplo, ao criar uma relação BT (Broader Term), a relação NT (Narrower Term) será criada automaticamente.
+        <strong>Nota:</strong> Ao criar um relacionamento, o relacionamento reciproco sera automaticamente criado pelo sistema.
+        Por exemplo, ao criar uma relacao BT (Broader Term), a relacao NT (Narrower Term) sera criada automaticamente.
+      </p>
+    </div>
+
+    <!-- Warning for USE relationship with preferred terms -->
+    <div x-show="form.type === 'USE' && selectedSourceTerm && selectedSourceTerm.termType === 'preferred'" class="bg-yellow-50 border border-yellow-300 rounded-lg p-4 mb-6">
+      <p class="text-sm text-yellow-800">
+        <strong>Atencao:</strong> O termo de origem "<span x-text="selectedSourceTerm?.prefLabel"></span>" esta marcado como Termo Preferencial.
+        Ao criar esta relacao USE, ele sera automaticamente convertido para Termo de Entrada (nao-preferencial),
+        indicando que e um sinonimo do termo de destino.
+      </p>
+    </div>
+
+    <!-- Error for UF relationship with preferred terms -->
+    <div x-show="form.type === 'UF' && selectedTargetTerm && selectedTargetTerm.termType === 'preferred'" class="bg-red-50 border border-red-300 rounded-lg p-4 mb-6">
+      <p class="text-sm text-red-800">
+        <strong>Erro:</strong> Termos Preferenciais nao podem ser associados como termos alternativos (UF).
+        O termo "<span x-text="selectedTargetTerm?.prefLabel"></span>" e um Termo Preferencial e representa um conceito principal.
+        Para criar esta relacao, primeiro altere o tipo do termo para "Termo de Entrada".
       </p>
     </div>
 

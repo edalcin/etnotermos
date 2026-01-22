@@ -189,7 +189,7 @@ export function createTerm(data) {
     example: data.example || '',
     qualifier: data.qualifier || '',
     termType: data.termType || TermType.PREFERRED,
-    status: data.status || TermStatus.ACTIVE,
+    status: data.status || TermStatus.CANDIDATE,
     useFor: data.useFor || [],
     useTerm: data.useTerm || null,
     replacedBy: data.replacedBy || null,
