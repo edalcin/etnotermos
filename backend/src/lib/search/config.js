@@ -34,7 +34,8 @@ export const textIndexOptions = {
   name: 'etnotermos_text_search',
   weights: indexWeights,
   default_language: 'portuguese',
-  language_override: 'language', // Field name for per-document language
+  // Note: language_override removed to allow custom language codes in the 'language' field
+  // All text search will use Portuguese analyzer regardless of language field value
 };
 
 /**

@@ -30,34 +30,43 @@ async function ensureTextSearchIndex() {
     // Check if text search index already exists
     const textIndexExists = indexes.some(idx => idx.name === 'etnotermos_text_search');
 
-    if (!textIndexExists) {
-      console.log('Creating text search index on etnotermos collection...');
-      await termsCollection.createIndex(
-        {
-          prefLabel: 'text',
-          altLabels: 'text',
-          hiddenLabels: 'text',
-          definition: 'text',
-          scopeNote: 'text',
-          example: 'text',
-        },
-        {
-          name: 'etnotermos_text_search',
-          weights: {
-            prefLabel: 10,
-            altLabels: 5,
-            definition: 3,
-            scopeNote: 2,
-            example: 1,
-            hiddenLabels: 1,
-          },
-          default_language: 'portuguese',
-        }
-      );
-      console.log('✓ Text search index created successfully');
-    } else {
-      console.log('✓ Text search index already exists');
+    if (textIndexExists) {
+      // Check if the index has language_override (old version)
+      const existingIndex = indexes.find(idx => idx.name === 'etnotermos_text_search');
+      if (existingIndex && existingIndex.language_override) {
+        console.log('Dropping old text search index with language_override...');
+        await termsCollection.dropIndex('etnotermos_text_search');
+      } else {
+        console.log('✓ Text search index already exists');
+        return;
+      }
     }
+
+    console.log('Creating text search index on etnotermos collection...');
+    await termsCollection.createIndex(
+      {
+        prefLabel: 'text',
+        altLabels: 'text',
+        hiddenLabels: 'text',
+        definition: 'text',
+        scopeNote: 'text',
+        example: 'text',
+      },
+      {
+        name: 'etnotermos_text_search',
+        weights: {
+          prefLabel: 10,
+          altLabels: 5,
+          definition: 3,
+          scopeNote: 2,
+          example: 1,
+          hiddenLabels: 1,
+        },
+        default_language: 'portuguese',
+        // No language_override to allow custom language codes
+      }
+    );
+    console.log('✓ Text search index created successfully');
   } catch (error) {
     console.error('Warning: Failed to ensure text search index:', error.message);
     // Don't throw - allow server to start even if index creation fails
@@ -96,6 +105,7 @@ export async function connectToDatabase(retries = 5, delay = 2000) {
         'etnotermos-sources': db.collection('etnotermos-sources'),
         'etnotermos-collections': db.collection('etnotermos-collections'),
         'etnotermos-audit-logs': db.collection('etnotermos-audit-logs'),
+        'etnotermos-languages': db.collection('etnotermos-languages'),
       };
 
       // Ensure text search index exists

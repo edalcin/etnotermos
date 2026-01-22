@@ -62,6 +62,10 @@ export const termSchema = {
         bsonType: 'string',
         description: 'Usage examples (Z39.19 Section 10.5)',
       },
+      language: {
+        bsonType: 'string',
+        description: 'Language code of the term',
+      },
       qualifier: {
         bsonType: 'string',
         description: 'Disambiguation qualifier for homographs',
@@ -187,6 +191,7 @@ export function createTerm(data) {
     scopeNote: data.scopeNote || '',
     historyNote: data.historyNote || '',
     example: data.example || '',
+    language: data.language || 'pt-BR',
     qualifier: data.qualifier || '',
     termType: data.termType || TermType.PREFERRED,
     status: data.status || TermStatus.CANDIDATE,

@@ -1,4 +1,5 @@
 // Admin Context Server for EtnoTermos (Port 4001 - Full CRUD)
+// Updated to support custom language codes
 import express from 'express';
 import cors from 'cors';
 import compression from 'compression';
@@ -6,6 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { config } from '../../config/index.js';
 import { connectToDatabase } from '../../shared/database.js';
+import { seedDefaultLanguages } from '../../services/LanguageService.js';
 
 // ES Module path resolution
 const __filename = fileURLToPath(import.meta.url);
@@ -90,6 +92,7 @@ import sourcesRouter from '../../api/admin/sources.js';
 import collectionsRouter from '../../api/admin/collections.js';
 import dashboardRouter from '../../api/admin/dashboard.js';
 import auditLogsRouter from '../../api/admin/audit-logs.js';
+import languagesRouter from '../../api/admin/languages.js';
 
 // Register API routes under /api/v1 prefix
 app.use('/api/v1/admin/terms', termsRouter);
@@ -99,6 +102,7 @@ app.use('/api/v1/sources', sourcesRouter); // Sources available to both public (
 app.use('/api/v1/collections', collectionsRouter); // Collections available to both public (GET) and admin
 app.use('/api/v1/admin/dashboard', dashboardRouter);
 app.use('/api/v1/admin/audit-logs', auditLogsRouter);
+app.use('/api/v1/admin/languages', languagesRouter);
 
 // 404 handler
 app.use((req, res) => {
@@ -122,6 +126,9 @@ async function startServer() {
     // Connect to database
     await connectToDatabase();
     console.log('Admin context: Database connected');
+
+    // Seed default languages
+    await seedDefaultLanguages();
 
     // Start listening
     app.listen(config.adminPort, () => {
