@@ -13,14 +13,14 @@ export async function getAllLanguages() {
 }
 
 /**
- * Get language by code
+ * Get language by name
  */
-export async function getLanguageByCode(code) {
+export async function getLanguageByName(name) {
   const languages = getCollection('etnotermos-languages');
-  const language = await languages.findOne({ code });
+  const language = await languages.findOne({ name });
 
   if (!language) {
-    throw new Error(`Language not found: ${code}`);
+    throw new Error(`Language not found: ${name}`);
   }
 
   return language;
@@ -32,10 +32,10 @@ export async function getLanguageByCode(code) {
 export async function createNewLanguage(data) {
   const languages = getCollection('etnotermos-languages');
 
-  // Check if language code already exists
-  const existing = await languages.findOne({ code: data.code });
+  // Check if language name already exists
+  const existing = await languages.findOne({ name: data.name });
   if (existing) {
-    throw new Error(`Language code already exists: ${data.code}`);
+    throw new Error(`Language already exists: ${data.name}`);
   }
 
   const language = createLanguage(data);
@@ -63,7 +63,7 @@ export async function seedDefaultLanguages() {
 
 export default {
   getAllLanguages,
-  getLanguageByCode,
+  getLanguageByName,
   createNewLanguage,
   seedDefaultLanguages,
 };

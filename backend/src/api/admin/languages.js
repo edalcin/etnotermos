@@ -25,15 +25,15 @@ router.get('/', asyncHandler(async (req, res) => {
  * Create a new language
  */
 router.post('/', asyncHandler(async (req, res) => {
-  const { code, name, nativeName } = req.body;
+  const { name, nativeName } = req.body;
 
-  if (!code || !name) {
+  if (!name) {
     return res.status(400).json({
-      error: 'Code and name are required'
+      error: 'Name is required'
     });
   }
 
-  const language = await createNewLanguage({ code, name, nativeName });
+  const language = await createNewLanguage({ name, nativeName });
   res.status(201).json(language);
 }));
 

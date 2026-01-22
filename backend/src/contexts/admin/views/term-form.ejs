@@ -20,7 +20,7 @@
     definition: '',
     scopeNote: '',
     example: '',
-    language: 'pt-BR',
+    language: 'Português (Brasil)',
     status: 'candidate',
     termType: 'preferred',
     collectionIds: []
@@ -30,7 +30,6 @@
   languages: [],
   showNewLanguageForm: false,
   newLanguage: {
-    code: '',
     name: '',
     nativeName: ''
   },
@@ -64,8 +63,8 @@
     }
   },
   async addNewLanguage() {
-    if (!this.newLanguage.code || !this.newLanguage.name) {
-      alert('Código e nome do idioma são obrigatórios.');
+    if (!this.newLanguage.name) {
+      alert('Nome do idioma é obrigatório.');
       return;
     }
 
@@ -82,9 +81,9 @@
         const language = await response.json();
         this.languages.push(language);
         this.languages.sort((a, b) => a.name.localeCompare(b.name));
-        this.form.language = language.code;
+        this.form.language = language.name;
         this.showNewLanguageForm = false;
-        this.newLanguage = { code: '', name: '', nativeName: '' };
+        this.newLanguage = { name: '', nativeName: '' };
         alert('Idioma adicionado com sucesso!');
       } else {
         const error = await response.json();
@@ -104,7 +103,7 @@
         definition: term.definition || '',
         scopeNote: term.scopeNote || '',
         example: term.example || '',
-        language: term.language || 'pt-BR',
+        language: term.language || 'Português (Brasil)',
         status: term.status || 'candidate',
         termType: term.termType || 'preferred',
         collectionIds: (term.collectionIds || []).map(id => id.toString())
@@ -334,8 +333,8 @@
                 x-model="form.language"
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-forest-600"
               >
-                <template x-for="language in languages" :key="language.code">
-                  <option :value="language.code" x-text="language.name"></option>
+                <template x-for="language in languages" :key="language._id">
+                  <option :value="language.name" x-text="language.name"></option>
                 </template>
               </select>
               <button
@@ -349,15 +348,6 @@
 
               <!-- New Language Form -->
               <div x-show="showNewLanguageForm" class="bg-forest-50 border border-forest-200 rounded-lg p-4 space-y-3">
-                <div>
-                  <label class="block text-xs font-medium text-gray-700 mb-1">Código do Idioma *</label>
-                  <input
-                    type="text"
-                    x-model="newLanguage.code"
-                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-forest-600"
-                    placeholder="Ex: tpg (Tupi-Guarani)"
-                  >
-                </div>
                 <div>
                   <label class="block text-xs font-medium text-gray-700 mb-1">Nome do Idioma *</label>
                   <input

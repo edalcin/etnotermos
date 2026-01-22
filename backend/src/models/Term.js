@@ -64,7 +64,7 @@ export const termSchema = {
       },
       language: {
         bsonType: 'string',
-        description: 'Language code of the term',
+        description: 'Language name of the term',
       },
       qualifier: {
         bsonType: 'string',
@@ -191,7 +191,7 @@ export function createTerm(data) {
     scopeNote: data.scopeNote || '',
     historyNote: data.historyNote || '',
     example: data.example || '',
-    language: data.language || 'pt-BR',
+    language: data.language || 'Português (Brasil)',
     qualifier: data.qualifier || '',
     termType: data.termType || TermType.PREFERRED,
     status: data.status || TermStatus.CANDIDATE,

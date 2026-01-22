@@ -9,14 +9,10 @@ import { ObjectId } from 'mongodb';
 export const languageSchema = {
   $jsonSchema: {
     bsonType: 'object',
-    required: ['code', 'name', 'createdAt'],
+    required: ['name', 'createdAt'],
     properties: {
       _id: {
         bsonType: 'objectId',
-      },
-      code: {
-        bsonType: 'string',
-        description: 'Language code (e.g., pt-BR, en, es)',
       },
       name: {
         bsonType: 'string',
@@ -33,25 +29,6 @@ export const languageSchema = {
     },
   },
 };
-
-/**
- * Validate language code
- */
-export function validateLanguageCode(code) {
-  if (!code || typeof code !== 'string') {
-    return { valid: false, error: 'Language code is required and must be a string' };
-  }
-
-  if (code.trim().length === 0) {
-    return { valid: false, error: 'Language code cannot be empty' };
-  }
-
-  if (code.length > 20) {
-    return { valid: false, error: 'Language code cannot exceed 20 characters' };
-  }
-
-  return { valid: true };
-}
 
 /**
  * Validate language name
@@ -76,11 +53,6 @@ export function validateLanguageName(name) {
  * Create a new language document
  */
 export function createLanguage(data) {
-  const codeValidation = validateLanguageCode(data.code);
-  if (!codeValidation.valid) {
-    throw new Error(codeValidation.error);
-  }
-
   const nameValidation = validateLanguageName(data.name);
   if (!nameValidation.valid) {
     throw new Error(nameValidation.error);
@@ -88,7 +60,6 @@ export function createLanguage(data) {
 
   return {
     _id: new ObjectId(),
-    code: data.code.trim(),
     name: data.name.trim(),
     nativeName: data.nativeName?.trim() || data.name.trim(),
     createdAt: new Date(),
@@ -100,32 +71,26 @@ export function createLanguage(data) {
  */
 export const defaultLanguages = [
   {
-    code: 'pt-BR',
     name: 'Português (Brasil)',
     nativeName: 'Português (Brasil)',
   },
   {
-    code: 'en',
     name: 'English',
     nativeName: 'English',
   },
   {
-    code: 'es',
     name: 'Español',
     nativeName: 'Español',
   },
   {
-    code: 'fr',
     name: 'Français',
     nativeName: 'Français',
   },
   {
-    code: 'de',
     name: 'Deutsch',
     nativeName: 'Deutsch',
   },
   {
-    code: 'it',
     name: 'Italiano',
     nativeName: 'Italiano',
   },
@@ -133,7 +98,6 @@ export const defaultLanguages = [
 
 export default {
   languageSchema,
-  validateLanguageCode,
   validateLanguageName,
   createLanguage,
   defaultLanguages,
