@@ -111,10 +111,16 @@ app.use((req, res) => {
 
 // Error handler
 app.use((err, req, res, next) => {
-  console.error('Admin server error:', err);
+  console.error('============================================');
+  console.error('Admin server error:');
+  console.error('Message:', err.message);
+  console.error('Name:', err.name);
+  console.error('Stack:', err.stack);
+  console.error('============================================');
   res.status(err.status || 500).json({
     error: {
-      message: config.isDevelopment ? err.message : 'Internal Server Error',
+      message: err.message || 'Internal Server Error',
+      name: err.name,
       ...(config.isDevelopment && { stack: err.stack }),
     },
   });

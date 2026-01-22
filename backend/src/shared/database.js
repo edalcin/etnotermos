@@ -28,17 +28,18 @@ async function ensureTextSearchIndex() {
     const indexes = await termsCollection.indexes();
 
     // Check if text search index already exists
-    const textIndexExists = indexes.some(idx => idx.name === 'etnotermos_text_search');
+    const existingIndex = indexes.find(idx => idx.name === 'etnotermos_text_search');
 
-    if (textIndexExists) {
-      // Check if the index has language_override (old version)
-      const existingIndex = indexes.find(idx => idx.name === 'etnotermos_text_search');
-      if (existingIndex && existingIndex.language_override) {
-        console.log('Dropping old text search index with language_override...');
-        await termsCollection.dropIndex('etnotermos_text_search');
-      } else {
-        console.log('✓ Text search index already exists');
+    if (existingIndex) {
+      // Check if the index has the correct language_override setting
+      // We need language_override to be '_textSearchLanguage' to prevent MongoDB
+      // from using the document's 'language' field (which contains human-readable names)
+      if (existingIndex.language_override === '_textSearchLanguage') {
+        console.log('✓ Text search index already exists with correct configuration');
         return;
+      } else {
+        console.log('Dropping old text search index (needs updated language_override)...');
+        await termsCollection.dropIndex('etnotermos_text_search');
       }
     }
 
@@ -63,7 +64,10 @@ async function ensureTextSearchIndex() {
           hiddenLabels: 1,
         },
         default_language: 'portuguese',
-        // No language_override to allow custom language codes
+        // Use a non-existent field to prevent MongoDB from using document's 'language' field
+        // This allows storing human-readable language names (e.g., "Português (Brasil)")
+        // without MongoDB trying to use them as text search language codes
+        language_override: '_textSearchLanguage',
       }
     );
     console.log('✓ Text search index created successfully');
