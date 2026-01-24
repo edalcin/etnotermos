@@ -63,5 +63,5 @@ Thumbs.db
 # backend/src/contexts/public/views/assets/styles.css
 # backend/src/contexts/admin/views/assets/styles.css
 
-# Security audit reports (local only, sensitive information)
-audit/SECURITY-REVIEW-*.md
+# Security audit reports and related files (local only, sensitive information)
+audit/
