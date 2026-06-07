@@ -55,12 +55,11 @@ publicServer.on('exit', (code, signal) => {
 
 adminServer.on('exit', (code, signal) => {
   if (code !== 0 && code !== null) {
-    console.error(`Admin server exited with code ${code}`);
+    console.error(`Admin server exited with code ${code} — check ADMIN_USERS and MONGODB_URI env vars`);
     publicServer.kill('SIGTERM');
     process.exit(code);
   }
 });
 
-console.log('Both servers started successfully');
-console.log('Public server: http://localhost:4000');
-console.log('Admin server: http://localhost:4001');
+console.log('Spawned public  server → http://localhost:4000 (initializing...)');
+console.log('Spawned admin   server → http://localhost:4001 (initializing...)');

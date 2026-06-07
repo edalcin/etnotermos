@@ -1,5 +1,7 @@
 version: '3.8'
 
+# Copy docker/.env.example → docker/.env and fill in ADMIN_USERS before running.
+
 services:
   etnotermos:
     build:
