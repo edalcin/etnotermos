@@ -39,17 +39,20 @@ router.get('/health', async (req, res) => {
   }
 });
 
+const AUDIO_FILENAME_RE = /^[A-Za-z0-9_-]+\.(mp3|wav)$/;
+const AUDIO_CONTENT_TYPES = { mp3: 'audio/mpeg', wav: 'audio/wav' };
+
 router.get('/audio/:filename', (req, res) => {
   const { filename } = req.params;
 
-  if (
-    filename.includes('..') ||
-    filename.includes('/') ||
-    filename.includes('%2e') ||
-    filename.includes('%2f')
-  ) {
+  if (!AUDIO_FILENAME_RE.test(filename)) {
     return res.status(400).json({ message: 'Invalid filename' });
   }
+
+  const ext = filename.split('.').pop();
+  res.setHeader('Content-Type', AUDIO_CONTENT_TYPES[ext]);
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
 
   const filePath = path.resolve(config.audioStoragePath, filename);
   res.sendFile(filePath, { root: '/' }, (err) => {

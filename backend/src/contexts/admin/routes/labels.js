@@ -5,11 +5,15 @@ import path from 'path';
 import { config } from '../../../config/index.js';
 import * as ConceptService from '../../../services/ConceptService.js';
 
+const ALLOWED_MIME_EXT = { 'audio/mpeg': '.mp3', 'audio/wav': '.wav' };
+
 const storage = multer.diskStorage({
   destination: config.audioStoragePath,
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${req.params.id}-${req.params.labelId}${ext}`);
+    const ext = ALLOWED_MIME_EXT[file.mimetype] ?? '.mp3';
+    const safeId = req.params.id.replace(/[^A-Za-z0-9_-]/g, '');
+    const safeLabelId = req.params.labelId.replace(/[^A-Za-z0-9_-]/g, '');
+    cb(null, `${safeId}-${safeLabelId}${ext}`);
   },
 });
 
@@ -17,7 +21,7 @@ const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    if (file.mimetype === 'audio/mpeg' || file.mimetype === 'audio/wav') {
+    if (Object.prototype.hasOwnProperty.call(ALLOWED_MIME_EXT, file.mimetype)) {
       cb(null, true);
     } else {
       const err = new Error('Somente arquivos audio/mpeg e audio/wav são aceitos');
