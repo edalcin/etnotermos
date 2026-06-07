@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Termos | EtnoTermos Admin</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+  <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"
+          integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
+          crossorigin="anonymous" defer></script>
+  <script src="https://unpkg.com/alpinejs@3.14.9/dist/cdn.min.js"
+          integrity="sha384-9Ax3MmS9AClxJyd5/zafcXXjxmwFhZCdsT6HJoJjarvCaAkJlk5QDzjLJm+Wdx5F"
+          crossorigin="anonymous" defer></script>
+</head>
+<body class="bg-forest-50 min-h-screen flex flex-col">
+  <%- include('../partials/header') %>
+
+  <main class="flex-grow container mx-auto px-4 py-8">
+
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-3xl font-bold text-forest-700">Termos</h1>
+        <% if (typeof candidateCount !== 'undefined' && candidateCount > 0) { %>
+        <p class="mt-1">
+          <span class="inline-flex items-center px-3 py-1 bg-yellow-100 text-yellow-800
+                       rounded-full text-sm font-medium">
+            <%= candidateCount %> candidatos aguardando revisão
+          </span>
+        </p>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="bg-white rounded-lg shadow-sm p-4 mb-6 flex flex-wrap gap-3 items-end">
+
+      <div class="flex-1 min-w-48">
+        <label class="block text-xs font-medium text-gray-600 mb-1">Status</label>
+        <select
+          name="status"
+          hx-get="/concepts"
+          hx-target="#concept-list"
+          hx-trigger="change"
+          hx-include="[name='status'],[name='sourceField'],[name='q']"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
+                 focus:outline-none focus:border-forest-600">
+          <option value="">Todos</option>
+          <option value="candidate" <%= (typeof filters !== 'undefined' && filters.status === 'candidate') ? 'selected' : '' %>>
+            Candidato
+          </option>
+          <option value="active" <%= (typeof filters !== 'undefined' && filters.status === 'active') ? 'selected' : '' %>>
+            Ativo
+          </option>
+          <option value="deprecated" <%= (typeof filters !== 'undefined' && filters.status === 'deprecated') ? 'selected' : '' %>>
+            Depreciado
+          </option>
+        </select>
+      </div>
+
+      <div class="flex-1 min-w-48">
+        <label class="block text-xs font-medium text-gray-600 mb-1">Campo semântico</label>
+        <select
+          name="sourceField"
+          hx-get="/concepts"
+          hx-target="#concept-list"
+          hx-trigger="change"
+          hx-include="[name='status'],[name='sourceField'],[name='q']"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
+                 focus:outline-none focus:border-forest-600">
+          <option value="">Todos</option>
+          <option value="comunidades.tipo">Tipos de Comunidades</option>
+          <option value="comunidades.plantas.nomeVernacular">Nomes Vernaculares de Plantas</option>
+          <option value="comunidades.plantas.tipoUso">Tipos de Uso de Plantas</option>
+          <option value="comunidades.atividadesEconomicas">Atividades Econômicas</option>
+        </select>
+      </div>
+
+      <div class="flex-1 min-w-48">
+        <label class="block text-xs font-medium text-gray-600 mb-1">Buscar</label>
+        <input
+          type="search"
+          name="q"
+          placeholder="Nome do termo..."
+          value="<%= (typeof filters !== 'undefined' && filters.q) ? filters.q : '' %>"
+          hx-get="/concepts"
+          hx-target="#concept-list"
+          hx-trigger="keyup changed delay:300ms, search"
+          hx-include="[name='status'],[name='sourceField'],[name='q']"
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
+                 focus:outline-none focus:border-forest-600">
+      </div>
+
+    </div>
+
+    <!-- Concept list (HTMX target) -->
+    <div id="concept-list">
+      <%- include('../partials/concept-rows', { concepts: data }) %>
+    </div>
+
+  </main>
+
+  <%- include('../partials/footer') %>
+</body>
+</html>

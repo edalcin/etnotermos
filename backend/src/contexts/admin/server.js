@@ -1,155 +1,99 @@
-// Admin Context Server for EtnoTermos (Port 4001 - Full CRUD)
-// Updated to support custom language codes
 import express from 'express';
-import cors from 'cors';
+import helmet from 'helmet';
 import compression from 'compression';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { config } from '../../config/index.js';
-import { connectToDatabase } from '../../shared/database.js';
-import { seedDefaultLanguages } from '../../services/LanguageService.js';
+import { config, validateConfig } from '../../config/index.js';
+import requireAuth from '../../lib/auth/basicAuth.js';
+import { requestLogger } from '../../lib/logger.js';
+import * as cron from '../../lib/scheduler/acquisitionCron.js';
+import * as AcquisitionService from '../../services/AcquisitionService.js';
+import indexRouter from './routes/index.js';
+import conceptsRouter from './routes/concepts.js';
+import labelsRouter from './routes/labels.js';
+import relationsRouter from './routes/relations.js';
+import acquisitionRouter from './routes/acquisition.js';
+import auditRouter from './routes/audit.js';
 
-// ES Module path resolution
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Create Express app
-const app = express();
+export function createApp(db) {
+  const app = express();
 
-// Trust proxy (for rate limiting behind reverse proxy)
-app.set('trust proxy', 1);
+  app.locals.db = db;
+  app.locals.currentPage = null;
 
-// Security headers middleware (custom for HTTP development)
-app.use((req, res, next) => {
-  // Content Security Policy without HTTPS upgrade
-  res.setHeader(
-    'Content-Security-Policy',
-    "default-src 'self'; " +
-    "style-src 'self' 'unsafe-inline'; " +
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com; " +
-    "img-src 'self' data: https:; " +
-    "font-src 'self' https: data:; " +
-    "connect-src 'self'"
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", 'https://unpkg.com'],
+          imgSrc: ["'self'", 'data:', 'https:'],
+          fontSrc: ["'self'", 'https:', 'data:'],
+          connectSrc: ["'self'"],
+        },
+      },
+    })
   );
-  // Basic security headers
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-  res.setHeader('X-XSS-Protection', '0');
-  next();
-});
-app.use(cors({ origin: config.corsOrigins }));
-app.use(compression());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+  app.use(compression());
+  app.use(express.urlencoded({ extended: true }));
+  app.use(express.json());
+  app.use(requestLogger);
 
-// Serve static assets
-app.use('/assets', express.static(path.join(__dirname, 'views', 'assets')));
+  app.use('/assets', express.static(path.join(__dirname, 'views', 'assets')));
 
-// Configure EJS template engine
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
+  app.set('view engine', 'ejs');
+  app.set('views', path.join(__dirname, 'views'));
 
-// Health check endpoint (no auth required)
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', service: 'admin', port: config.adminPort });
-});
-
-// Import view controller
-import {
-  renderDashboard,
-  renderTermsList,
-  renderTermForm,
-  renderRelationshipsList,
-  renderRelationshipForm,
-  renderCollectionsList,
-  renderCollectionForm,
-  renderAuditLogs,
-} from '../../api/controllers/AdminViewController.js';
-
-// Import admin auth middleware for view routes
-import adminAuth from '../../api/middleware/adminAuth.js';
-
-// Apply authentication to all view routes
-app.use('/', adminAuth);
-
-// View routes (HTML pages)
-app.get('/', renderDashboard);
-app.get('/terms', renderTermsList);
-app.get('/terms/new', renderTermForm);
-app.get('/terms/:id/edit', renderTermForm);
-app.get('/relationships', renderRelationshipsList);
-app.get('/relationships/new', renderRelationshipForm);
-app.get('/collections', renderCollectionsList);
-app.get('/collections/new', renderCollectionForm);
-app.get('/collections/:id/edit', renderCollectionForm);
-app.get('/audit', renderAuditLogs);
-
-// Import API routes
-import termsRouter from '../../api/admin/terms.js';
-import relationshipsRouter from '../../api/admin/relationships.js';
-import notesRouter from '../../api/admin/notes.js';
-import sourcesRouter from '../../api/admin/sources.js';
-import collectionsRouter from '../../api/admin/collections.js';
-import dashboardRouter from '../../api/admin/dashboard.js';
-import auditLogsRouter from '../../api/admin/audit-logs.js';
-import languagesRouter from '../../api/admin/languages.js';
-
-// Register API routes under /api/v1 prefix
-app.use('/api/v1/admin/terms', termsRouter);
-app.use('/api/v1/admin/relationships', relationshipsRouter);
-app.use('/api/v1/notes', notesRouter); // Notes available to both public (GET) and admin
-app.use('/api/v1/sources', sourcesRouter); // Sources available to both public (GET) and admin
-app.use('/api/v1/collections', collectionsRouter); // Collections available to both public (GET) and admin
-app.use('/api/v1/admin/dashboard', dashboardRouter);
-app.use('/api/v1/admin/audit-logs', auditLogsRouter);
-app.use('/api/v1/admin/languages', languagesRouter);
-
-// 404 handler
-app.use((req, res) => {
-  res.status(404).render('404', { title: '404 - Page Not Found' });
-});
-
-// Error handler
-app.use((err, req, res, next) => {
-  console.error('============================================');
-  console.error('Admin server error:');
-  console.error('Message:', err.message);
-  console.error('Name:', err.name);
-  console.error('Stack:', err.stack);
-  console.error('============================================');
-  res.status(err.status || 500).json({
-    error: {
-      message: err.message || 'Internal Server Error',
-      name: err.name,
-      ...(config.isDevelopment && { stack: err.stack }),
-    },
+  app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok', service: 'admin', port: config.adminPort });
   });
-});
 
-// Start server
-async function startServer() {
-  try {
-    // Connect to database
-    await connectToDatabase();
-    console.log('Admin context: Database connected');
+  app.use(requireAuth);
 
-    // Seed default languages
-    await seedDefaultLanguages();
+  app.use('/', indexRouter);
+  app.use('/concepts', conceptsRouter);
+  app.use('/', labelsRouter);
+  app.use('/', relationsRouter);
+  app.use('/acquisition', acquisitionRouter);
+  app.use('/audit', auditRouter);
 
-    // Start listening
-    app.listen(config.adminPort, () => {
-      console.log(`🔒 EtnoTermos ADMIN interface running on port ${config.adminPort}`);
-      console.log(`   Environment: ${config.nodeEnv}`);
-      console.log(`   Access: http://localhost:${config.adminPort}`);
-      console.log(`   Default credentials: ${config.adminUsername} / ${config.adminPassword}`);
-    });
-  } catch (error) {
-    console.error('Failed to start admin server:', error);
-    process.exit(1);
-  }
+  app.use((err, req, res, next) => {
+    const code = err.code || err.status || 500;
+    const httpStatus = [400, 401, 403, 404, 409, 422].includes(code) ? code : 500;
+    return res.status(httpStatus).json({ error: err.message || 'Internal server error' });
+  });
+
+  return app;
 }
 
-// Start the server
-startServer();
+async function main() {
+  const errors = validateConfig();
+  if (errors.length > 0) {
+    errors.forEach((e) => console.error(`ERROR: ${e}`));
+    process.exit(1);
+  }
 
-export default app;
+  const { connect, getDb } = await import('../../shared/database.js');
+  await connect();
+  const db = getDb();
+
+  cron.start(AcquisitionService, db);
+
+  const app = createApp(db);
+  app.listen(config.adminPort, () => {
+    console.log(`EtnoTermos ADMIN interface running on port ${config.adminPort}`);
+    console.log(`Environment: ${config.nodeEnv}`);
+  });
+}
+
+const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
+if (isMain) {
+  main().catch((err) => {
+    console.error('Failed to start admin server:', err);
+    process.exit(1);
+  });
+}
