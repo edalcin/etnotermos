@@ -1,194 +1,366 @@
-# EtnoTermos - Plataforma de Gestão de Terminologia Etnobotânica
+# EtnoTermos — Plataforma de Curadoria de Vocabulário Controlado Etnobotânico
+## Versão 2.0
 
 <div align="center">
   <img src="docs/etnoImagens/etnotermosTrans.png" alt="etnoTermos Logo" width="200">
-  
 </div>
 
-## Motivação e justificativa
+**EtnoTermos v2.0** é um sistema integrado ao [etnoDB](https://github.com/edalcin/etnoDB) para aquisição, apresentação e curadoria de vocabulário controlado etnobotânico, operando sob o padrão **SKOS-XL** (Simple Knowledge Organization System — eXtension for Labels).
 
-O conhecimento e a ciência existente nas comunidades tradicionais do Brasil contém descrições, termos e práticas que expressam relações profundas com o ambiente e com as entidades que nele existem — incluindo as entidades biológicas. Preservar esse conhecimento de forma legítima e documentada é essencial para reconhecer, valorizar e proteger a memória cultural dessas comunidades, bem como para garantir transparência e justiça na repartição de benefícios decorrentes deste conhecimento. O EtnoTermos propõe criar e manter um repositório de termos e associações que registre com precisão as formas linguísticas, os contextos de uso e as relações comunitárias com estas entidades, promovendo a visibilidade das comunidades e oferecendo uma base confiável para pesquisa colaborativa, políticas públicas e mecanismos de repartição de benefícios justos e equitativos.
-
-## 🌿 Propósito
-
-O **EtnoTermos** é uma plataforma digital que preserva e organiza o conhecimento etnobotânico através de um sistema estruturado de glossários, vocabulários e tesauros. O sistema permite a criação de uma rede interconectada de termos que reflete as complexas relações entre entidades biológicas (plantas e animais), usos tradicionais e conhecimento cultural.
-
-### Conformidade com Padrões Internacionais
-
-O EtnoTermos segue as diretrizes da norma **ANSI/NISO Z39.19-2005 (R2010)** - *Guidelines for the Construction, Format, and Management of Monolingual Controlled Vocabularies*. Esta conformidade garante que o vocabulário etnobotânico construído seja:
-
-- **Interoperável**: Compatível com outros sistemas de organização do conhecimento
-- **Estruturado**: Seguindo princípios estabelecidos de seleção e forma de termos
-- **Sustentável**: Com práticas definidas de manutenção e evolução
-- **Profissional**: Alinhado com padrões bibliotecários e de ciência da informação reconhecidos internacionalmente
-
-A norma Z39.19 estabelece práticas para:
-- **Seleção de termos** (Section 6): Critérios de inclusão baseados em garantia literária, de usuário e organizacional
-- **Forma de termos** (Section 7): Convenções gramaticais, sintaxe e uso de singular/plural
-- **Relacionamentos** (Section 8): Estruturas de equivalência (USE/UF), hierárquicas (BT/NT) e associativas (RT)
-- **Notas e referências** (Section 10): Notas de escopo, definições, notas históricas e bibliográficas
-- **Controle de autoridade** (Section 9): Princípio "um conceito, um termo" e desambiguação
-- **Apresentação** (Section 11): Formatos de exibição alfabéticos, hierárquicos e facetados
-
-### Contexto dentro da etnoArquitetura
-
-O **EtnoTermos** faz parte da [etnoArquitetura](https://github.com/edalcin/etnoArquitetura), um ecossistema integrado de ferramentas para gestão, análise e preservação do conhecimento etnobotânico. A etnoArquitetura fornece a base conceitual e metodológica para organizar dados etnobotânicos de forma estruturada, garantindo interoperabilidade entre diferentes sistemas e promovendo a colaboração entre pesquisadores e comunidades tradicionais.
-
-Dentro deste ecossistema, o EtnoTermos se integra especialmente com o [etnoDB](https://github.com/edalcin/etnoDB), fornecendo um vocabulário robusto e controlado para a associação de plantas com suas formas de uso pelas comunidades tradicionais. Enquanto o etnoDB gerencia os dados relacionais e observacionais (ocorrências, usos, práticas), o EtnoTermos fornece a camada terminológica padronizada que garante consistência semântica e facilita a pesquisa e descoberta de conhecimento.
-
-### Inspiração
-
-Baseado no [TemaTres](https://github.com/tematres/TemaTres-Vocabulary-Server), o EtnoTermos adapta as melhores práticas de representação de conhecimento formal para o contexto específico da etnobotânica brasileira, incorporando padrões internacionais de construção de vocabulários controlados (ANSI/NISO Z39.19-2005).
-
-## 👥 Usuários-Alvo
-
-- **Pesquisadores em Etnobotânica**: Acesso completo para pesquisa e catalogação
-- **Estudantes de Graduação e Pós-graduação**: Interface educacional com recursos de orientação. Principais responsáveis pela alimentação e gestão dos dados
-- **Lideranças de Comunidades Tradicionais**: Foco na contribuição e validação de termos
-- **Sistemas Externos**: Integração via API para outros projetos de pesquisa
-
-## 🚀 Funcionalidades Principais
-
-### Gestão de Termos
-
-- **Criação e edição** de termos etnobotânicos com identificadores únicos
-- **Classificação hierárquica conforme Z39.19**:
-  - Relações de equivalência (USE/UF): termos preferenciais e não-preferenciais
-  - Relações hierárquicas (BT/NT): termos mais amplos e mais específicos
-  - Relações associativas (RT): termos relacionados tematicamente
-  - Suporte a polihierarquia (um termo pode ter múltiplos termos mais amplos)
-- **Relacionamentos múltiplos**: conexões n:n entre termos, com visualização gráfica
-- **Suporte multilíngue** para variações de nomenclatura
-- **Controle de autoridade**: um conceito, um termo preferencial
-- **Desambiguação de homógrafos**: qualificadores para termos idênticos com significados diferentes
-
-### Sistema de Notas (Z39.19 Section 10)
-
-Seis tipos de anotações contextuais seguindo a norma Z39.19:
-
-- 📝 **Nota de escopo** (Z39.19 10.2): Define os limites e contexto de uso do termo
-- 👨‍💼 **Nota do catalogador**: Observações do pesquisador sobre o processo de catalogação
-- 📚 **Nota histórica** (Z39.19 10.4): Documenta evolução e mudanças do termo ao longo do tempo
-- 📖 **Nota bibliográfica**: Referências acadêmicas onde o termo é citado
-- 🔒 **Nota privada**: Informações restritas (visível apenas ao autor e administradores)
-- ✏️ **Nota de definição** (Z39.19 10.3): Definição formal do conceito representado pelo termo
-- 💡 **Nota de exemplo** (Z39.19 10.5): Casos de uso práticos e contextos de aplicação
-
-### Gestão de Fontes e Atribuição
-
-- **Rastreabilidade da Origem**: O sistema registrará a proveniência de cada informação, seja ela uma referência bibliográfica, um conhecimento tradicional compartilhado por um líder comunitário ou uma anotação de um pesquisador.
-- **Fontes Bibliográficas**: Gerenciamento de referências acadêmicas com estrutura de citação padrão (autor, título, ano, etc.).
-- **Conhecimento Tradicional**: Atribuição clara e respeitosa do conhecimento a seus detentores, garantindo o reconhecimento da autoria e a governança dos dados em conformidade com os princípios CARE.
-- **Relacionamentos n:n**: Conexões flexíveis entre termos, notas e suas respectivas fontes, permitindo uma rede de citações completa.
-
-### Recursos Avançados
-
-- 🔍 **Busca avançada** com suporte a pesquisa em todos os campos de termos, notas e relacionamentos
-- 📊 **Dashboard administrativo** com métricas e analytics
-- 📤 **Exportação** em padrões abertos (SKOS, RDF, Dublin Core, CSV)
-- 🔌 **APIs REST** para integração com sistemas externos
-
-## 🎯 Capacidade do Sistema
-
-- **Escala**: Suporte para um número massivo de termos
-- **Usuários**: Otimizado para pequenos grupos com baixa concorrência
-- **Performance**: Busca e navegação eficientes em grandes volumes de dados
-
-## 🔒 Integridade e Controle
-
-- **Proteção de dados**: Avisos antes de exclusão de termos com dependências hierárquicas
-- **Auditoria**: Registro completo de modificações para integridade da pesquisa e rastreabilidade
-- **Validação**: Garantia de consistência nas relações entre termos (reciprocidade, prevenção de ciclos)
-
-## 🌐 Integração e Interoperabilidade
-
-### APIs Disponíveis
-
-- Recuperação de termos e relacionamentos
-- Funcionalidades de busca avançada
-- Consultas de dados com autenticação segura
-- Documentação completa para desenvolvedores
-
-### Formatos de Export
-
-- **SKOS** (Simple Knowledge Organization System)
-- **RDF** (Resource Description Framework)
-- **Dublin Core** para metadados
-- **CSV** para análise de dados
-
-## 🐳 Implementação
-
-O sistema é containerizado com Docker e pode ser implantado de diversas formas, garantindo:
-
-- Implantação consistente
-- Escalabilidade
-- Manutenção simplificada
-- Ambiente reproduzível
-
-### Guias de Instalação
-
-- **[Desenvolvimento Local](docs/desenvolvimento.md)**: Instruções completas para desenvolvedores
-- **[Deployment em Produção](docs/deployment.md)**: Guia para implantação em servidores Linux
-- **[Instalação no UNRAID](docs/instalacao-unraid.md)**: Passo a passo via interface web do UNRAID
-
-### Tecnologias
-
-- **Backend**: Node.js 20 LTS, Express.js, MongoDB 7.0+
-- **Frontend**: HTMX, Alpine.js, Tailwind CSS (tema "forest", integrado com etnoDB)
-- **Visualização**: Cytoscape.js para grafos de relacionamentos
-- **Deploy**: Docker, Docker Compose
-
-## 🎓 Impacto Acadêmico
-
-O EtnoTermos contribui para:
-
-- **Preservação** do conhecimento tradicional sobre plantas
-- **Padronização** da terminologia etnobotânica seguindo normas internacionais (ANSI/NISO Z39.19)
-- **Colaboração** entre pesquisadores e comunidades
-- **Acessibilidade** do conhecimento para futuras gerações
-- **Interoperabilidade** entre projetos de pesquisa através de formatos abertos e padrões estabelecidos
-- **Qualidade científica** através de controle de autoridade e práticas de construção de vocabulários controlados
-- **Sustentabilidade** com práticas documentadas de manutenção e evolução do vocabulário
+> **Padrão**: [W3C SKOS-XL](https://www.w3.org/TR/skos-reference/skos-xl.html) · [Especificação SKOS completa](docs/simple_knowledge_organization_system_skos.pdf)
 
 ---
 
-## 📖 Documentação
+## Motivação
 
-### Para Pesquisadores
+O conhecimento das comunidades tradicionais do Brasil expressa relações profundas entre povos, línguas e entidades biológicas. Preservar esse conhecimento de forma legítima exige uma arquitetura de informação que não seja colonizadora — que trate os termos das línguas indígenas como protagonistas, não como apêndices subordinados à nomenclatura científica ocidental.
 
-- [Especificação completa](specs/main/spec.md) - Detalhamento funcional do sistema
-- [Modelo de dados](specs/main/data-model.md) - Estrutura de dados e relacionamentos
-- [Diretrizes de construção do vocabulário (Z39.19)](specs/main/vocabulary-guidelines.md) - Padrões de catalogação
-- [Exemplo de registro (JSON)](docs/examples/term-record-example.json) - Estrutura de um termo completo
-- [Conformidade com princípios CARE](docs/care-compliance.md) - Governança de dados indígenas
-
-### Para Administradores
-
-- **[Instalação no UNRAID](docs/instalacao-unraid.md)** - Guia passo a passo via interface web
-- [Deployment em Produção](docs/deployment.md) - Implantação em servidores Linux
-- Backup e recuperação de dados
-- Monitoramento e manutenção
-
-### Para Desenvolvedores
-
-- **[Guia de Desenvolvimento](docs/desenvolvimento.md)** - Setup local, testes, contribuição
-- [Arquitetura do sistema](specs/main/spec.md#arquitetura) - Design técnico
-- Stack tecnológica e padrões de código
-- APIs e formatos de exportação
-
-## 🔗 Padrões e Referências
-
-- [ANSI/NISO Z39.19-2005 (R2010)](docs/ANSI-NISO%20Z39.19-2005%20(R2010).pdf) - Guidelines for the Construction, Format, and Management of Monolingual Controlled Vocabularies
-- [TemaTres Vocabulary Server](https://github.com/tematres/TemaTres-Vocabulary-Server) - Inspiração inicial
-- [CARE Principles for Indigenous Data Governance](https://www.gida-global.org/care) - Princípios de governança de dados
-- [SKOS - Simple Knowledge Organization System](https://www.w3.org/2004/02/skos/) - Padrão W3C para vocabulários
-- [etnoArquitetura](https://github.com/edalcin/etnoArquitetura) - Ecossistema integrado de ferramentas etnobotânicas
-- [etnoDB](https://github.com/edalcin/etnoDB) - Sistema de gestão de dados etnobotânicos
+O EtnoTermos nasce desta necessidade: gerenciar os termos que o [etnoDB](https://github.com/edalcin/etnoDB) acumula diretamente na literatura científica, submetendo-os a um processo estruturado de curadoria segundo o padrão SKOS-XL, com governança de dados alinhada aos Princípios CARE.
 
 ---
 
-**Status do Projeto**: Em desenvolvimento ativo
+## Por que SKOS-XL (e não ANSI/NISO Z39.19)
+
+A versão 1.0 seguia o padrão ANSI/NISO Z39.19-2005, concebido para vocabulários monolíngues. Para o conhecimento tradicional associado à biodiversidade, esse padrão apresenta limitações estruturais críticas:
+
+### Rótulos como objetos de primeira classe
+
+No SKOS padrão (e no Z39.19), rótulos são literais de texto simples:
+
+```turtle
+skos:prefLabel "Ayahuasca"@pt
+skos:altLabel  "Nixi Pae"@hux
+```
+
+Não é possível anotar esses rótulos. Não dá para registrar *de qual povo vem "Nixi Pae"*, *qual a ortografia validada*, ou *qual o nível de acesso* a esse conhecimento.
+
+O **SKOS-XL** resolve isso transformando cada rótulo em um recurso RDF próprio:
+
+```turtle
+ex:label_nixi_pae a skosxl:Label ;
+    skosxl:literalForm "Nixi Pae"@hux ;
+    ex:sourcePeople    "Huni Kuĩ (Kaxinawá)" ;
+    ex:sourceRegion    "Alto Juruá, Acre" ;
+    ex:accessLevel     "public" ;
+    ex:audioPath       "/audio/nixi-pae-huni-kui.mp3" ;
+    ex:validatedBy     "ASKARJ" .
+```
+
+### Multiplicidade linguística real
+
+Termos como *ayahuasca*, *cipó-mariri*, *nixi pae*, *daime* e *hoasca* são rótulos do **mesmo conceito**, mas cada um carrega origem étnica, língua e contexto cerimonial distintos. Com SKOS-XL, cada rótulo recebe atribuição própria — o que era impossível com literais simples.
+
+### Controle de acesso por rótulo (Princípios CARE)
+
+O SKOS-XL permite definir `accessLevel` individualmente por rótulo:
+
+- **`public`** — aberto para consulta na internet
+- **`restricted`** — visível apenas a pesquisadores autorizados (SisGen/comunidade)
+- **`sacred`** — visível apenas aos membros da comunidade detentora
+
+Isso implementa diretamente o princípio **Authority to Control** do CARE: a comunidade decide qual denominação do seu conhecimento pode ser divulgada e em que nível.
+
+### Relações entre rótulos (labelRelation)
+
+`skosxl:labelRelation` permite modelar relações etimológicas e de origem entre denominações:
+
+```turtle
+ex:label_jurema_pt skosxl:labelRelation ex:label_jurema_kariri .
+# O rótulo em Tupí/Kariri é a forma de origem; o português é empréstimo.
+```
+
+### Interoperabilidade Darwin Core e JSON-LD
+
+`dwc:vernacularName` pode ser mapeado para `skosxl:Label`, permitindo que nomes vernáculos tenham a riqueza de anotação do XL e sejam consumidos por GBIF, WFO e outras infraestruturas de biodiversidade via JSON-LD.
+
+---
+
+## Por que MongoDB
+
+O MongoDB é a escolha técnica mais adequada para a natureza plural e dinâmica deste domínio:
+
+### Pluralismo taxonômico
+
+Em vez de tabelas rígidas, um único documento pode conter simultaneamente a classificação ocidental e múltiplas etnotaxonomias, sem que um esquema interfira no outro.
+
+### Modelagem dinâmica de línguas indígenas
+
+O modelo de documentos BSON/JSON permite que atributos variem entre registros. Línguas com arquivos de áudio, notas rituais ou variações ortográficas coexistem com registros mais simples — sem penalidade de esquema.
+
+### Compatibilidade com JSON-LD
+
+O MongoDB armazena documentos JSON nativamente, permitindo guardar e consultar estruturas JSON-LD diretamente — facilitando a interoperabilidade com padrões de Web Semântica.
+
+### Hierarquias com Array of Ancestors
+
+Para representar hierarquias de etnotaxonomias, o padrão *Array of Ancestors* armazena toda a cadeia de ancestrais no documento. Isso permite descobrir a linha hierárquica completa de um conceito com uma única consulta, sem recursividade custosa em tempo de execução.
+
+```json
+{
+  "uri": "etnotermos:plantas-medicinais/jatoba",
+  "prefLabels": [{ "literalForm": "jatobá", "language": "pt", "accessLevel": "public" }],
+  "broader": ["<id-plantas-medicinais>"],
+  "ancestors": ["<id-plantas-medicinais>", "<id-usos-tradicionais>"]
+}
+```
+
+### $graphLookup para travessias complexas
+
+O operador `$graphLookup` do MongoDB permite navegação recursiva em grafos de relacionamentos — útil para consultas como *"todos os conceitos relacionados ao uso medicinal que possuem rótulo em língua indígena"*.
+
+---
+
+## Integração com etnoDB
+
+O EtnoTermos e o [etnoDB](https://github.com/edalcin/etnoDB) compartilham banco de dados, identidade visual e vocabulário:
+
+| Aspecto | Detalhe |
+|---|---|
+| **Database** | MongoDB `etnodb` (instância compartilhada) |
+| **Coleção etnotermos** | `etnotermos` (separada de `etnodb`) |
+| **Coleção fonte** | `etnodb` (lida pelo contexto de Aquisição) |
+| **Campos gerenciados** | `comunidades.tipo`, `comunidades.plantas.nomeVernacular`, `comunidades.plantas.tipoUso`, `comunidades.atividadesEconomicas` |
+| **Identidade visual** | Tema `forest` (Tailwind CSS) — mesmas cores, fontes, componentes |
+
+O etnoDB coleta dados secundários de artigos científicos. O EtnoTermos consome esses dados automaticamente via contexto de Aquisição, transformando valores brutos em conceitos SKOS-XL candidatos. Os curadores então elevam, relacionam e enriquecem esses conceitos via interface de Curadoria.
+
+---
+
+## Arquitetura — C4 Model
+
+### Nível 1 — Contexto do Sistema
+
+```mermaid
+graph TD
+    U1["🔍 Público / Pesquisador\n(acesso anônimo)"]
+    U2["✏️ Curador\n(autenticado)"]
+    ET["EtnoTermos v2.0\n[Sistema]\nAquisição · Apresentação · Curadoria\nde vocabulário controlado SKOS-XL"]
+    EDB["etnoDB\n[Sistema externo]\nBase de dados etnobotânicos\nportão 3001–3003"]
+    MDB[("MongoDB\n[Banco de Dados]\netnodb")]
+
+    U1 -->|"Consulta termos\n(porta 4000)"| ET
+    U2 -->|"Cura e valida termos\n(porta 4001)"| ET
+    ET -->|"Lê vocabulário bruto\n(coleção etnodb)"| MDB
+    ET -->|"Persiste conceitos SKOS-XL\n(coleção etnotermos)"| MDB
+    EDB -->|"Escreve registros\n(coleção etnodb)"| MDB
+
+    style ET fill:#16a34a,color:#fff
+    style EDB fill:#0369a1,color:#fff
+    style MDB fill:#4d7c0f,color:#fff
+```
+
+### Nível 2 — Containers
+
+```mermaid
+graph TD
+    subgraph EtnoTermos["EtnoTermos v2.0"]
+        direction TB
+        PUB["Interface Pública\n[Express.js + EJS]\nPorta 4000\nLeitura apenas, sem auth"]
+        ADM["Interface Admin\n[Express.js + EJS]\nPorta 4001\nAuth bcrypt, curadoria CRUD"]
+    end
+
+    subgraph Shared["Banco Compartilhado"]
+        MDB[("MongoDB etnodb\n[Banco de Dados]\ncoleções: etnotermos\netnotermos_acquisition_log\netnotermos_audit_log")]
+    end
+
+    subgraph EtnoDB["etnoDB (externo)"]
+        EDBAPP["Aplicação etnoDB\nPortas 3001–3003"]
+        EDBCOL[("coleção etnodb")]
+    end
+
+    PUB -->|"findMany, findById\n(somente active)"| MDB
+    ADM -->|"CRUD completo + audit"| MDB
+    ADM -->|"Aquisição periódica\n(cron + on-demand)"| EDBCOL
+    EDBAPP --> EDBCOL
+
+    style PUB fill:#dcfce7,color:#166534
+    style ADM fill:#fef9c3,color:#854d0e
+    style MDB fill:#4d7c0f,color:#fff
+    style EDBCOL fill:#1d4ed8,color:#fff
+```
+
+### Nível 3 — Componentes
+
+#### Contexto de Aquisição (dentro do Admin)
+
+```mermaid
+graph LR
+    CRON["Cron Scheduler\n[node-cron]\nexecução periódica"]
+    ROUTE["POST /acquisition/run\n[Express Route]"]
+    SVC["AcquisitionService\n[Serviço]\nnormalização + dedup"]
+    ETNCOL[("coleção etnodb\n(fonte)")]
+    TERMCOL[("coleção etnotermos\n(destino)")]
+    LOGCOL[("etnotermos_acquisition_log")]
+
+    CRON --> SVC
+    ROUTE --> SVC
+    SVC -->|"$toLower + trim"| ETNCOL
+    SVC -->|"upsert por literalForm"| TERMCOL
+    SVC -->|"log success/failure"| LOGCOL
+```
+
+#### Contexto de Apresentação (porta 4000)
+
+```mermaid
+graph LR
+    REQ["GET /\nGET /:id\n[Express Routes]"]
+    CS["ConceptService\n[Serviço]\nfindMany, findById"]
+    SS["SearchService\n[Serviço]\nbusca por texto"]
+    COL[("coleção etnotermos\n(somente active)")]
+    FILTER["Filtro accessLevel\n(omite sacred/restricted)"]
+
+    REQ --> CS
+    REQ --> SS
+    CS --> FILTER
+    SS --> FILTER
+    FILTER --> COL
+```
+
+#### Contexto de Curadoria (porta 4001)
+
+```mermaid
+graph LR
+    ROUTES["Routes Admin\n[Express]\n/concepts /acquisition /audit"]
+    CS["ConceptService\n[Serviço]\nCRUD + otimistic locking"]
+    AS["AuditService\n[Serviço]\nregistro por campo"]
+    ACQS["AcquisitionService\n[Serviço]\nrun + status"]
+    VALID["SKOS-XL Validation\n[Lib]\nuniqueness, cycle, prefLabel"]
+    COL[("coleção etnotermos")]
+    AUDIT[("etnotermos_audit_log")]
+
+    ROUTES --> CS
+    ROUTES --> AS
+    ROUTES --> ACQS
+    CS --> VALID
+    CS --> COL
+    CS -->|"version field\n(optimistic lock)"| COL
+    AS --> AUDIT
+```
+
+---
+
+## Modelo de Conceito SKOS-XL
+
+```json
+{
+  "_id": "ObjectId",
+  "uri": "etnotermos:tipo-comunidade/indigena",
+  "status": "candidate | active | deprecated",
+  "sourceFields": ["comunidades.tipo"],
+  "prefLabels": [
+    {
+      "_id": "ObjectId",
+      "literalForm": "indígena",
+      "language": "pt",
+      "type": "pref",
+      "accessLevel": "public | restricted | sacred",
+      "audioPath": null,
+      "labelRelations": [],
+      "createdAt": "ISODate",
+      "updatedAt": "ISODate"
+    }
+  ],
+  "altLabels": [],
+  "hiddenLabels": [],
+  "definition": "",
+  "scopeNote": "",
+  "historyNote": "",
+  "broader": ["ObjectId"],
+  "narrower": ["ObjectId"],
+  "related": ["ObjectId"],
+  "ancestors": ["ObjectId"],
+  "replacedBy": null,
+  "version": 1,
+  "createdAt": "ISODate",
+  "updatedAt": "ISODate"
+}
+```
+
+**Destaques do modelo:**
+- `prefLabels[]` — rótulos como objetos (SKOS-XL), não literais
+- `accessLevel` por rótulo — governa visibilidade individual (Princípios CARE)
+- `ancestors[]` — Array of Ancestors para O(1) em consultas hierárquicas
+- `version` — campo de otimistic locking (conflito → HTTP 409)
+- `status: candidate` — todo conceito recém-adquirido aguarda curadoria
+
+---
+
+## Portas e Perfis de Acesso
+
+| Contexto | Porta | Auth | Capacidades |
+|---|---|---|---|
+| Apresentação | 4000 | Nenhuma | Listar e buscar conceitos `active`; omite rótulos `sacred`/`restricted` |
+| Curadoria | 4001 | bcrypt (basic auth) | CRUD completo, aquisição, trilha de auditoria, deprecação |
+
+---
+
+## Stack Tecnológica
+
+- **Backend**: Node.js 20 LTS + Express.js + MongoDB Driver 6.x
+- **Frontend**: HTMX 2.x + Alpine.js 3.x + Tailwind CSS 3.x (tema `forest`, idêntico ao etnoDB)
+- **Template Engine**: EJS (server-side rendering)
+- **Banco de Dados**: MongoDB 7.0+, database `etnodb`
+- **Visualização**: Cytoscape.js (grafos de relacionamentos)
+- **Testes**: Jest + Supertest + mongodb-memory-server
+- **Deploy**: Docker (Alpine Linux)
+
+---
+
+## Instalação e Desenvolvimento
+
+```bash
+# Backend
+cd backend
+npm install
+npm run dev:public    # Interface pública  — porta 4000
+npm run dev:admin     # Interface admin    — porta 4001
+npm test
+
+# Frontend (build CSS Tailwind)
+cd frontend
+npm install
+npm run build:css     # Build CSS
+npm run watch:css     # Watch mode
+
+# Docker
+docker-compose up -d  # Sobe etnotermos + MongoDB
+docker-compose down
+```
+
+Documentação detalhada:
+- [Desenvolvimento local](docs/desenvolvimento.md)
+- [Deployment em produção](docs/deployment.md)
+- [Instalação no UNRAID](docs/instalacao-unraid.md)
+
+---
+
+## Princípios CARE
+
+O EtnoTermos implementa os Princípios CARE para dados de povos indígenas:
+
+| Princípio | Implementação |
+|---|---|
+| **C**ollective Benefit | Vocabulário gerenciado pelas próprias comunidades via interface de curadoria |
+| **A**uthority to Control | `accessLevel` por rótulo: `public`, `restricted`, `sacred` |
+| **R**esponsibility | Trilha de auditoria completa por campo e por responsável |
+| **E**thics | Aquisição não-invasiva (leitura de dados já publicados no etnoDB) |
+
+---
+
+## Referências e Padrões
+
+- [W3C SKOS-XL](https://www.w3.org/TR/skos-reference/skos-xl.html) — Simple Knowledge Organization System eXtension for Labels
+- [Especificação SKOS (PDF)](docs/simple_knowledge_organization_system_skos.pdf) — Referência completa
+- [Princípios CARE](https://www.gida-global.org/care) — Governança de dados indígenas
+- [Darwin Core](https://dwc.tdwg.org/) — Interoperabilidade com biodiversidade
+- [Protocolo de Nagoya](https://www.cbd.int/abs/) — Repartição de benefícios
+- [etnoArquitetura](https://github.com/edalcin/etnoArquitetura) — Ecossistema integrado
+- [etnoDB](https://github.com/edalcin/etnoDB) — Sistema fonte de dados etnobotânicos
+
+---
+
+**Status**: v2.0 em desenvolvimento ativo
 
 **Licença**: A definir
 
-**Contato**: [GitHub Issues](https://github.com/edalcin/etnotermos/issues)
+**Contato**: [GitHub Issues](https://github.com/edalcin/etnotermos/issues) · edalcin@jbrj.gov.br

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confirmar Depreciação | EtnoTermos Admin</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body class="bg-forest-50 min-h-screen flex flex-col">
+  <%- include('../partials/header') %>
+
+  <main class="flex-grow container mx-auto px-4 py-8">
+    <div class="bg-white rounded-lg shadow-md p-8 max-w-2xl">
+      <h2 class="text-2xl font-bold text-red-700 mb-4">Conceitos órfãos detectados</h2>
+      <p class="text-gray-600 mb-6">
+        Os seguintes conceitos têm este como único pai hierárquico. Ao deprecar, ficarão órfãos:
+      </p>
+
+      <ul class="mb-6 space-y-2">
+        <% (orphans || []).forEach(function(orphan) { %>
+        <li class="flex items-center gap-3 p-3 bg-red-50 rounded border border-red-200">
+          <span class="font-mono text-sm text-gray-500"><%= orphan._id %></span>
+          <span class="text-gray-800">
+            <%= orphan.prefLabels && orphan.prefLabels[0] ? orphan.prefLabels[0].literalForm : '(sem rótulo)' %>
+          </span>
+        </li>
+        <% }) %>
+      </ul>
+
+      <form method="POST" action="/concepts/<%= conceptId %>/deprecate">
+        <input type="hidden" name="version" value="<%= version %>">
+        <input type="hidden" name="replacedById" value="<%= replacedById %>">
+        <input type="hidden" name="confirmedOrphans" value="true">
+
+        <div class="flex gap-4">
+          <button type="submit"
+            class="px-6 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors">
+            Confirmar Depreciação
+          </button>
+          <a href="/concepts/<%= conceptId %>"
+            class="px-6 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors">
+            Cancelar
+          </a>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <%- include('../partials/footer') %>
+</body>
+</html>

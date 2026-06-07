@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="<%= concept.prefLabel %> — EtnoTermos">
+  <title><%= concept.prefLabel %> — EtnoTermos</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+  <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"
+          integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
+          crossorigin="anonymous" defer></script>
+  <script src="https://unpkg.com/alpinejs@3.14.9/dist/cdn.min.js"
+          integrity="sha384-9Ax3MmS9AClxJyd5/zafcXXjxmwFhZCdsT6HJoJjarvCaAkJlk5QDzjLJm+Wdx5F"
+          crossorigin="anonymous" defer></script>
+</head>
+<body class="bg-forest-50 min-h-screen flex flex-col">
+
+  <%- include('partials/header') %>
+
+  <main class="flex-grow container mx-auto px-4 py-8">
+
+    <!-- Breadcrumb -->
+    <nav class="text-sm text-gray-500 mb-6">
+      <a href="/" class="hover:text-forest-600">Início</a>
+      <span class="mx-2">/</span>
+      <a href="/concepts" class="hover:text-forest-600">Termos</a>
+      <span class="mx-2">/</span>
+      <span class="text-gray-800"><%= concept.prefLabel %></span>
+    </nav>
+
+    <% if (concept.status === 'deprecated') { %>
+    <!-- Deprecated banner -->
+    <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg">
+      <p class="text-red-800 font-medium">Este termo foi depreciado.</p>
+      <% if (concept.replacedBy) { %>
+      <p class="text-red-700 text-sm mt-1">
+        Use:
+        <a href="/concepts/<%= concept.replacedBy._id %>"
+           class="underline font-medium"><%= concept.replacedBy.prefLabel %></a>
+      </p>
+      <% } %>
+    </div>
+    <% } %>
+
+    <!-- Main card -->
+    <div class="bg-white rounded-lg shadow-md p-8 mb-6">
+
+      <!-- Heading -->
+      <h1 class="text-4xl font-bold text-forest-700 mb-3"><%= concept.prefLabel %></h1>
+
+      <!-- Meta badges -->
+      <div class="flex flex-wrap items-center gap-2 mb-6">
+        <% if (concept.prefLabelLanguage) { %>
+        <span class="px-3 py-1 bg-forest-100 text-forest-800 text-sm rounded-full font-medium">
+          <%= concept.prefLabelLanguage %>
+        </span>
+        <% } %>
+        <% if (concept.prefLabelSourcePeople) { %>
+        <span class="px-3 py-1 bg-amber-100 text-amber-800 text-sm rounded-full">
+          Povo: <%= concept.prefLabelSourcePeople %>
+        </span>
+        <% } %>
+        <%
+          const statusClasses = {
+            active: 'bg-green-100 text-green-800',
+            candidate: 'bg-yellow-100 text-yellow-800',
+            deprecated: 'bg-red-100 text-red-800'
+          };
+          const statusLabels = {
+            active: 'Ativo', candidate: 'Candidato', deprecated: 'Depreciado'
+          };
+        %>
+        <span class="px-3 py-1 text-sm rounded-full <%= statusClasses[concept.status] || 'bg-gray-100 text-gray-700' %>">
+          <%= statusLabels[concept.status] || concept.status %>
+        </span>
+        <!-- Source field badges -->
+        <% (concept.sourceFields || []).forEach(field => { %>
+        <span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded border border-gray-200">
+          <%= field %>
+        </span>
+        <% }) %>
+      </div>
+
+      <!-- Audio pronunciation -->
+      <% const prefLabelWithAudio = (concept.prefLabels || []).find(l => l.audioPath); %>
+      <% if (prefLabelWithAudio) { %>
+      <div class="mb-5">
+        <p class="text-sm font-medium text-gray-600 mb-1">Pronúncia</p>
+        <audio controls src="/audio/<%= prefLabelWithAudio.audioPath %>"
+               class="w-64 h-9"></audio>
+      </div>
+      <% } %>
+
+      <!-- Collapsible note sections -->
+      <% const notes = [
+        { key: 'definition',  label: 'Definição',      icon: 'book' },
+        { key: 'scopeNote',   label: 'Nota de Escopo', icon: 'scope' },
+        { key: 'historyNote', label: 'Nota Histórica',  icon: 'history' },
+        { key: 'example',     label: 'Exemplo de Uso', icon: 'example' },
+      ]; %>
+
+      <% notes.forEach(note => { %>
+        <% if (concept[note.key]) { %>
+        <div x-data="{ open: '<%= note.key %>' === 'definition' }" class="mb-3 border border-gray-200 rounded-lg">
+          <button @click="open = !open"
+                  class="w-full flex justify-between items-center px-4 py-3 text-left
+                         hover:bg-forest-50 rounded-lg transition-colors">
+            <span class="font-medium text-gray-800"><%= note.label %></span>
+            <svg class="w-4 h-4 text-gray-500 transition-transform" :class="open && 'rotate-180'"
+                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          <div x-show="open" x-collapse class="px-4 pb-4 text-gray-700 leading-relaxed">
+            <%= concept[note.key] %>
+          </div>
+        </div>
+        <% } %>
+      <% }) %>
+
+    </div>
+
+    <!-- Alt labels -->
+    <% const publicAltLabels = (concept.altLabels || []).filter(l => l.accessLevel === 'public'); %>
+    <% if (publicAltLabels.length > 0) { %>
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <h2 class="text-lg font-semibold text-gray-800 mb-3">Nomes alternativos</h2>
+      <div class="space-y-2">
+        <% publicAltLabels.forEach(label => { %>
+        <div class="flex items-center gap-3 py-1">
+          <span class="font-medium text-gray-800"><%= label.literalForm %></span>
+          <% if (label.language) { %>
+          <span class="px-2 py-0.5 bg-forest-100 text-forest-700 text-xs rounded-full">
+            <%= label.language %>
+          </span>
+          <% } %>
+          <% if (label.sourcePeople) { %>
+          <span class="text-sm text-gray-500">Povo: <%= label.sourcePeople %></span>
+          <% } %>
+          <% if (label.audioPath) { %>
+          <audio controls src="/audio/<%= label.audioPath %>" class="h-7 w-40"></audio>
+          <% } %>
+        </div>
+        <% }) %>
+      </div>
+    </div>
+    <% } %>
+
+    <!-- Semantic relations -->
+    <% const hasRelations = (concept.broader && concept.broader.length > 0)
+                         || (concept.narrower && concept.narrower.length > 0)
+                         || (concept.related && concept.related.length > 0); %>
+    <% if (hasRelations) { %>
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <h2 class="text-lg font-semibold text-gray-800 mb-4">Relações semânticas</h2>
+
+      <% if (concept.broader && concept.broader.length > 0) { %>
+      <div class="mb-4">
+        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+          Conceito mais amplo
+        </h3>
+        <div class="flex flex-wrap gap-2">
+          <% concept.broader.forEach(b => { %>
+          <a href="/concepts/<%= b._id %>"
+             class="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm hover:bg-blue-100 transition-colors">
+            <%= b.prefLabel %>
+          </a>
+          <% }) %>
+        </div>
+      </div>
+      <% } %>
+
+      <% if (concept.narrower && concept.narrower.length > 0) { %>
+      <div class="mb-4">
+        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+          Conceitos mais específicos
+        </h3>
+        <div class="flex flex-wrap gap-2">
+          <% concept.narrower.forEach(n => { %>
+          <a href="/concepts/<%= n._id %>"
+             class="px-3 py-1 bg-purple-50 text-purple-700 rounded-full text-sm hover:bg-purple-100 transition-colors">
+            <%= n.prefLabel %>
+          </a>
+          <% }) %>
+        </div>
+      </div>
+      <% } %>
+
+      <% if (concept.related && concept.related.length > 0) { %>
+      <div>
+        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
+          Conceitos relacionados
+        </h3>
+        <div class="flex flex-wrap gap-2">
+          <% concept.related.forEach(r => { %>
+          <a href="/concepts/<%= r._id %>"
+             class="px-3 py-1 bg-forest-50 text-forest-700 rounded-full text-sm hover:bg-forest-100 transition-colors">
+            <%= r.prefLabel %>
+          </a>
+          <% }) %>
+        </div>
+      </div>
+      <% } %>
+    </div>
+    <% } %>
+
+  </main>
+
+  <%- include('partials/footer') %>
+
+</body>
+</html>

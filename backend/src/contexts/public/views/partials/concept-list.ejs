@@ -1,0 +1,28 @@
+<% if (!data || data.length === 0) { %>
+<div class="text-center py-12 text-gray-500">
+  <p class="text-lg">Nenhum termo encontrado.</p>
+  <% if (typeof q !== 'undefined' && q) { %>
+  <p class="text-sm mt-2">Tente uma busca diferente.</p>
+  <% } %>
+</div>
+<% } else { %>
+<div class="space-y-3">
+  <% data.forEach(function(concept) { %>
+  <a href="/concepts/<%= concept._id %>"
+     class="block bg-white rounded-lg shadow-sm border border-forest-100 p-4
+            hover:border-forest-400 hover:shadow-md transition-all">
+    <div class="font-semibold text-forest-700">
+      <%= concept.prefLabels && concept.prefLabels[0] ? concept.prefLabels[0].literalForm : '(sem rótulo)' %>
+    </div>
+    <% if (concept.sourceFields && concept.sourceFields.length > 0) { %>
+    <div class="text-xs text-gray-400 mt-1"><%= concept.sourceFields.join(', ') %></div>
+    <% } %>
+  </a>
+  <% }) %>
+</div>
+<% if (total > limit) { %>
+<div class="mt-4 text-center text-sm text-gray-500">
+  Mostrando <%= data.length %> de <%= total %> termos
+</div>
+<% } %>
+<% } %>

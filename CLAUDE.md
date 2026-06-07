@@ -36,6 +36,8 @@ O etnotermos gerencia vocabulário controlado para campos do etnoDB:
 - **Graph Visualization**: Cytoscape.js (para visualização de relacionamentos entre termos)
 - **Testing**: Jest, Supertest, mongodb-memory-server
 - **Deployment**: Docker (Alpine Linux, compatível com etnoDB)
+- Node.js 20 LTS (ES2022+) + Express.js, MongoDB Driver 6.x, HTMX 2.x, Alpine.js 3.x, Tailwind CSS 3.x (tema forest), EJS 3.x, multer, node-cron, bcrypt (001-quero-refatorar-toda)
+- MongoDB 7.0+ — banco `etnodb`, coleções `etnotermos`, `etnotermos_acquisition_log`, `etnotermos_audit_log` (001-quero-refatorar-toda)
 
 ## Architecture
 
@@ -132,12 +134,9 @@ docker-compose down     # Stop all services
 9. **Test-Driven Development**: Integration tests → Unit tests → Implementation
 
 ## Recent Changes
+- 001-quero-refatorar-toda: Added Node.js 20 LTS (ES2022+) + Express.js, MongoDB Driver 6.x, HTMX 2.x, Alpine.js 3.x, Tailwind CSS 3.x (tema forest), EJS 3.x, multer, node-cron, bcrypt
 - 2026-01-06: Integrated with etnoDB - shared database, visual identity, and controlled terms
 - 2026-01-06: Changed stack to HTMX+Alpine.js+EJS (matching etnoDB)
-- 2026-01-06: Updated ports to 4000/4001 to avoid conflict with etnoDB (3001/3002/3003)
-- 2026-01-05: Updated architecture to dual-port system (public + admin)
-- 2026-01-05: Removed Meilisearch dependency in favor of MongoDB text search
-- 2025-09-28: Initial project structure
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

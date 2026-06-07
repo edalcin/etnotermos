@@ -1,46 +1,31 @@
 version: '3.8'
 
 services:
-  mongodb:
-    image: mongo:7.0-alpine
-    container_name: etnotermos-mongodb
-    restart: unless-stopped
-    environment:
-      MONGO_INITDB_DATABASE: etnodb
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
-      - ../backend/scripts/init-mongo.sh:/docker-entrypoint-initdb.d/init-mongo.sh:ro
-    networks:
-      - etnotermos-network
-
   etnotermos:
     build:
       context: ..
       dockerfile: docker/etnotermos.Dockerfile
     container_name: etnotermos-app
     restart: unless-stopped
-    depends_on:
-      - mongodb
     environment:
       NODE_ENV: production
       PUBLIC_PORT: 4000
       ADMIN_PORT: 4001
-      MONGO_URI: mongodb://mongodb:27017/etnodb
+      # Shared MongoDB instance — same host as EtnoDB
+      MONGODB_URI: ${MONGODB_URI:-mongodb://host.docker.internal:27017/etnodb}
+      # JSON array: [{"username":"x","passwordHash":"$2b$10$..."}]
+      ADMIN_USERS: ${ADMIN_USERS}
+      AUDIO_STORAGE_PATH: /data/audio
+      ACQUISITION_CRON_SCHEDULE: ${ACQUISITION_CRON_SCHEDULE:-0 3 * * *}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
     ports:
-      - "4000:4000"  # Public interface (read-only)
-      - "4001:4001"  # Admin interface (full CRUD)
+      - "4000:4000"
+      - "4001:4001"
     volumes:
-      - ../backend:/app/backend
-      - /app/backend/node_modules
-    networks:
-      - etnotermos-network
+      - audio_data:/data/audio
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
 volumes:
-  mongodb_data:
+  audio_data:
     driver: local
-
-networks:
-  etnotermos-network:
-    driver: bridge
