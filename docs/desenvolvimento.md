@@ -1,341 +1,279 @@
-# Guia de Desenvolvimento - EtnoTermos
+# Guia de Desenvolvimento — EtnoTermos v2.0
 
-Este guia fornece instruções técnicas para desenvolvedores que desejam contribuir com o projeto EtnoTermos.
+## Pré-requisitos
 
-## 📋 Pré-requisitos
-
-- Node.js 20 LTS ou superior
-- MongoDB 7.0 ou superior
-- Docker e Docker Compose (opcional, mas recomendado)
+- Node.js 20 LTS
+- MongoDB 7.0+ (ou use o do etnoDB se já estiver rodando)
 - Git
 
-## 🚀 Quickstart para Desenvolvedores
+---
 
-### Configuração do Ambiente Local
+## Configuração do Ambiente Local
 
-1. **Clone o repositório:**
+### 1. Clonar e instalar
 
 ```bash
 git clone https://github.com/edalcin/etnotermos.git
 cd etnotermos
+
+# Backend
+cd backend && npm install && cd ..
+
+# Frontend (Tailwind CSS)
+cd frontend && npm install && cd ..
 ```
 
-2. **Configure as variáveis de ambiente:**
-
-Crie um arquivo `.env` na pasta `backend/`:
+### 2. Criar `backend/.env`
 
 ```bash
-# MongoDB
-MONGO_URI=mongodb://localhost:27017/etnodb
+# MongoDB — mesmo banco do etnoDB
+MONGODB_URI=mongodb://localhost:27017/etnodb
 
-# Server Ports
+# Portas
 PUBLIC_PORT=4000
 ADMIN_PORT=4001
 
-# Admin Authentication (opcional)
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=seu_senha_segura
+# Autenticação admin (escolha uma das opções abaixo)
 
-# Node Environment
+# Opção A — simples (recomendado para desenvolvimento)
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=senha123
+
+# Opção B — produção (JSON com hash bcrypt pré-gerado)
+# ADMIN_USERS=[{"username":"admin","passwordHash":"$2b$10$..."}]
+
 NODE_ENV=development
 ```
 
-3. **Instale as dependências:**
+### 3. Subir MongoDB local (se necessário)
 
 ```bash
-# Backend
-cd backend
-npm install
-
-# Frontend (Tailwind CSS)
-cd ../frontend
-npm install
+docker run -d -p 27017:27017 --name mongo-dev mongo:7.0-alpine
 ```
 
-4. **Inicie o MongoDB:**
-
-Usando Docker:
-```bash
-docker run -d -p 27017:27017 --name etnotermos-mongo mongo:7.0
-```
-
-Ou use uma instância local/remota e ajuste o `MONGO_URI`.
-
-5. **Crie os índices do banco de dados:**
-
-```bash
-cd backend
-node scripts/create-indexes.js
-```
-
-6. **Popule o banco com dados de exemplo (opcional):**
-
-```bash
-# Dados gerais
-node scripts/seed.js
-
-# Vocabulário controlado para etnoDB
-node scripts/seed-controlled-vocab.js
-```
-
-7. **Compile o CSS (Frontend):**
+### 4. Compilar CSS
 
 ```bash
 cd frontend
-npm run build:css
+npm run watch:css   # watch mode durante desenvolvimento
+# ou
+npm run build:css   # build único
 ```
 
-Para desenvolvimento com watch mode:
-```bash
-npm run watch:css
-```
-
-8. **Inicie os servidores:**
+### 5. Iniciar servidores
 
 Em terminais separados:
 
 ```bash
-# Servidor Público (porta 4000)
-cd backend
-npm run dev:public
+# Terminal 1 — Interface Pública (porta 4000)
+cd backend && npm run dev:public
 
-# Servidor Admin (porta 4001)
-cd backend
-npm run dev:admin
+# Terminal 2 — Interface Admin (porta 4001)
+cd backend && npm run dev:admin
 ```
 
-9. **Acesse a aplicação:**
+Acesso:
+- Pública (read-only, sem login): http://localhost:4000
+- Admin (curadoria, CRUD): http://localhost:4001
+- Health check: http://localhost:4000/health
 
-- Interface Pública (read-only): http://localhost:4000
-- Interface Admin (CRUD): http://localhost:4001
-- Health Check: http://localhost:4000/health
+---
 
-### Usando Docker Compose (Alternativa Recomendada)
-
-1. **Inicie todos os serviços:**
-
-```bash
-docker-compose -f docker/docker-compose.yml up -d
-```
-
-2. **Acesse a aplicação:**
-
-- Interface Pública: http://localhost:4000
-- Interface Admin: http://localhost:4001
-
-3. **Veja os logs:**
-
-```bash
-docker-compose -f docker/docker-compose.yml logs -f etnotermos
-```
-
-4. **Pare os serviços:**
-
-```bash
-docker-compose -f docker/docker-compose.yml down
-```
-
-## 🧪 Executando Testes
+## Testes
 
 ```bash
 cd backend
 
-# Rodar todos os testes
+# Todos os testes
 npm test
 
-# Testes com coverage
+# Com coverage
 npm run test:coverage
 
-# Testes em modo watch
+# Watch mode
 npm run test:watch
 
-# Testes de integração específicos
-npm test -- integration/scenario-01-create-term.test.js
+# Suite específica
+npm test -- tests/unit/concept-service.test.js
 ```
 
-## 📁 Estrutura do Projeto
+**Suítes disponíveis:**
+
+| Pasta | Descrição |
+|---|---|
+| `tests/contract/` | Contratos HTTP (admin-concepts, admin-acquisition, public-api) |
+| `tests/integration/` | Fluxos de usuário ponta a ponta (US1–US4) |
+| `tests/unit/` | ConceptService, AcquisitionService, validação SKOS-XL |
+
+---
+
+## Estrutura do Projeto
 
 ```
 etnotermos/
-├── backend/               # Backend Node.js + Express
-│   ├── src/
-│   │   ├── contexts/      # Public (4000) e Admin (4001)
-│   │   │   ├── public/    # Servidor público (read-only)
-│   │   │   └── admin/     # Servidor admin (CRUD)
-│   │   ├── models/        # Schemas MongoDB
-│   │   ├── services/      # Lógica de negócio
-│   │   ├── api/           # Routes e controllers
-│   │   ├── lib/           # Bibliotecas (search, export, validation)
-│   │   └── shared/        # Database connection, utils
-│   ├── tests/             # Testes (contract, integration, unit)
-│   └── scripts/           # Scripts de inicialização
-├── frontend/              # Frontend (Tailwind CSS)
+├── backend/
 │   └── src/
-│       ├── public/        # Assets públicos
-│       ├── admin/         # Assets admin
-│       └── shared/        # Styles compartilhados (forest theme)
-├── docker/                # Docker configs
+│       ├── contexts/
+│       │   ├── public/          # Porta 4000 — read-only, sem auth
+│       │   │   ├── routes/
+│       │   │   ├── views/       # EJS templates
+│       │   │   └── server.js
+│       │   └── admin/           # Porta 4001 — CRUD, bcrypt auth
+│       │       ├── routes/
+│       │       ├── views/
+│       │       └── server.js
+│       ├── models/              # Concept, AcquisitionLog, AuditEntry
+│       ├── services/            # ConceptService, AcquisitionService, AuditService
+│       ├── lib/
+│       │   ├── auth/            # basicAuth.js
+│       │   ├── scheduler/       # acquisitionCron.js
+│       │   └── skosxl/          # validation.js
+│       ├── shared/              # database.js
+│       └── config/              # index.js
+├── frontend/
+│   └── src/
+│       ├── public/styles/       # Tailwind CSS — interface pública
+│       ├── admin/styles/        # Tailwind CSS — interface admin
+│       └── shared/styles/       # Tema forest compartilhado
+├── docker/
+│   ├── etnotermos.Dockerfile
 │   ├── docker-compose.yml
-│   └── etnotermos.Dockerfile
-├── specs/                 # Especificações e documentação
-└── docs/                  # Documentação adicional
+│   ├── .env.example
+│   └── create-admin-user.js    # Script interativo para gerar docker/.env
+├── docs/                        # Documentação
+├── specs/
+│   └── 001-quero-refatorar-toda/  # Spec, plano, contratos, data model
+└── tests/
 ```
 
-## 🛠️ Scripts Úteis
+---
 
-### Backend
+## Variáveis de Ambiente
 
-```bash
-npm run dev:public         # Iniciar servidor público (watch mode)
-npm run dev:admin          # Iniciar servidor admin (watch mode)
-npm start:public           # Iniciar servidor público (produção)
-npm start:admin            # Iniciar servidor admin (produção)
-npm test                   # Executar testes
-npm run lint               # Verificar código com ESLint
-npm run format             # Formatar código com Prettier
+| Variável | Obrigatório | Padrão | Descrição |
+|---|---|---|---|
+| `MONGODB_URI` | Sim | — | URI completa do MongoDB |
+| `MONGO_URI` | Sim (alternativa) | — | Alias aceito para MONGODB_URI |
+| `ADMIN_USERNAME` | Sim* | — | Usuário admin (Opção A) |
+| `ADMIN_PASSWORD` | Sim* | — | Senha admin em texto plano, hash gerado no boot (Opção A) |
+| `ADMIN_USERS` | Sim* | — | JSON array com hashes pré-gerados (Opção B, produção) |
+| `PUBLIC_PORT` | Não | `4000` | Porta da interface pública |
+| `ADMIN_PORT` | Não | `4001` | Porta da interface admin |
+| `AUDIO_STORAGE_PATH` | Não | `/data/audio` | Path para arquivos de áudio |
+| `ACQUISITION_CRON_SCHEDULE` | Não | `0 3 * * *` | Cron da aquisição automática |
+| `LOG_LEVEL` | Não | `info` | `debug` \| `info` \| `warn` \| `error` |
+| `NODE_ENV` | Não | `development` | `development` \| `production` |
+
+*Uma das opções A ou B é obrigatória para o servidor admin.
+
+---
+
+## Fluxo de Dados (SKOS-XL)
+
+```
+etnoDB (coleção etnodb)
+    ↓ AcquisitionService.run()
+etnotermos (coleção etnotermos) — status: "candidate"
+    ↓ Curador via interface admin
+etnotermos — status: "active"
+    ↓ Interface pública (porta 4000)
+Pesquisadores / público
 ```
 
-### Frontend
+Campos adquiridos do etnoDB:
+- `comunidades.tipo`
+- `comunidades.plantas.nomeVernacular`
+- `comunidades.plantas.tipoUso`
+- `comunidades.atividadesEconomicas`
 
-```bash
-npm run build:css          # Compilar Tailwind CSS
-npm run watch:css          # Watch mode para CSS
+---
+
+## Modelo de Conceito SKOS-XL
+
+```javascript
+{
+  uri: "etnotermos:tipo-comunidade/indigena",
+  status: "candidate | active | deprecated",
+  sourceFields: ["comunidades.tipo"],
+  prefLabels: [{
+    literalForm: "indígena",
+    language: "pt",
+    type: "pref",           // pref | alt | hidden
+    accessLevel: "public",  // public | restricted | sacred
+    audioPath: null,
+    labelRelations: []
+  }],
+  altLabels: [],
+  hiddenLabels: [],
+  definition: "",
+  scopeNote: "",
+  broader: [ObjectId],
+  narrower: [ObjectId],
+  related: [ObjectId],
+  ancestors: [ObjectId],   // Array of Ancestors para O(1) em hierarquias
+  version: 1               // Optimistic locking (conflito → HTTP 409)
+}
 ```
 
-## 🗄️ Comandos Comuns do MongoDB
+---
+
+## MongoDB — Coleções
+
+| Coleção | Descrição |
+|---|---|
+| `etnotermos` | Conceitos SKOS-XL |
+| `etnotermos_acquisition_log` | Log das execuções de aquisição |
+| `etnotermos_audit_log` | Auditoria de alterações por campo |
+| `etnodb` | Fonte (read-only pelo AcquisitionService) |
 
 ```bash
-# Conectar ao MongoDB
+# Acesso direto ao MongoDB
 mongosh mongodb://localhost:27017/etnodb
 
-# Ver collections
-show collections
+# Ver conceitos
+db.etnotermos.find({ status: "candidate" }).limit(10)
 
-# Consultar termos
-db.etnotermos.find().limit(5)
-
-# Contar termos
-db.etnotermos.countDocuments()
-
-# Verificar índices
-db.etnotermos.getIndexes()
+# Contar por status
+db.etnotermos.aggregate([{ $group: { _id: "$status", n: { $sum: 1 } } }])
 ```
 
-## 📤 Importação de Dados via CSV
+---
 
-### Via Interface Web
+## Problemas Comuns
 
-1. Acesse a interface admin: http://localhost:4001
-2. Navegue para "Importação em Lote"
-3. Baixe o modelo CSV
-4. Preencha com seus dados
-5. Faça upload e resolva conflitos
-6. Execute a importação
+**Erro `ADMIN_USERS is not set or invalid`**
+→ Adicione `ADMIN_USERNAME` + `ADMIN_PASSWORD` no `.env`
 
-### Via API
+**Erro `EACCES: permission denied, mkdir '/data'`**
+→ Erro corrigido na v2.0 — verifique se está usando a imagem mais recente
+
+**Senha do MongoDB com `!` `*` `@` `#` na URI**
+→ Faça URL-encode: `!`→`%21`, `*`→`%2A`, `@`→`%40`, `#`→`%23`
+
+**CSS não aparece**
+→ Execute `npm run build:css` em `frontend/` e reinicie o servidor
+
+**Testes falhando com erro de MongoDB**
+→ Os testes usam `mongodb-memory-server` — não precisa de MongoDB externo. Execute `npm install` novamente.
+
+---
+
+## Contribuindo
+
+Commits sempre no branch `main` (sem feature branches).
+
+Seguir [Conventional Commits](https://www.conventionalcommits.org/):
+- `feat:` nova funcionalidade
+- `fix:` correção de bug
+- `docs:` documentação
+- `chore:` manutenção
 
 ```bash
-curl -X POST http://localhost:4001/api/v1/admin/import/upload \
-  -H "Content-Type: multipart/form-data" \
-  -F "file=@termos.csv"
+git add .
+git commit -m "feat: descrição da mudança"
+git push origin main
 ```
 
-## 🔧 Problemas Comuns
+---
 
-### Erro de conexão com MongoDB
-
-- Verifique se o MongoDB está rodando: `docker ps` ou `mongosh`
-- Confirme o `MONGO_URI` no arquivo `.env`
-
-### Porta já em uso
-
-- Altere `PUBLIC_PORT` ou `ADMIN_PORT` no `.env`
-- Ou encerre o processo usando a porta: `npx kill-port 4000`
-
-### Testes falhando
-
-- Execute `npm install` novamente
-- Verifique se não há MongoDB em execução na porta de teste
-
-### CSS não atualiza
-
-- Execute `npm run build:css` na pasta `frontend/`
-- Limpe o cache do navegador (Ctrl+Shift+R)
-
-## 🤝 Contribuindo
-
-1. Crie uma branch para sua feature
-2. Faça commit seguindo [Conventional Commits](https://www.conventionalcommits.org/)
-3. Execute os testes antes de fazer push
-4. Abra um Pull Request descrevendo as mudanças
-
-**Nota**: Este projeto comita sempre na branch `main` (sem feature branches), conforme configurado em `CLAUDE.md`.
-
-## 🎨 Stack Tecnológica
-
-### Backend
-- **Runtime**: Node.js 20 LTS (Alpine Linux)
-- **Framework**: Express.js
-- **Database**: MongoDB 7.0+ (MongoDB Driver oficial)
-- **Template Engine**: EJS (server-side rendering)
-- **Testing**: Jest, Supertest, mongodb-memory-server
-
-### Frontend
-- **Stack**: HTMX + Alpine.js + Tailwind CSS (mesma stack do etnoDB)
-- **Tema**: "forest" (verde florestal) - identidade visual compartilhada com etnoDB
-- **Visualização de Grafos**: Cytoscape.js
-
-### Deploy
-- **Containerização**: Docker (Alpine Linux)
-- **Orquestração**: Docker Compose
-- **CI/CD**: GitHub Actions
-
-## 🏗️ Arquitetura
-
-### Sistema de Duas Portas (Dual-Port)
-
-- **Interface Pública (porta 4000)**: Read-only para consulta de termos, busca e visualização de relacionamentos. Sem autenticação.
-- **Interface Admin (porta 4001)**: CRUD completo para gestão de vocabulário e curadoria de termos. Com controle de acesso.
-
-### Database
-
-- **Database**: "etnodb" (compartilhado com etnoDB)
-- **Collection**: "etnotermos" (separada da collection "etnodb" do etnoDB)
-- **Connection**: Mesma instância MongoDB, portas e credenciais
-
-## 🎯 Princípios de Desenvolvimento
-
-1. **Conformidade ANSI/NISO Z39.19-2005**: Toda gestão de termos segue padrões de vocabulários controlados
-2. **Integração Visual com etnoDB**: UI/UX idêntica - cores, fontes, componentes, layouts
-3. **Database Compartilhado**: Collection "etnotermos" no database "etnodb" do MongoDB
-4. **Vocabulário Controlado**: Gerencia termos usados em campos do etnoDB (comunidades.tipo, plantas.tipoUso)
-5. **Separação de Contextos**: Acesso público read-only vs admin CRUD completo
-6. **Sem Autenticação Pública**: Interface pública completamente aberta
-7. **Controle de Acesso Admin**: Interface admin protegida (nível de rede ou autenticação básica)
-8. **Princípios CARE**: Gestão culturalmente sensível de conhecimento tradicional
-9. **Test-Driven Development**: Testes de integração → Testes unitários → Implementação
-
-## 🤖 Desenvolvimento Assistido por IA
-
-Este projeto utiliza o Claude para automatizar tarefas de desenvolvimento e garantir a qualidade do código:
-
-- **Revisão de Código**: Em cada pull request, o Claude analisa as alterações e fornece feedback sobre qualidade, potenciais bugs e conformidade com as convenções do projeto.
-- **Assistente de Código**: Desenvolvedores podem interagir com o Claude em issues e pull requests para obter ajuda com implementação, refatoração e outras tarefas.
-
-Para mais detalhes, consulte os arquivos de fluxo de trabalho em `.github/workflows`.
-
-## 📚 Documentação Adicional
-
-- [Especificação completa](../specs/main/spec.md)
-- [Modelo de dados](../specs/main/data-model.md)
-- [Diretrizes de construção do vocabulário (Z39.19)](../specs/main/vocabulary-guidelines.md)
-- [Guia de deployment em produção](./deployment.md)
-- [Instalação no UNRAID](./instalacao-unraid.md)
-- [Exemplo de registro (JSON)](./examples/term-record-example.json)
-
-## 🔗 Referências Técnicas
-
-- [ANSI/NISO Z39.19-2005 (R2010)](./ANSI-NISO%20Z39.19-2005%20(R2010).pdf) - Guidelines for the Construction, Format, and Management of Monolingual Controlled Vocabularies
-- [TemaTres Vocabulary Server](https://github.com/tematres/TemaTres-Vocabulary-Server) (inspiração inicial)
-- [CARE Principles for Indigenous Data Governance](https://www.gida-global.org/care)
-- [SKOS - Simple Knowledge Organization System](https://www.w3.org/2004/02/skos/)
+**Dúvidas**: [GitHub Issues](https://github.com/edalcin/etnotermos/issues)

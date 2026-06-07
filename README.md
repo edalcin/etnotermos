@@ -321,10 +321,37 @@ cd frontend
 npm install
 npm run build:css     # Build CSS
 npm run watch:css     # Watch mode
+```
 
-# Docker
-docker-compose up -d  # Sobe etnotermos + MongoDB
-docker-compose down
+### Configuração de autenticação admin
+
+**Opção A — simples** (desenvolvimento e UNRAID):
+
+```env
+ADMIN_USERNAME=curador1
+ADMIN_PASSWORD=sua_senha
+```
+
+O sistema faz o hash bcrypt automaticamente na inicialização.
+
+**Opção B — produção** (múltiplos usuários, hash pré-gerado):
+
+```env
+ADMIN_USERS=[{"username":"curador1","passwordHash":"$2b$10$..."}]
+```
+
+Gerar o hash: `node -e "import('bcrypt').then(m=>m.default.hash('senha',10).then(console.log))"`
+
+Ou use o script interativo: `node docker/create-admin-user.js`
+
+### Docker
+
+```bash
+# Configurar (interativo — pede usuário, senha e URI do MongoDB)
+node docker/create-admin-user.js
+
+# Iniciar
+docker-compose -f docker/docker-compose.yml up -d
 ```
 
 Documentação detalhada:

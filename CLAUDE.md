@@ -12,10 +12,11 @@ Auto-generated from all feature plans. Last updated: 2026-01-06
 - **Connection**: Mesma instância MongoDB, portas e credenciais
 
 ### Termos Gerenciados
-O etnotermos gerencia vocabulário controlado para campos do etnoDB:
-- **comunidades.tipo**: 29 categorias de comunidades tradicionais (Decreto 8.750/2016)
-- **comunidades.plantas.tipoUso**: Tipos de uso de plantas (medicinal, alimentício, ritualístico, etc.)
-- Seguindo diretrizes Z39.19 em `/specs/main/vocabulary-guidelines.pt-BR.md`
+O etnotermos gerencia vocabulário controlado para campos do etnoDB (padrão SKOS-XL):
+- **comunidades.tipo**: Tipos de comunidades tradicionais
+- **comunidades.plantas.nomeVernacular**: Nomes vernaculares de plantas
+- **comunidades.plantas.tipoUso**: Tipos de uso de plantas
+- **comunidades.atividadesEconomicas**: Atividades econômicas
 
 ### Identidade Visual Unificada
 **CRÍTICO**: Toda interface do etnotermos deve seguir exatamente o padrão visual do etnoDB:
@@ -134,9 +135,10 @@ docker-compose down     # Stop all services
 9. **Test-Driven Development**: Integration tests → Unit tests → Implementation
 
 ## Recent Changes
-- 001-quero-refatorar-toda: Added Node.js 20 LTS (ES2022+) + Express.js, MongoDB Driver 6.x, HTMX 2.x, Alpine.js 3.x, Tailwind CSS 3.x (tema forest), EJS 3.x, multer, node-cron, bcrypt
-- 2026-01-06: Integrated with etnoDB - shared database, visual identity, and controlled terms
-- 2026-01-06: Changed stack to HTMX+Alpine.js+EJS (matching etnoDB)
+- 2026-06-07: v2.0 — padrão SKOS-XL, integração etnoDB, limpeza completa do repositório
+- 2026-06-07: Suporte a ADMIN_USERNAME + ADMIN_PASSWORD como alternativa ao ADMIN_USERS
+- 2026-06-07: Fix EACCES /data/audio no container Docker (não-root user)
+- 001-quero-refatorar-toda: Refatoração completa — SKOS-XL, 3 contextos C4, 176/176 testes
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
