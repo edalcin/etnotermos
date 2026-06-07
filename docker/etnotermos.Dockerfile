@@ -33,10 +33,11 @@ WORKDIR /app
 # Note: CSS was already compiled into backend during build stage
 COPY --from=builder /app/backend ./backend
 
-# Create non-root user
+# Create non-root user and data directory (must be root to create /data)
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001 && \
-    chown -R nodejs:nodejs /app
+    mkdir -p /data/audio && \
+    chown -R nodejs:nodejs /app /data
 
 USER nodejs
 
