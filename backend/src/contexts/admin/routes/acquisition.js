@@ -8,6 +8,11 @@ const router = Router();
 router.post('/run', (req, res) => {
   const db = req.app.locals.db;
   AcquisitionService.run(db).catch(() => {});
+  if (req.headers['hx-request']) {
+    return res.send(
+      '<span class="text-forest-700 font-medium">Aquisição iniciada. Aguarde alguns segundos e recarregue o dashboard para ver o resultado.</span>'
+    );
+  }
   res.status(202).json({ ok: true, message: 'Aquisição iniciada em background.' });
 });
 

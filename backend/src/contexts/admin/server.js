@@ -61,6 +61,13 @@ export function createApp(db) {
   app.use('/acquisition', acquisitionRouter);
   app.use('/audit', auditRouter);
 
+  app.use((req, res) => {
+    if (req.accepts('html')) {
+      return res.status(404).render('404', { title: '404 — Não encontrado', user: req.user, currentPage: null });
+    }
+    res.status(404).json({ error: 'Not found' });
+  });
+
   app.use((err, req, res, next) => {
     const code = err.code || err.status || 500;
     const httpStatus = [400, 401, 403, 404, 409, 422].includes(code) ? code : 500;

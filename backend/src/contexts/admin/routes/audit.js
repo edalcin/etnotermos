@@ -6,7 +6,7 @@ const router = Router();
 router.get('/', async (req, res, next) => {
   try {
     const db = req.app.locals.db;
-    const { conceptId, responsible, page = 1, limit = 20 } = req.query;
+    const { conceptId, responsible, page = 1, limit = 50 } = req.query;
 
     const result = await AuditService.findMany(db, {
       conceptId,
@@ -15,10 +15,19 @@ router.get('/', async (req, res, next) => {
       limit: parseInt(limit, 10),
     });
 
-    if (req.headers['hx-request']) {
-      return res.render('audit-logs', { ...result, user: req.user });
+    if (req.headers['accept']?.includes('application/json') && !req.headers['hx-request']) {
+      return res.json(result);
     }
-    res.json(result);
+
+    res.render('audit-logs', {
+      ...result,
+      totalPages: Math.ceil(result.total / parseInt(limit, 10)) || 1,
+      limit: parseInt(limit, 10),
+      conceptId: conceptId || '',
+      responsible: responsible || '',
+      user: req.user,
+      currentPage: 'audit',
+    });
   } catch (err) {
     next(err);
   }

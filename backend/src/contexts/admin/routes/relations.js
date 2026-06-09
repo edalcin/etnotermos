@@ -4,6 +4,66 @@ import * as ConceptService from '../../../services/ConceptService.js';
 
 const router = Router();
 
+router.get('/relationships', async (req, res, next) => {
+  try {
+    const db = req.app.locals.db;
+    const col = db.collection('etnotermos');
+
+    const [withRelations, stats] = await Promise.all([
+      col
+        .find({
+          $or: [
+            { broader: { $exists: true, $ne: [] } },
+            { narrower: { $exists: true, $ne: [] } },
+            { related: { $exists: true, $ne: [] } },
+          ],
+        })
+        .project({ prefLabels: 1, broader: 1, narrower: 1, related: 1, status: 1 })
+        .sort({ updatedAt: -1 })
+        .limit(100)
+        .toArray(),
+      col
+        .aggregate([
+          {
+            $group: {
+              _id: null,
+              totalBroader: { $sum: { $size: { $ifNull: ['$broader', []] } } },
+              totalNarrower: { $sum: { $size: { $ifNull: ['$narrower', []] } } },
+              totalRelated: { $sum: { $size: { $ifNull: ['$related', []] } } },
+              withAnyRelation: {
+                $sum: {
+                  $cond: [
+                    {
+                      $or: [
+                        { $gt: [{ $size: { $ifNull: ['$broader', []] } }, 0] },
+                        { $gt: [{ $size: { $ifNull: ['$narrower', []] } }, 0] },
+                        { $gt: [{ $size: { $ifNull: ['$related', []] } }, 0] },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              },
+            },
+          },
+        ])
+        .toArray(),
+    ]);
+
+    const s = stats[0] || { totalBroader: 0, totalNarrower: 0, totalRelated: 0, withAnyRelation: 0 };
+
+    res.render('relationships', {
+      concepts: withRelations,
+      stats: s,
+      user: req.user,
+      currentPage: 'relationships',
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 async function resolveVersion(db, id, bodyVersion) {
   const v = parseInt(bodyVersion, 10);
   if (!isNaN(v)) return v;

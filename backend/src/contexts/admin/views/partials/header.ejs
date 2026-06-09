@@ -44,14 +44,17 @@
           style="display: none;"
         >
           <div class="py-1">
-            <a href="/terms" class="block px-4 py-2 text-sm hover:bg-forest-800 transition-colors">
+            <a href="/concepts" class="block px-4 py-2 text-sm hover:bg-forest-800 transition-colors">
               Todos os Termos
             </a>
-            <a href="/terms?filter=by-status" class="block px-4 py-2 text-sm hover:bg-forest-800 transition-colors">
-              Por Status
+            <a href="/concepts?status=candidate" class="block px-4 py-2 text-sm hover:bg-forest-800 transition-colors">
+              Candidatos
             </a>
-            <a href="/terms?filter=orphans" class="block px-4 py-2 text-sm hover:bg-forest-800 transition-colors">
-              Termos Orfaos
+            <a href="/concepts?status=active" class="block px-4 py-2 text-sm hover:bg-forest-800 transition-colors">
+              Ativos
+            </a>
+            <a href="/concepts?status=deprecated" class="block px-4 py-2 text-sm hover:bg-forest-800 transition-colors">
+              Depreciados
             </a>
           </div>
         </div>
@@ -59,11 +62,6 @@
       <li>
         <a href="/relationships" class="block px-6 py-3 hover:bg-forest-700 transition-colors border-b-2 <%= currentPage === 'relationships' ? 'border-forest-400 font-medium' : 'border-transparent hover:border-forest-300' %>">
           Relacionamentos
-        </a>
-      </li>
-      <li>
-        <a href="/collections" class="block px-6 py-3 hover:bg-forest-700 transition-colors border-b-2 <%= currentPage === 'collections' ? 'border-forest-400 font-medium' : 'border-transparent hover:border-forest-300' %>">
-          Coleções
         </a>
       </li>
       <li>

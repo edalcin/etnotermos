@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exportar | EtnoTermos</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body class="bg-forest-50 min-h-screen flex flex-col">
+
+  <%- include('partials/header') %>
+
+  <main class="flex-grow container mx-auto px-4 py-8 max-w-3xl">
+
+    <h1 class="text-3xl font-bold text-forest-700 mb-2">Exportar Vocabulário</h1>
+    <p class="text-gray-600 mb-8">
+      Acesse o vocabulário controlado em formatos abertos para integração com outros sistemas.
+    </p>
+
+    <div class="grid gap-6">
+
+      <div class="bg-white rounded-lg shadow-sm border border-forest-100 p-6">
+        <div class="flex items-start gap-4">
+          <div class="flex-shrink-0 w-10 h-10 bg-forest-100 rounded-lg flex items-center justify-center text-forest-700 font-bold text-sm">
+            JSON
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold text-gray-800 mb-1">API JSON</h2>
+            <p class="text-gray-600 text-sm mb-3">
+              Lista de conceitos ativos em formato JSON. Suporta filtros por campo semântico e busca textual.
+            </p>
+            <code class="block bg-gray-50 border border-gray-200 rounded px-3 py-2 text-sm font-mono text-gray-700 mb-2">
+              GET /concepts?sourceField=comunidades.tipo
+            </code>
+            <a href="/concepts" class="text-forest-600 hover:text-forest-800 text-sm font-medium underline">
+              Ver conceitos →
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-sm border border-forest-100 p-6">
+        <div class="flex items-start gap-4">
+          <div class="flex-shrink-0 w-10 h-10 bg-forest-100 rounded-lg flex items-center justify-center text-forest-700 font-bold text-sm">
+            SKOS
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold text-gray-800 mb-1">SKOS-XL / RDF</h2>
+            <p class="text-gray-600 text-sm mb-3">
+              Exportação em formato SKOS-XL (Simple Knowledge Organization System - Extended Labels)
+              para uso em sistemas de informação semântica e interoperabilidade com outras bases de conhecimento.
+            </p>
+            <span class="inline-block px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full font-medium">
+              Em desenvolvimento
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-sm border border-forest-100 p-6">
+        <div class="flex items-start gap-4">
+          <div class="flex-shrink-0 w-10 h-10 bg-forest-100 rounded-lg flex items-center justify-center text-forest-700 font-bold text-sm">
+            CSV
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold text-gray-800 mb-1">CSV</h2>
+            <p class="text-gray-600 text-sm mb-3">
+              Tabela de conceitos em formato CSV para uso em planilhas e ferramentas de análise de dados.
+            </p>
+            <span class="inline-block px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full font-medium">
+              Em desenvolvimento
+            </span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="mt-8 bg-forest-50 border border-forest-200 rounded-lg p-4">
+      <p class="text-sm text-forest-800">
+        <strong>Campos semânticos disponíveis:</strong>
+        Tipos de Comunidades, Nomes Vernaculares de Plantas, Tipos de Uso de Plantas, Atividades Econômicas.
+      </p>
+    </div>
+
+  </main>
+
+  <%- include('partials/footer') %>
+
+</body>
+</html>

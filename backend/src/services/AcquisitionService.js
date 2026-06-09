@@ -170,11 +170,11 @@ export async function run(db) {
       fieldsProcessed.push({ field, created: fieldCreated, existing: fieldExisting });
     }
 
+    await logCol.updateMany({ hasUnresolved: true }, { $set: { hasUnresolved: false } });
+
     if (conceptsCreated === 0 && conceptsExisting === 0) {
       return null;
     }
-
-    await logCol.updateMany({ hasUnresolved: true }, { $set: { hasUnresolved: false } });
 
     const log = createAcquisitionLog({
       executedAt,

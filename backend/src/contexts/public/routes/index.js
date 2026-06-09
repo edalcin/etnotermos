@@ -28,6 +28,17 @@ router.get('/', async (req, res, next) => {
   }
 });
 
+router.get('/browse', (req, res) => res.redirect(301, '/concepts'));
+router.get('/search', (req, res) => res.redirect(301, '/concepts'));
+
+router.get('/export', (req, res) => {
+  res.render('export', { title: 'Exportar', currentPage: 'export' });
+});
+
+router.get('/about', (req, res) => {
+  res.render('about', { title: 'Sobre', currentPage: 'about' });
+});
+
 router.get('/health', async (req, res) => {
   const db = req.app.locals.db;
 

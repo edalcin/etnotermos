@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sobre | EtnoTermos</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body class="bg-forest-50 min-h-screen flex flex-col">
+
+  <%- include('partials/header') %>
+
+  <main class="flex-grow container mx-auto px-4 py-8 max-w-3xl">
+
+    <h1 class="text-3xl font-bold text-forest-700 mb-2">Sobre o EtnoTermos</h1>
+    <p class="text-gray-600 mb-8">
+      Vocabulário vernacular controlado para etnobotânica, integrado ao sistema etnoDB.
+    </p>
+
+    <div class="space-y-6">
+
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <h2 class="text-xl font-semibold text-forest-700 mb-3">O que é o EtnoTermos?</h2>
+        <p class="text-gray-700 leading-relaxed">
+          O EtnoTermos é um sistema de gestão de vocabulário controlado para termos vernaculares
+          utilizados em pesquisas de etnobotânica com comunidades tradicionais brasileiras.
+          Gerencia os termos utilizados como valores controlados nos campos do banco de dados etnoDB.
+        </p>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <h2 class="text-xl font-semibold text-forest-700 mb-3">Padrão SKOS-XL</h2>
+        <p class="text-gray-700 leading-relaxed mb-3">
+          O vocabulário segue o padrão <strong>SKOS-XL</strong> (Simple Knowledge Organization System –
+          Extended Labels), recomendação W3C para organização de sistemas de conhecimento.
+          O SKOS-XL permite representar rótulos (labels) como entidades de primeira classe,
+          com metadados adicionais como fontes, regiões, povos detentores e níveis de acesso.
+        </p>
+        <a href="https://www.w3.org/TR/skos-reference/skos-xl.html"
+           target="_blank"
+           rel="noopener"
+           class="text-forest-600 hover:text-forest-800 text-sm font-medium underline">
+          Especificação SKOS-XL (W3C) →
+        </a>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <h2 class="text-xl font-semibold text-forest-700 mb-3">Princípios CARE</h2>
+        <p class="text-gray-700 leading-relaxed">
+          O EtnoTermos implementa os Princípios CARE para dados de conhecimento indígena e
+          de comunidades tradicionais: <strong>Benefício Coletivo</strong> (Collective Benefit),
+          <strong>Autoridade de Controle</strong> (Authority to Control),
+          <strong>Responsabilidade</strong> (Responsibility) e
+          <strong>Ética</strong> (Ethics). Isso se reflete nos níveis de acesso dos rótulos
+          (público, restrito, sagrado) e nos campos de consentimento prévio informado.
+        </p>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <h2 class="text-xl font-semibold text-forest-700 mb-3">Campos Semânticos</h2>
+        <p class="text-gray-700 mb-4">
+          O vocabulário cobre quatro campos semânticos do banco etnoDB:
+        </p>
+        <ul class="space-y-2">
+          <li class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-forest-500 flex-shrink-0"></span>
+            <span class="text-gray-700"><strong>Tipos de Comunidades</strong> — classificação das comunidades tradicionais</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-forest-500 flex-shrink-0"></span>
+            <span class="text-gray-700"><strong>Nomes Vernaculares de Plantas</strong> — nomenclatura popular das espécies</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-forest-500 flex-shrink-0"></span>
+            <span class="text-gray-700"><strong>Tipos de Uso de Plantas</strong> — categorias de uso etnobotânico</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-forest-500 flex-shrink-0"></span>
+            <span class="text-gray-700"><strong>Atividades Econômicas</strong> — atividades produtivas das comunidades</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <h2 class="text-xl font-semibold text-forest-700 mb-3">Integração com etnoDB</h2>
+        <p class="text-gray-700 leading-relaxed">
+          O EtnoTermos compartilha o banco de dados MongoDB com o etnoDB, operando sobre
+          a coleção <code class="bg-gray-100 px-1 rounded text-sm">etnotermos</code> dentro do
+          banco <code class="bg-gray-100 px-1 rounded text-sm">etnodb</code>. A aquisição
+          automática de termos varre o banco etnoDB periodicamente e cria conceitos candidatos
+          para valores ainda não catalogados.
+        </p>
+      </div>
+
+    </div>
+
+  </main>
+
+  <%- include('partials/footer') %>
+
+</body>
+</html>
