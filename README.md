@@ -384,6 +384,66 @@ O EtnoTermos implementa os Princípios CARE para dados de povos indígenas:
 - [etnoArquitetura](https://github.com/edalcin/etnoArquitetura) — Ecossistema integrado
 - [etnoDB](https://github.com/edalcin/etnoDB) — Sistema fonte de dados etnobotânicos
 
+## EtnoArquitetura Federada — v3.0
+
+O **etnoTermos** faz parte da [EtnoArquitetura](https://github.com/edalcin/etnoArquitetura), um ecossistema federado para gestão de Conhecimento Tradicional Associado à Biodiversidade (CTA). Na versão 3.0, o etnoTermos assume um papel central e diferente da versão anterior.
+
+### Papel do etnoTermos na Federação
+
+Na arquitetura federada v3.0, **cada membro opera sua própria instância soberana do etnoTermos** com seu próprio `skos:ConceptScheme`. O etnoTermos deixa de ser uma infraestrutura terminológica central compartilhada e passa a ser um componente **por membro** — garantindo o princípio **Authority to Control** do CARE: cada comunidade ou iniciativa é dona de seus próprios vocabulários.
+
+```mermaid
+graph TD
+    subgraph I1["Iniciativa de Fontes Secundárias"]
+        ET1(etnoTermos\nConceptScheme: I1) <--> MDB1[(MongoDB I1)]
+    end
+
+    subgraph C2["Comunidade Tradicional #2"]
+        ET2(etnoTermos\nConceptScheme: C2) <--> MDB2[(MongoDB C2)]
+    end
+
+    subgraph C3["Comunidade Tradicional #N"]
+        ET3(etnoTermos\nConceptScheme: CN) <--> MDB3[(MongoDB CN)]
+    end
+
+    subgraph PL["Pluriverso"]
+        MAP["Mapeamentos SKOS\nskos:exactMatch\nskos:closeMatch\nskos:broadMatch"]
+    end
+
+    ET1 -->|"harvest REST\n(ConceptScheme público)"| MAP
+    ET2 -->|"harvest REST\n(ConceptScheme público)"| MAP
+    ET3 -->|"harvest REST\n(ConceptScheme público)"| MAP
+```
+
+O **Pluriverso** mantém uma camada de mapeamentos semânticos (`skos:exactMatch`, `skos:closeMatch`, `skos:broadMatch`) entre os `ConceptScheme` de diferentes membros. Isso permite que uma busca semântica federada encontre registros independentemente de qual termo cada membro usa para o mesmo conceito.
+
+### Soberania dos Vocabulários
+
+- **Cada membro** mantém autoridade total sobre seus conceitos, rótulos (`skosxl:prefLabel`, `skosxl:altLabel`) e relações
+- **Nenhum membro** pode alterar o vocabulário de outro
+- **O Pluriverso** propõe mapeamentos; o Comitê Federado os aprova — nunca são impostos
+- **Saída da federação**: ao sair, todos os mapeamentos envolvendo os conceitos desse membro são removidos do Pluriverso
+
+### Mudanças Necessárias para v3.0
+
+> **Nota**: Nenhuma implementação está sendo realizada agora.
+
+| Mudança | Descrição |
+|---------|-----------|
+| **Endpoint de harvest de ConceptScheme** | Implementar `GET /api/federation/concepts` retornando os conceitos públicos do `ConceptScheme` do membro, para coleta pelo Pluriverso |
+| **Campo `member_id`** | Cada conceito e rótulo deve carregar `member_id` para rastreabilidade nos mapeamentos federados |
+| **Isolamento de instância** | Garantir que cada instância é completamente independente (sem dependência de outras instâncias via rede) |
+| **Nível de acesso por conceito** | Suporte a `accessLevel` por conceito além de por rótulo (alguns conceitos podem ser `restricted` ou `sacred` na totalidade) |
+
+### Componentes Relacionados
+
+| Componente | Relação |
+|------------|---------|
+| **[etnoDB](https://github.com/edalcin/etnoDB)** | A instância da Iniciativa #1 do etnoTermos serve ao etnoDB como infraestrutura terminológica |
+| **[etnoRelatos](https://github.com/edalcin/etnoRelatos)** | Cada Comunidade Tradicional opera sua própria instância do etnoTermos integrada ao seu etnoRelatos |
+| **[Pluriverso](https://github.com/edalcin/pluriverso)** | Coleta ConceptSchemes públicos e mantém mapeamentos SKOS entre membros |
+| **[etnoArquitetura](https://github.com/edalcin/etnoArquitetura)** | Documentação completa ([ADR-004](https://github.com/edalcin/etnoArquitetura/blob/main/docs/architecture-decisions/ADR-004-federated-architecture.md)) |
+
 ---
 
 **Status**: v2.0 em desenvolvimento ativo
