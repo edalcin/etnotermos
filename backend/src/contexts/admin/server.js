@@ -92,7 +92,7 @@ async function main() {
 
   const app = createApp(db);
   app.listen(config.adminPort, () => {
-    console.log(`EtnoTermos ADMIN interface running on port ${config.adminPort}`);
+    console.log(`BioCultTermos ADMIN interface running on port ${config.adminPort}`);
     console.log(`Environment: ${config.nodeEnv}`);
   });
 }

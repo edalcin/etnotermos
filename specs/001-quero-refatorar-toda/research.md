@@ -1,4 +1,4 @@
-# Research: Refatoração EtnoTermos — SKOS-XL + Integração EtnoDB
+# Research: Refatoração BioCultTermos — SKOS-XL + Integração BioCultDB
 
 **Feature**: 001-quero-refatorar-toda  
 **Date**: 2026-06-06  

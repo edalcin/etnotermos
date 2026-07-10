@@ -1,6 +1,6 @@
 # Phase 1: Data Model
 
-This document defines the data model for the EtnoTermos system based on the entities identified in `spec.md`. The schemas are described in a format that can be easily translated to Mongoose schemas for MongoDB.
+This document defines the data model for the BioCultTermos system based on the entities identified in `spec.md`. The schemas are described in a format that can be easily translated to Mongoose schemas for MongoDB.
 
 **Standards Compliance**: This data model follows ANSI/NISO Z39.19-2005 (R2010) guidelines for controlled vocabulary construction, including:
 - Section 6: Term Selection principles

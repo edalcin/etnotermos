@@ -34,22 +34,22 @@
 
 ## Summary
 
-EtnoTermos is a comprehensive ethnobotanical terminology management system designed for researchers, students, and traditional community leaders. **Visually and functionally integrated with etnoDB**, the system provides structured vocabulary management following ANSI/NISO Z39.19-2005 standards, supporting up to 200,000 terms with complex many-to-many relationships, six note types, and interactive graph visualization. Core capabilities include CRUD operations, advanced search via MongoDB text indexes, CSV export (with future SKOS/RDF support), and API access for etnoDB integration. The system features a dual-port architecture: a public interface for data presentation and search (no authentication required), and a separate admin interface for data entry and curation (protected by access control). **It shares the MongoDB "etnodb" database with etnoDB** (separate collection) and provides **controlled vocabulary for etnoDB fields** (comunidades.tipo, plantas.tipoUso).
+BioCultTermos is a comprehensive ethnobotanical terminology management system designed for researchers, students, and traditional community leaders. **Visually and functionally integrated with BioCultDB**, the system provides structured vocabulary management following ANSI/NISO Z39.19-2005 standards, supporting up to 200,000 terms with complex many-to-many relationships, six note types, and interactive graph visualization. Core capabilities include CRUD operations, advanced search via MongoDB text indexes, CSV export (with future SKOS/RDF support), and API access for BioCultDB integration. The system features a dual-port architecture: a public interface for data presentation and search (no authentication required), and a separate admin interface for data entry and curation (protected by access control). **It shares the MongoDB "etnodb" database with BioCultDB** (separate collection) and provides **controlled vocabulary for BioCultDB fields** (comunidades.tipo, plantas.tipoUso).
 
 ## Technical Context
 
 **Language/Version**: Node.js 20 LTS (Alpine Linux)
-**Primary Dependencies**: Express.js (web framework), MongoDB Driver (official), EJS (templates), HTMX + Alpine.js (frontend interactivity), Tailwind CSS ("forest" theme matching etnoDB), Cytoscape.js (graph visualization)
-**Storage**: MongoDB 7.0+ database "etnodb" (shared with etnoDB), collection "etnotermos"
+**Primary Dependencies**: Express.js (web framework), MongoDB Driver (official), EJS (templates), HTMX + Alpine.js (frontend interactivity), Tailwind CSS ("forest" theme matching BioCultDB), Cytoscape.js (graph visualization)
+**Storage**: MongoDB 7.0+ database "etnodb" (shared with BioCultDB), collection "etnotermos"
 **Testing**: Jest (unit/integration), Supertest (API), mongodb-memory-server
-**Target Platform**: Docker containers (Alpine Linux), compatible with etnoDB infrastructure
+**Target Platform**: Docker containers (Alpine Linux), compatible with BioCultDB infrastructure
 **Project Type**: web (server-side rendered with HTMX)
 **Architecture**: Dual-port system - Public context (port 4000, read-only) + Admin context (port 4001, full CRUD)
-**Visual Integration**: Identical UI/UX to etnoDB - same colors (forest theme), fonts, components, layouts
+**Visual Integration**: Identical UI/UX to BioCultDB - same colors (forest theme), fonts, components, layouts
 **Performance Goals**: Support 200,000 terms, <500ms search response, handle 5-10 concurrent users, graph rendering for networks up to 1000 visible nodes
-**Constraints**: Small concurrent user base ("almost never" simultaneous edits), conflict resolution via merge-and-notify, Docker-based deployment, must maintain visual consistency with etnoDB
-**Scale/Scope**: ~200,000 terms, 6 note types per term, many-to-many relationships, API for etnoDB integration, CSV export (SKOS/RDF in future phases)
-**etnoDB Integration**: Manages controlled vocabulary for etnoDB fields, shares database, provides validation API
+**Constraints**: Small concurrent user base ("almost never" simultaneous edits), conflict resolution via merge-and-notify, Docker-based deployment, must maintain visual consistency with BioCultDB
+**Scale/Scope**: ~200,000 terms, 6 note types per term, many-to-many relationships, API for BioCultDB integration, CSV export (SKOS/RDF in future phases)
+**BioCultDB Integration**: Manages controlled vocabulary for BioCultDB fields, shares database, provides validation API
 
 ## Constitution Check
 
@@ -60,7 +60,7 @@ EtnoTermos is a comprehensive ethnobotanical terminology management system desig
 **Initial Assessment** (against Constitution v1.0.0):
 - ✅ **Principle I (TDD)**: Tests written before implementation (contract tests T017-T029, integration tests T030-T040)
 - ✅ **Principle II (Z39.19)**: Data model maps to Z39.19 relationship types (Term, Relationship, Note models), validation utilities planned (T049)
-- ✅ **Principle III (etnoDB Visual Integration)**: Technology stack matches etnoDB (HTMX+Alpine.js+Tailwind+EJS), forest theme specified
+- ✅ **Principle III (BioCultDB Visual Integration)**: Technology stack matches BioCultDB (HTMX+Alpine.js+Tailwind+EJS), forest theme specified
 - ✅ **Principle IV (CARE Principles)**: Source model supports attribution, private notes implemented, cultural guidance planned (T114)
 - ✅ **Principle V (Simplicity)**: Direct MongoDB access (no ORM), service layer justified for Z39.19 validation complexity, standard tech stack
 
@@ -97,11 +97,11 @@ backend/
 │   ├── contexts/
 │   │   ├── public/           # Public context (port 4000, read-only)
 │   │   │   ├── routes/       # Express routes
-│   │   │   ├── views/        # EJS templates with etnoDB visual theme
+│   │   │   ├── views/        # EJS templates with BioCultDB visual theme
 │   │   │   └── server.js     # Public server entry point
 │   │   └── admin/            # Admin context (port 4001, full CRUD)
 │   │       ├── routes/       # Express routes
-│   │       ├── views/        # EJS templates with etnoDB visual theme
+│   │       ├── views/        # EJS templates with BioCultDB visual theme
 │   │       └── server.js     # Admin server entry point
 │   ├── models/               # MongoDB schemas (Term, Note, Relationship, Source, Collection, AuditLog)
 │   ├── services/             # Business logic (term, relationship, search, export, validation)
@@ -123,17 +123,17 @@ frontend/
     ├── admin/                # Admin interface assets
     │   └── styles/           # Tailwind CSS (forest theme)
     └── shared/               # Shared CSS and assets
-        └── styles/           # Colors, components matching etnoDB
+        └── styles/           # Colors, components matching BioCultDB
             └── main.css      # Forest theme colors and base styles
 
 docker/
 ├── etnotermos.Dockerfile     # Single Alpine container with both contexts
-└── docker-compose.yml        # etnotermos + MongoDB "etnodb" (can run alongside etnoDB)
+└── docker-compose.yml        # etnotermos + MongoDB "etnodb" (can run alongside BioCultDB)
 
-tailwind.config.js            # Forest theme configuration (matching etnoDB)
+tailwind.config.js            # Forest theme configuration (matching BioCultDB)
 ```
 
-**Structure Decision**: Server-side rendered web application following etnoDB's architecture pattern. Single Node.js 20 backend with two Express servers (public port 4000, admin port 4001) running in one Docker container. EJS templates with HTMX for dynamic interactions and Alpine.js for client-side reactivity. Tailwind CSS with "forest" color theme providing visual consistency with etnoDB. MongoDB connection to shared "etnodb" database using separate "etnotermos" collection. Structure mirrors etnoDB's three-context pattern (Acquisition, Curation, Presentation) adapted for vocabulary management (here: Public browsing, Admin CRUD).
+**Structure Decision**: Server-side rendered web application following BioCultDB's architecture pattern. Single Node.js 20 backend with two Express servers (public port 4000, admin port 4001) running in one Docker container. EJS templates with HTMX for dynamic interactions and Alpine.js for client-side reactivity. Tailwind CSS with "forest" color theme providing visual consistency with BioCultDB. MongoDB connection to shared "etnodb" database using separate "etnotermos" collection. Structure mirrors BioCultDB's three-context pattern (Acquisition, Curation, Presentation) adapted for vocabulary management (here: Public browsing, Admin CRUD).
 
 ## Phase 0: Outline & Research
 

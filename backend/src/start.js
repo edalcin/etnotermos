@@ -1,4 +1,4 @@
-// Start script for EtnoTermos - Runs both public and admin servers
+// Start script for BioCultTermos - Runs both public and admin servers
 // This script is used in production Docker environments
 
 import { spawn } from 'child_process';
@@ -8,7 +8,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-console.log('Starting EtnoTermos dual-context servers...');
+console.log('Starting BioCultTermos dual-context servers...');
 
 // Start public server (port 4000)
 const publicServer = spawn('node', [path.join(__dirname, 'contexts/public/server.js')], {

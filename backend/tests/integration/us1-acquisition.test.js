@@ -12,7 +12,7 @@ try {
 
 const maybeDescribe = serviceImportFailed ? describe.skip : describe;
 
-maybeDescribe('US1: Automatic term acquisition from EtnoDB', () => {
+maybeDescribe('US1: Automatic term acquisition from BioCultDB', () => {
   let db;
 
   beforeAll(async () => {

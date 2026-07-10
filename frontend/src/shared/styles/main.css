@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Base styles matching etnoDB */
+/* Base styles matching BioCultDB */
 @layer base {
   body {
     @apply bg-forest-50 text-gray-900 font-sans;
@@ -25,7 +25,7 @@
   }
 }
 
-/* Component classes matching etnoDB style */
+/* Component classes matching BioCultDB style */
 @layer components {
   /* Buttons */
   .btn {

@@ -1,4 +1,4 @@
-# EtnoTermos — Organização e Análise do Vocabulário Controlado
+# BioCultTermos — Organização e Análise do Vocabulário Controlado
 
 **Base normativa**: ANSI/NISO Z39.19-2005 (R2010)  
 **Princípios**: CARE para Governança de Dados Indígenas  

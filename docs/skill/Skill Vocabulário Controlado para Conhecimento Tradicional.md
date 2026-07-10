@@ -5,14 +5,14 @@ description: >
   para conhecimento tradicional sobre uso de recursos da biodiversidade (plantas e animais),
   seguindo o padrão ANSI/NISO Z39.19-2005 (R2010) e os Princípios CARE para Governança
   de Dados Indígenas. Use esta skill sempre que o usuário quiser:
-  - Propor novos termos para o vocabulário (EtnoTermos ou similar)
+  - Propor novos termos para o vocabulário (BioCultTermos ou similar)
   - Definir ou revisar relacionamentos hierárquicos (BT/NT) ou associativos (RT)
   - Documentar a estrutura conceitual de um vocabulário etnobotânico ou etnozoológico
   - Auditar qualidade e consistência do vocabulário
   - Deprecar termos inadequados e propor substitutos culturalmente sensíveis
   - Discutir nomes em línguas indígenas, nomes científicos vs. tradicionais, polissemia
   - Estruturar facetas temáticas para indexação de conhecimento tradicional
-  Acione também quando o usuário mencionar: EtnoTermos, SKOS, tesauro, termos controlados,
+  Acione também quando o usuário mencionar: BioCultTermos, SKOS, tesauro, termos controlados,
   indexação etnobotânica, vocabulário, relacionamentos BT/NT/RT, thesaurus.
 ---
 

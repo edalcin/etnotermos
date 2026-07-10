@@ -93,7 +93,7 @@ async function main() {
     const db = getDb();
     const app = createApp(db);
     app.listen(config.publicPort, () => {
-      log.info(`EtnoTermos PUBLIC running on port ${config.publicPort}`, {
+      log.info(`BioCultTermos PUBLIC running on port ${config.publicPort}`, {
         env: config.nodeEnv,
       });
     });

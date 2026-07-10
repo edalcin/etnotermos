@@ -1,4 +1,4 @@
-# Multi-stage build for EtnoTermos application
+# Multi-stage build for BioCultTermos application
 FROM node:20-alpine AS builder
 
 # Set working directory

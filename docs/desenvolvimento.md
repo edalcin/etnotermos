@@ -1,9 +1,9 @@
-# Guia de Desenvolvimento — EtnoTermos v2.0
+# Guia de Desenvolvimento — BioCultTermos v2.0
 
 ## Pré-requisitos
 
 - Node.js 20 LTS
-- MongoDB 7.0+ (ou use o do etnoDB se já estiver rodando)
+- MongoDB 7.0+ (ou use o do BioCultDB se já estiver rodando)
 - Git
 
 ---
@@ -13,8 +13,8 @@
 ### 1. Clonar e instalar
 
 ```bash
-git clone https://github.com/edalcin/etnotermos.git
-cd etnotermos
+git clone https://github.com/edalcin/BioCultTermos.git
+cd BioCultTermos
 
 # Backend
 cd backend && npm install && cd ..
@@ -26,7 +26,7 @@ cd frontend && npm install && cd ..
 ### 2. Criar `backend/.env`
 
 ```bash
-# MongoDB — mesmo banco do etnoDB
+# MongoDB — mesmo banco do BioCultDB
 MONGODB_URI=mongodb://localhost:27017/etnodb
 
 # Portas
@@ -110,7 +110,7 @@ npm test -- tests/unit/concept-service.test.js
 ## Estrutura do Projeto
 
 ```
-etnotermos/
+BioCultTermos/
 ├── backend/
 │   └── src/
 │       ├── contexts/
@@ -171,7 +171,7 @@ etnotermos/
 ## Fluxo de Dados (SKOS-XL)
 
 ```
-etnoDB (coleção etnodb)
+BioCultDB (coleção etnodb)
     ↓ AcquisitionService.run()
 etnotermos (coleção etnotermos) — status: "candidate"
     ↓ Curador via interface admin
@@ -180,7 +180,7 @@ etnotermos — status: "active"
 Pesquisadores / público
 ```
 
-Campos adquiridos do etnoDB:
+Campos adquiridos do BioCultDB:
 - `comunidades.tipo`
 - `comunidades.plantas.nomeVernacular`
 - `comunidades.plantas.tipoUso`
@@ -276,4 +276,4 @@ git push origin main
 
 ---
 
-**Dúvidas**: [GitHub Issues](https://github.com/edalcin/etnotermos/issues)
+**Dúvidas**: [GitHub Issues](https://github.com/edalcin/BioCultTermos/issues)

@@ -1,4 +1,4 @@
-# Data Model: Refatoração EtnoTermos — SKOS-XL + Integração EtnoDB
+# Data Model: Refatoração BioCultTermos — SKOS-XL + Integração BioCultDB
 
 **Feature**: 001-quero-refatorar-toda  
 **Date**: 2026-06-06  
@@ -8,7 +8,7 @@
 
 ## Overview
 
-Três coleções novas na database `etnodb` (compartilhada com EtnoDB):
+Três coleções novas na database `etnodb` (compartilhada com BioCultDB):
 
 | Coleção | Finalidade |
 |---------|-----------|
@@ -16,7 +16,7 @@ Três coleções novas na database `etnodb` (compartilhada com EtnoDB):
 | `etnotermos_acquisition_log` | Log de cada execução da aquisição |
 | `etnotermos_audit_log` | Trilha de auditoria imutável |
 
-A coleção `etnodb` (do EtnoDB) é **somente leitura** — nenhuma escrita por esta aplicação.
+A coleção `etnodb` (do BioCultDB) é **somente leitura** — nenhuma escrita por esta aplicação.
 
 ---
 
@@ -299,7 +299,7 @@ db.etnodb.aggregate([
 
 ---
 
-## Entidades Relacionadas (EtnoDB — somente leitura)
+## Entidades Relacionadas (BioCultDB — somente leitura)
 
 A coleção `etnodb` não é gerenciada por este sistema. Referência:
 

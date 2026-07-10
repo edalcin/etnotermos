@@ -1,4 +1,4 @@
-// Comprehensive Logging for EtnoTermos
+// Comprehensive Logging for BioCultTermos
 // Winston-based structured JSON logging with request IDs and sanitization
 
 import winston from 'winston';

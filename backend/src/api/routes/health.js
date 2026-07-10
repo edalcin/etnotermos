@@ -1,4 +1,4 @@
-// Health Check Endpoint for EtnoTermos
+// Health Check Endpoint for BioCultTermos
 // Provides system health status for monitoring and load balancers
 
 import express from 'express';

@@ -1,52 +1,52 @@
-# etnotermos Development Guidelines
+# BioCultTermos Development Guidelines
 
 Auto-generated from all feature plans. Last updated: 2026-01-06
 
-## Integração com etnoDB
+## Integração com BioCultDB
 
-**etnotermos** é um sistema integrado visualmente com o **etnoDB**, compartilhando identidade visual, banco de dados e termos controlados.
+**BioCultTermos** é um sistema integrado visualmente com o **BioCultDB**, compartilhando identidade visual, banco de dados e termos controlados.
 
 ### Banco de Dados Compartilhado
-- **Database**: MongoDB "etnodb" (compartilhado com etnoDB)
-- **Collection**: "etnotermos" (separada da collection "etnodb" do etnoDB)
+- **Database**: MongoDB "etnodb" (compartilhado com BioCultDB)
+- **Collection**: "etnotermos" (separada da collection "etnodb" do BioCultDB)
 - **Connection**: Mesma instância MongoDB, portas e credenciais
 
 ### Termos Gerenciados
-O etnotermos gerencia vocabulário controlado para campos do etnoDB (padrão SKOS-XL):
+O BioCultTermos gerencia vocabulário controlado para campos do BioCultDB (padrão SKOS-XL):
 - **comunidades.tipo**: Tipos de comunidades tradicionais
 - **comunidades.plantas.nomeVernacular**: Nomes vernaculares de plantas
 - **comunidades.plantas.tipoUso**: Tipos de uso de plantas
 - **comunidades.atividadesEconomicas**: Atividades econômicas
 
 ### Identidade Visual Unificada
-**CRÍTICO**: Toda interface do etnotermos deve seguir exatamente o padrão visual do etnoDB:
+**CRÍTICO**: Toda interface do BioCultTermos deve seguir exatamente o padrão visual do BioCultDB:
 - **Cores**: Tema "forest" (verde florestal) do Tailwind CSS
   - Primary: forest-600 (#16a34a)
   - Hover: forest-700 (#15803d)
   - Backgrounds: forest-50/100/200
-- **Fontes**: Mesmas famílias tipográficas do etnoDB
+- **Fontes**: Mesmas famílias tipográficas do BioCultDB
 - **Componentes**: Mesmos padrões de botões, cards, formulários
-- **Layout**: Estrutura de páginas consistente com etnoDB
+- **Layout**: Estrutura de páginas consistente com BioCultDB
 - **Resultado**: Os dois sistemas devem parecer **um único sistema integrado**
 
 ## Active Technologies
 - **Backend**: Node.js 20 LTS (Alpine Linux), Express.js, MongoDB Driver (official)
-- **Frontend**: HTMX + Alpine.js + Tailwind CSS (mesma stack do etnoDB)
+- **Frontend**: HTMX + Alpine.js + Tailwind CSS (mesma stack do BioCultDB)
 - **Template Engine**: EJS (server-side rendering)
 - **Database**: MongoDB 7.0+ (instância compartilhada "etnodb")
 - **Graph Visualization**: Cytoscape.js (para visualização de relacionamentos entre termos)
 - **Testing**: Jest, Supertest, mongodb-memory-server
-- **Deployment**: Docker (Alpine Linux, compatível com etnoDB)
+- **Deployment**: Docker (Alpine Linux, compatível com BioCultDB)
 - Node.js 20 LTS (ES2022+) + Express.js, MongoDB Driver 6.x, HTMX 2.x, Alpine.js 3.x, Tailwind CSS 3.x (tema forest), EJS 3.x, multer, node-cron, bcrypt (001-quero-refatorar-toda)
 - MongoDB 7.0+ — banco `etnodb`, coleções `etnotermos`, `etnotermos_acquisition_log`, `etnotermos_audit_log` (001-quero-refatorar-toda)
 
 ## Architecture
 
-**Dual-Port System** (integrado ao ecossistema etnoDB):
+**Dual-Port System** (integrado ao ecossistema BioCultDB):
 - **Public Interface** (port 4000): Read-only interface for term browsing, search, and relationship visualization. No authentication required.
 - **Admin Interface** (port 4001): Full CRUD interface for vocabulary management and term curation. Access control required.
 
-**Database**: Collection "etnotermos" dentro do database "etnodb" (mesma instância usada pelo etnoDB)
+**Database**: Collection "etnotermos" dentro do database "etnodb" (mesma instância usada pelo BioCultDB)
 
 ## Project Structure
 
@@ -86,7 +86,7 @@ frontend/
 
 docker/
 ├── etnotermos.Dockerfile    # Single container com ambos contextos
-└── docker-compose.yml       # Orquestração (compatível com etnoDB)
+└── docker-compose.yml       # Orquestração (compatível com BioCultDB)
 ```
 
 ## Commands
@@ -120,14 +120,14 @@ docker-compose down     # Stop all services
 - **Formatting**: Prettier
 - **Testing**: TDD approach - write tests before implementation
 - **Templates**: EJS with semantic HTML
-- **CSS**: Tailwind CSS utility classes (tema "forest" do etnoDB)
+- **CSS**: Tailwind CSS utility classes (tema "forest" do BioCultDB)
 
 ## Key Principles
 
 1. **ANSI/NISO Z39.19-2005 Compliance**: All term management follows controlled vocabulary standards
-2. **Visual Integration with etnoDB**: Identical UI/UX - colors, fonts, components, layouts
+2. **Visual Integration with BioCultDB**: Identical UI/UX - colors, fonts, components, layouts
 3. **Shared Database**: Collection "etnotermos" in MongoDB "etnodb" database
-4. **Controlled Vocabulary Source**: Manages terms used in etnoDB fields (comunidades.tipo, plantas.tipoUso)
+4. **Controlled Vocabulary Source**: Manages terms used in BioCultDB fields (comunidades.tipo, plantas.tipoUso)
 5. **Separation of Concerns**: Public read-only access vs admin full CRUD access
 6. **No Authentication for Public**: Public interface is completely open
 7. **Admin Access Control**: Admin interface protected (network-level or basic auth)
@@ -135,10 +135,20 @@ docker-compose down     # Stop all services
 9. **Test-Driven Development**: Integration tests → Unit tests → Implementation
 
 ## Recent Changes
-- 2026-06-07: v2.0 — padrão SKOS-XL, integração etnoDB, limpeza completa do repositório
+- 2026-06-07: v2.0 — padrão SKOS-XL, integração BioCultDB, limpeza completa do repositório
 - 2026-06-07: Suporte a ADMIN_USERNAME + ADMIN_PASSWORD como alternativa ao ADMIN_USERS
 - 2026-06-07: Fix EACCES /data/audio no container Docker (não-root user)
 - 001-quero-refatorar-toda: Refatoração completa — SKOS-XL, 3 contextos C4, 176/176 testes
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).

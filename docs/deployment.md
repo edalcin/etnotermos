@@ -1,4 +1,4 @@
-# Guia de Deployment em Produção — EtnoTermos v2.0
+# Guia de Deployment em Produção — BioCultTermos v2.0
 
 ---
 
@@ -19,8 +19,8 @@ sudo apt install -y nginx certbot python3-certbot-nginx
 
 ```bash
 cd /opt
-git clone https://github.com/edalcin/etnotermos.git
-cd etnotermos
+git clone https://github.com/edalcin/BioCultTermos.git
+cd BioCultTermos
 ```
 
 Gerar o `docker/.env`:
@@ -71,8 +71,8 @@ docker-compose logs etnotermos | tail -20
 
 Esperar ver:
 ```
-EtnoTermos PUBLIC interface running on port 4000
-EtnoTermos ADMIN interface running on port 4001
+BioCultTermos PUBLIC interface running on port 4000
+BioCultTermos ADMIN interface running on port 4001
 MongoDB connected
 ```
 
@@ -97,7 +97,7 @@ sudo systemctl enable --now mongod
 ### 2.2 Instalar dependências e compilar CSS
 
 ```bash
-cd /opt/etnotermos
+cd /opt/BioCultTermos
 
 cd backend && npm install --omit=dev && cd ..
 cd frontend && npm install && npm run build:css && cd ..
@@ -105,7 +105,7 @@ cd frontend && npm install && npm run build:css && cd ..
 
 ### 2.3 Variáveis de ambiente
 
-Criar `/opt/etnotermos/backend/.env`:
+Criar `/opt/BioCultTermos/backend/.env`:
 
 ```
 MONGODB_URI=mongodb://localhost:27017/etnodb
@@ -118,18 +118,18 @@ ADMIN_PORT=4001
 
 ### 2.4 Serviços systemd
 
-`/etc/systemd/system/etnotermos-public.service`:
+`/etc/systemd/system/BioCultTermos-public.service`:
 
 ```ini
 [Unit]
-Description=EtnoTermos Public Server (porta 4000)
+Description=BioCultTermos Public Server (porta 4000)
 After=network.target mongod.service
 
 [Service]
 Type=simple
 User=www-data
-WorkingDirectory=/opt/etnotermos/backend
-EnvironmentFile=/opt/etnotermos/backend/.env
+WorkingDirectory=/opt/BioCultTermos/backend
+EnvironmentFile=/opt/BioCultTermos/backend/.env
 ExecStart=/usr/bin/node src/contexts/public/server.js
 Restart=on-failure
 
@@ -137,18 +137,18 @@ Restart=on-failure
 WantedBy=multi-user.target
 ```
 
-`/etc/systemd/system/etnotermos-admin.service`:
+`/etc/systemd/system/BioCultTermos-admin.service`:
 
 ```ini
 [Unit]
-Description=EtnoTermos Admin Server (porta 4001)
+Description=BioCultTermos Admin Server (porta 4001)
 After=network.target mongod.service
 
 [Service]
 Type=simple
 User=www-data
-WorkingDirectory=/opt/etnotermos/backend
-EnvironmentFile=/opt/etnotermos/backend/.env
+WorkingDirectory=/opt/BioCultTermos/backend
+EnvironmentFile=/opt/BioCultTermos/backend/.env
 ExecStart=/usr/bin/node src/contexts/admin/server.js
 Restart=on-failure
 
@@ -158,14 +158,14 @@ WantedBy=multi-user.target
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable --now etnotermos-public etnotermos-admin
+sudo systemctl enable --now BioCultTermos-public BioCultTermos-admin
 ```
 
 ---
 
 ## Nginx como Proxy Reverso
 
-`/etc/nginx/sites-available/etnotermos`:
+`/etc/nginx/sites-available/BioCultTermos`:
 
 ```nginx
 limit_req_zone $binary_remote_addr zone=public:10m rate=100r/m;
@@ -174,13 +174,13 @@ limit_req_zone $binary_remote_addr zone=admin:10m   rate=30r/m;
 # Interface pública
 server {
     listen 80;
-    server_name etnotermos.seu-dominio.com.br;
+    server_name BioCultTermos.seu-dominio.com.br;
     return 301 https://$host$request_uri;
 }
 
 server {
     listen 443 ssl http2;
-    server_name etnotermos.seu-dominio.com.br;
+    server_name BioCultTermos.seu-dominio.com.br;
 
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
@@ -197,7 +197,7 @@ server {
 # Interface admin
 server {
     listen 443 ssl http2;
-    server_name admin.etnotermos.seu-dominio.com.br;
+    server_name admin.BioCultTermos.seu-dominio.com.br;
 
     # Restringir a IPs da rede local (recomendado)
     # allow 192.168.1.0/24;
@@ -214,8 +214,8 @@ server {
 ```
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/etnotermos /etc/nginx/sites-enabled/
-sudo certbot --nginx -d etnotermos.seu-dominio.com.br -d admin.etnotermos.seu-dominio.com.br
+sudo ln -s /etc/nginx/sites-available/BioCultTermos /etc/nginx/sites-enabled/
+sudo certbot --nginx -d BioCultTermos.seu-dominio.com.br -d admin.BioCultTermos.seu-dominio.com.br
 sudo systemctl reload nginx
 ```
 
@@ -226,7 +226,7 @@ sudo systemctl reload nginx
 ### Via Docker
 
 ```bash
-cd /opt/etnotermos
+cd /opt/BioCultTermos
 git pull origin main
 cd docker
 docker-compose pull   # Se usar imagem do ghcr.io
@@ -238,22 +238,22 @@ docker-compose up -d
 ### Via systemd
 
 ```bash
-cd /opt/etnotermos
+cd /opt/BioCultTermos
 git pull origin main
 cd backend && npm install --omit=dev && cd ..
 cd frontend && npm run build:css && cd ..
-sudo systemctl restart etnotermos-public etnotermos-admin
+sudo systemctl restart BioCultTermos-public BioCultTermos-admin
 ```
 
 ---
 
 ## Backup do MongoDB
 
-`/opt/scripts/backup-etnotermos.sh`:
+`/opt/scripts/backup-BioCultTermos.sh`:
 
 ```bash
 #!/bin/bash
-BACKUP_DIR="/opt/backups/etnotermos"
+BACKUP_DIR="/opt/backups/BioCultTermos"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 MONGODB_URI="${MONGODB_URI:-mongodb://localhost:27017}"
 
@@ -268,15 +268,15 @@ echo "Backup: $BACKUP_DIR/bkp_$TIMESTAMP.tar.gz"
 ```
 
 ```bash
-sudo chmod +x /opt/scripts/backup-etnotermos.sh
+sudo chmod +x /opt/scripts/backup-BioCultTermos.sh
 # Cron diário às 2h
-echo "0 2 * * * root /opt/scripts/backup-etnotermos.sh" | sudo tee /etc/cron.d/etnotermos-backup
+echo "0 2 * * * root /opt/scripts/backup-BioCultTermos.sh" | sudo tee /etc/cron.d/BioCultTermos-backup
 ```
 
 ### Restaurar
 
 ```bash
-cd /opt/backups/etnotermos
+cd /opt/backups/BioCultTermos
 tar -xzf bkp_YYYYMMDD_HHMMSS.tar.gz
 mongorestore --uri="mongodb://localhost:27017" --db=etnodb --drop bkp_YYYYMMDD_HHMMSS/etnodb
 ```
@@ -293,8 +293,8 @@ curl http://localhost:4000/health
 docker-compose -f docker/docker-compose.yml logs -f
 
 # Logs (systemd)
-sudo journalctl -u etnotermos-public -f
-sudo journalctl -u etnotermos-admin -f
+sudo journalctl -u BioCultTermos-public -f
+sudo journalctl -u BioCultTermos-admin -f
 ```
 
 ---
@@ -314,4 +314,4 @@ sudo ufw enable
 
 ---
 
-**Dúvidas**: [GitHub Issues](https://github.com/edalcin/etnotermos/issues)
+**Dúvidas**: [GitHub Issues](https://github.com/edalcin/BioCultTermos/issues)

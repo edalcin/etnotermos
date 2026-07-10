@@ -1,8 +1,8 @@
 # Conformidade com os Princípios CARE para Governança de Dados Indígenas
 
-**EtnoTermos** - Sistema de Gestão de Terminologia Etnobotânica
+**BioCultTermos** - Sistema de Gestão de Terminologia Etnobotânica
 
-Este documento descreve como o sistema EtnoTermos implementa os princípios CARE (Collective Benefit, Authority to Control, Responsibility, and Ethics) para governança de dados indígenas e conhecimento tradicional, conforme estabelecido pela [Global Indigenous Data Alliance (GIDA)](https://www.gida-global.org/care).
+Este documento descreve como o sistema BioCultTermos implementa os princípios CARE (Collective Benefit, Authority to Control, Responsibility, and Ethics) para governança de dados indígenas e conhecimento tradicional, conforme estabelecido pela [Global Indigenous Data Alliance (GIDA)](https://www.gida-global.org/care).
 
 ---
 
@@ -15,13 +15,13 @@ Os princípios CARE são complementares aos princípios FAIR (Findable, Accessib
 - **R**esponsibility (Responsabilidade)
 - **E**thics (Ética)
 
-## Implementação no EtnoTermos
+## Implementação no BioCultTermos
 
 ### 1. Collective Benefit (Benefício Coletivo)
 
 **Princípio**: Os dados devem beneficiar as comunidades que os compartilharam.
 
-**Implementação no EtnoTermos**:
+**Implementação no BioCultTermos**:
 
 ✅ **Atribuição Clara de Fontes**
 - Modelo Source com tipos específicos para conhecimento tradicional
@@ -42,7 +42,7 @@ Os princípios CARE são complementares aos princípios FAIR (Findable, Accessib
 
 **Governança dos Dados**: As comunidades tradicionais devem ter controle sobre como seus conhecimentos são usados e compartilhados.
 
-#### Implementação no EtnoTermos:
+#### Implementação no BioCultTermos:
 
 - **Permissões Diferenciadas**:
   - Interface pública (porta 4000): Acesso read-only para pesquisa e consulta
@@ -56,7 +56,7 @@ Os princípios CARE são complementares aos princípios FAIR (Findable, Accessib
 
 **Princípio**: Povos e comunidades indígenas têm o direito e autoridade sobre a governança de seus dados.
 
-**Implementação no EtnoTermos**:
+**Implementação no BioCultTermos**:
 
 - **Atribuição Clara**: Sistema de fontes com campos específicos para comunidades e detentores de conhecimento
 - **Notas Privadas**: Tipo de nota privada para informações sensíveis visíveis apenas ao autor e administradores
@@ -69,7 +69,7 @@ Os princípios CARE são complementares aos princípios FAIR (Findable, Accessib
 
 Aqueles que trabalham com dados de povos e comunidades tradicionais têm a responsabilidade de compartilhar como esses dados são usados para apoiar a autodeterminação e benefício coletivo desses povos.
 
-### Implementação no EtnoTermos:
+### Implementação no BioCultTermos:
 
 #### 1. Registro de Auditoria Completo
 
@@ -94,7 +94,7 @@ Aqueles que trabalham com dados de povos e comunidades tradicionais têm a respo
 
 **Princípio**: Aqueles que trabalham com dados de povos indígenas têm a responsabilidade de compartilhar como esses dados são usados para apoiar a autodeterminação indígena e o benefício coletivo.
 
-#### Implementação no EtnoTermos:
+#### Implementação no BioCultTermos:
 
 **Audit Logs Completos**:
 - Todas as modificações de termos são registradas na collection `auditLogs`
@@ -120,7 +120,7 @@ Aqueles que trabalham com dados de povos e comunidades tradicionais têm a respo
 
 "Minimizar danos e maximizar benefícios. Práticas éticas de dados devem ser guiadas pela maximização de benefícios, minimização de danos e promoção da justiça social. Considerações éticas devem levar em conta tanto o bem-estar individual quanto coletivo."
 
-### Implementação no EtnoTermos
+### Implementação no BioCultTermos
 
 #### 1. **Privacidade e Proteção de Dados Sensíveis**
 
@@ -132,7 +132,7 @@ Aqueles que trabalham com dados de povos e comunidades tradicionais têm a respo
 
 **Princípio**: Os dados devem ser usados de maneira que beneficiem as comunidades das quais se originaram.
 
-**Implementação no EtnoTermos**:
+**Implementação no BioCultTermos**:
 
 1. **Governança Compartilhada**:
    - Interface admin acessível a representantes das comunidades
@@ -152,7 +152,7 @@ Aqueles que trabalham com dados de povos e comunidades tradicionais têm a respo
 
 > **Responsibility**: Those working with Indigenous data have a responsibility to share how those data are used to support Indigenous Peoples' self-determination and collective benefit.
 
-**Implementação no EtnoTermos:**
+**Implementação no BioCultTermos:**
 
 #### 3.1 Rastreabilidade Completa (Audit Logs)
 
@@ -188,7 +188,7 @@ Aqueles que trabalham com dados de povos e comunidades tradicionais têm a respo
 
 > **Ethics**: Indigenous Peoples' rights and wellbeing should be the primary concern at all stages of the data life cycle and across the data ecosystem.
 
-**Implementação no EtnoTermos:**
+**Implementação no BioCultTermos:**
 
 #### 4.1 Orientações de Sensibilidade Cultural
 
@@ -211,7 +211,7 @@ Aqueles que trabalham com dados de povos e comunidades tradicionais têm a respo
 Ao exportar dados (CSV, SKOS, RDF), incluir cabeçalho/metadados:
 
 ```
-# EtnoTermos - Vocabulário Controlado de Conhecimento Etnobotânico
+# BioCultTermos - Vocabulário Controlado de Conhecimento Etnobotânico
 #
 # RECONHECIMENTO:
 # Este vocabulário foi construído com contribuições de comunidades tradicionais,
@@ -222,8 +222,8 @@ Ao exportar dados (CSV, SKOS, RDF), incluir cabeçalho/metadados:
 # sobre Diversidade Biológica.
 #
 # CITAÇÃO SUGERIDA:
-# EtnoTermos. (2026). Vocabulário Controlado de Conhecimento Etnobotânico.
-# [Dataset]. Disponível em: https://etnotermos.seu-dominio.com.br
+# BioCultTermos. (2026). Vocabulário Controlado de Conhecimento Etnobotânico.
+# [Dataset]. Disponível em: https://BioCultTermos.seu-dominio.com.br
 # Acesso em: [data]
 #
 # Para uso comercial ou acesso a conhecimento tradicional associado,
@@ -282,7 +282,7 @@ Ao exportar dados (CSV, SKOS, RDF), incluir cabeçalho/metadados:
 
 ## Compromissos de Manutenção
 
-Para manter a conformidade CARE ao longo do tempo, o projeto EtnoTermos compromete-se a:
+Para manter a conformidade CARE ao longo do tempo, o projeto BioCultTermos compromete-se a:
 
 1. **Revisão Anual**: Avaliar anualmente a conformidade CARE e atualizar práticas conforme necessário
 2. **Consulta Comunitária**: Envolver comunidades tradicionais e detentores de conhecimento nas decisões sobre governança de dados

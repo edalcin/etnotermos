@@ -1,6 +1,6 @@
 # Feature Specification: Ethnobotanical Terms Database and Management System
 
-**Project**: EtnoTermos
+**Project**: BioCultTermos
 
 **Created**: 2025-09-28
 
@@ -10,18 +10,18 @@
 
 **Standards Compliance**: ANSI/NISO Z39.19-2005 (R2010) - Guidelines for the Construction, Format, and Management of Monolingual Controlled Vocabularies
 
-## Integration with etnoDB
+## Integration with BioCultDB
 
-**etnotermos** is visually and functionally integrated with the **etnoDB** ethnobotanical database system:
+**BioCultTermos** is visually and functionally integrated with the **BioCultDB** ethnobotanical database system:
 
 ### Shared Infrastructure
-- **Database**: MongoDB instance "etnodb" (shared with etnoDB)
-- **Collection**: "etnotermos" (separate from etnoDB's "etnodb" collection)
-- **Visual Identity**: Identical UI/UX using etnoDB's "forest" theme colors, typography, and component styles
-- **Technology Stack**: HTMX + Alpine.js + Tailwind CSS + EJS (matching etnoDB)
+- **Database**: MongoDB instance "etnodb" (shared with BioCultDB)
+- **Collection**: "etnotermos" (separate from BioCultDB's "etnodb" collection)
+- **Visual Identity**: Identical UI/UX using BioCultDB's "forest" theme colors, typography, and component styles
+- **Technology Stack**: HTMX + Alpine.js + Tailwind CSS + EJS (matching BioCultDB)
 
 ### Controlled Vocabulary Management
-etnotermos provides controlled vocabulary for etnoDB data fields:
+BioCultTermos provides controlled vocabulary for BioCultDB data fields:
 - **comunidades.tipo**: 29 traditional community categories (Brazilian Decree 8.750/2016)
 - **comunidades.plantas.tipoUso**: Plant use types (medicinal, food, ritual, material, etc.)
 
@@ -181,15 +181,15 @@ As an ethnobotanical researcher, undergraduate/graduate student, or traditional 
 - **FR-032**: System MUST support term deprecation and history tracking when terms are replaced or merged
 - **FR-033**: System MUST provide vocabulary display formats compliant with Z39.19 Section 11, including alphabetical and hierarchical displays
 
-#### etnoDB Integration Requirements
+#### BioCultDB Integration Requirements
 
-- **FR-034**: System MUST use the same MongoDB database instance "etnodb" as etnoDB, storing data in a separate collection "etnotermos"
-- **FR-035**: System MUST provide identical visual identity to etnoDB using the same "forest" color theme, typography, component styles, and page layouts
-- **FR-036**: System MUST manage controlled vocabulary for etnoDB field "comunidades.tipo" covering all 29 traditional community categories from Brazilian Decree 8.750/2016
-- **FR-037**: System MUST manage controlled vocabulary for etnoDB field "comunidades.plantas.tipoUso" including hierarchical relationships between use types
-- **FR-038**: System MUST provide API endpoints for etnoDB to query and validate terms, ensuring data consistency between systems
-- **FR-039**: System MUST support multilingual term variants (Portuguese, scientific nomenclature, indigenous languages) for use in etnoDB data entry
-- **FR-040**: System interface MUST be indistinguishable from etnoDB interface to users, creating a seamless integrated experience
+- **FR-034**: System MUST use the same MongoDB database instance "etnodb" as BioCultDB, storing data in a separate collection "etnotermos"
+- **FR-035**: System MUST provide identical visual identity to BioCultDB using the same "forest" color theme, typography, component styles, and page layouts
+- **FR-036**: System MUST manage controlled vocabulary for BioCultDB field "comunidades.tipo" covering all 29 traditional community categories from Brazilian Decree 8.750/2016
+- **FR-037**: System MUST manage controlled vocabulary for BioCultDB field "comunidades.plantas.tipoUso" including hierarchical relationships between use types
+- **FR-038**: System MUST provide API endpoints for BioCultDB to query and validate terms, ensuring data consistency between systems
+- **FR-039**: System MUST support multilingual term variants (Portuguese, scientific nomenclature, indigenous languages) for use in BioCultDB data entry
+- **FR-040**: System interface MUST be indistinguishable from BioCultDB interface to users, creating a seamless integrated experience
 
 ### Key Entities *(include if feature involves data)*
 

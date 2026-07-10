@@ -1,4 +1,4 @@
-# Feature Specification: Refatoração EtnoTermos — SKOS-XL + Integração EtnoDB
+# Feature Specification: Refatoração BioCultTermos — SKOS-XL + Integração BioCultDB
 
 **Feature Branch**: `001-quero-refatorar-toda`  
 **Created**: 2026-06-06  
@@ -22,7 +22,7 @@ O padrão **SKOS-XL** (W3C, 2009) é adotado por permitir que cada rótulo seja 
 
 | Contexto | Porta | Finalidade | Acesso |
 |----------|-------|-----------|--------|
-| **Aquisição** | interno | Sincronização automática com EtnoDB | Sistema/admin |
+| **Aquisição** | interno | Sincronização automática com BioCultDB | Sistema/admin |
 | **Apresentação** | 4000 | Consulta e navegação somente leitura | Público |
 | **Curadoria** | 4001 | Edição, enriquecimento e validação SKOS-XL | Admin/curador |
 
@@ -133,7 +133,7 @@ Cada rótulo carrega proveniência rastreável: qual povo, qual pesquisador, qua
 - **FR-012**: O sistema DEVE exibir relações `skos:broader`, `skos:narrower` e `skos:related` com navegação entre conceitos
 - **FR-013**: O sistema DEVE exibir metadados do rótulo visíveis: idioma, povo de origem, região de origem (quando preenchidos)
 - **FR-014**: A interface de apresentação DEVE ser somente leitura
-- **FR-015**: A interface DEVE manter identidade visual idêntica ao EtnoDB (tema "forest", mesmos componentes, mesma tipografia)
+- **FR-015**: A interface DEVE manter identidade visual idêntica ao BioCultDB (tema "forest", mesmos componentes, mesma tipografia)
 
 **Contexto de Curadoria — Labels SKOS-XL**
 
@@ -166,8 +166,8 @@ Cada rótulo carrega proveniência rastreável: qual povo, qual pesquisador, qua
 
 **Geral / Dados**
 
-- **FR-030**: O vocabulário DEVE ser armazenado na coleção `etnotermos` dentro do banco de dados `etnodb`, compartilhado com o EtnoDB
-- **FR-031**: O sistema NÃO DEVE permitir criação manual de conceitos via interface — todos os conceitos originam da aquisição do EtnoDB
+- **FR-030**: O vocabulário DEVE ser armazenado na coleção `etnotermos` dentro do banco de dados `etnodb`, compartilhado com o BioCultDB
+- **FR-031**: O sistema NÃO DEVE permitir criação manual de conceitos via interface — todos os conceitos originam da aquisição do BioCultDB
 - **FR-032**: A estrutura de dados DEVE ser compatível com exportação futura em JSON-LD / Turtle (SKOS-XL) sem migração de schema
 - **FR-033**: O sistema DEVE eliminar todos os arquivos e estruturas do código legado Z39.19 que não são necessários na nova arquitetura
 
@@ -194,9 +194,9 @@ Cada rótulo carrega proveniência rastreável: qual povo, qual pesquisador, qua
 ## Assumptions
 
 - O MongoDB `etnodb` está em execução e acessível a ambas as aplicações na mesma rede
-- O EtnoTermos é somente leitor da coleção `etnodb`; não escreve de volta nela
-- A coleção `etnotermos` é criada e gerenciada exclusivamente pelo EtnoTermos
-- A identidade visual segue o padrão do EtnoDB (tema "forest" do Tailwind CSS)
+- O BioCultTermos é somente leitor da coleção `etnodb`; não escreve de volta nela
+- A coleção `etnotermos` é criada e gerenciada exclusivamente pelo BioCultTermos
+- A identidade visual segue o padrão do BioCultDB (tema "forest" do Tailwind CSS)
 - Todos os commits vão para o branch `main` (conforme diretriz global)
 - Registros de termos depreciados são preservados (nunca excluídos)
 - A interface de apresentação é pública sem autenticação
@@ -208,16 +208,16 @@ Cada rótulo carrega proveniência rastreável: qual povo, qual pesquisador, qua
 
 ## Dependencies
 
-- Instância MongoDB `etnodb` com coleção `etnodb` populada pelo EtnoDB
+- Instância MongoDB `etnodb` com coleção `etnodb` populada pelo BioCultDB
 - Acesso de leitura à coleção `etnodb` para aquisição
 - Acesso de leitura/escrita à coleção `etnotermos`
-- Repositório EtnoDB em `../etnoDB` como referência visual
+- Repositório BioCultDB em `../BioCultDB` como referência visual
 
 ---
 
 ## Out of Scope
 
-- Criação manual de conceitos via interface (todos vêm do EtnoDB)
+- Criação manual de conceitos via interface (todos vêm do BioCultDB)
 - Exportação em RDF/Turtle, JSON-LD (fase futura)
 - Autenticação multi-usuário com papéis distintos (curador, admin, comunidade)
 - Integração em tempo real com Reflora, Flora do Brasil, SiBBr (fase futura — arquitetura deve prever)

@@ -1,17 +1,17 @@
-# EtnoTermos — Plataforma de Curadoria de Vocabulário Controlado Etnobotânico
+# BioCultTermos — Plataforma de Curadoria de Vocabulário Controlado Etnobotânico
 ## Versão 2.0
 
 <div align="center">
-  <img src="docs/etnoImagens/etnotermosTrans.png" alt="etnoTermos Logo" width="200">
+  <img src="docs/etnoImagens/etnotermosTrans.png" alt="BioCultTermos Logo" width="200">
 </div>
 
-**EtnoTermos v2.0** é um sistema integrado ao [etnoDB](https://github.com/edalcin/etnoDB) para aquisição, apresentação e curadoria de vocabulário controlado etnobotânico, operando sob o padrão **SKOS-XL** (Simple Knowledge Organization System — eXtension for Labels).
+**BioCultTermos v2.0** é um sistema integrado ao [BioCultDB](https://github.com/edalcin/BioCultDB) para aquisição, apresentação e curadoria de vocabulário controlado etnobotânico, operando sob o padrão **SKOS-XL** (Simple Knowledge Organization System — eXtension for Labels).
 
 > **Padrão**: [W3C SKOS-XL](https://www.w3.org/TR/skos-reference/skos-xl.html) · [Especificação SKOS completa](docs/simple_knowledge_organization_system_skos.pdf)
 
 > "Se os dados não estão fisicamente sob o controle de quem os gerou, a soberania é apenas uma promessa bonita em um termo de consentimento."
 >
-> — Eduardo Dalcin, em [*Sementes Livres, Solos Próprios: Por que o Conhecimento Tradicional exige uma Arquitetura Federada*](https://eduardo.dalc.in/por-que-o-conhecimento-tradicional-exige-uma-arquitetura-federada/), post que resume e ilustra didaticamente a arquitetura federada na qual cada membro opera sua própria instância soberana do EtnoTermos.
+> — Eduardo Dalcin, em [*Sementes Livres, Solos Próprios: Por que o Conhecimento Tradicional exige uma Arquitetura Federada*](https://eduardo.dalc.in/por-que-o-conhecimento-tradicional-exige-uma-arquitetura-federada/), post que resume e ilustra didaticamente a arquitetura federada na qual cada membro opera sua própria instância soberana do BioCultTermos.
 
 ---
 
@@ -19,7 +19,7 @@
 
 O conhecimento das comunidades tradicionais do Brasil expressa relações profundas entre povos, línguas e entidades biológicas. Preservar esse conhecimento de forma legítima exige uma arquitetura de informação que não seja colonizadora — que trate os termos das línguas indígenas como protagonistas, não como apêndices subordinados à nomenclatura científica ocidental.
 
-O EtnoTermos nasce desta necessidade: gerenciar os termos que o [etnoDB](https://github.com/edalcin/etnoDB) acumula diretamente na literatura científica, submetendo-os a um processo estruturado de curadoria segundo o padrão SKOS-XL, com governança de dados alinhada aos Princípios CARE.
+O BioCultTermos nasce desta necessidade: gerenciar os termos que o [BioCultDB](https://github.com/edalcin/BioCultDB) acumula diretamente na literatura científica, submetendo-os a um processo estruturado de curadoria segundo o padrão SKOS-XL, com governança de dados alinhada aos Princípios CARE.
 
 ---
 
@@ -114,9 +114,9 @@ O operador `$graphLookup` do MongoDB permite navegação recursiva em grafos de 
 
 ---
 
-## Integração com etnoDB
+## Integração com BioCultDB
 
-O EtnoTermos e o [etnoDB](https://github.com/edalcin/etnoDB) compartilham banco de dados, identidade visual e vocabulário:
+O BioCultTermos e o [BioCultDB](https://github.com/edalcin/BioCultDB) compartilham banco de dados, identidade visual e vocabulário:
 
 | Aspecto | Detalhe |
 |---|---|
@@ -126,7 +126,7 @@ O EtnoTermos e o [etnoDB](https://github.com/edalcin/etnoDB) compartilham banco 
 | **Campos gerenciados** | `comunidades.tipo`, `comunidades.plantas.nomeVernacular`, `comunidades.plantas.tipoUso`, `comunidades.atividadesEconomicas` |
 | **Identidade visual** | Tema `forest` (Tailwind CSS) — mesmas cores, fontes, componentes |
 
-O etnoDB coleta dados secundários de artigos científicos. O EtnoTermos consome esses dados automaticamente via contexto de Aquisição, transformando valores brutos em conceitos SKOS-XL candidatos. Os curadores então elevam, relacionam e enriquecem esses conceitos via interface de Curadoria.
+O BioCultDB coleta dados secundários de artigos científicos. O BioCultTermos consome esses dados automaticamente via contexto de Aquisição, transformando valores brutos em conceitos SKOS-XL candidatos. Os curadores então elevam, relacionam e enriquecem esses conceitos via interface de Curadoria.
 
 ---
 
@@ -138,8 +138,8 @@ O etnoDB coleta dados secundários de artigos científicos. O EtnoTermos consome
 graph TD
     U1["🔍 Público / Pesquisador\n(acesso anônimo)"]
     U2["✏️ Curador\n(autenticado)"]
-    ET["EtnoTermos v2.0\n[Sistema]\nAquisição · Apresentação · Curadoria\nde vocabulário controlado SKOS-XL"]
-    EDB["etnoDB\n[Sistema externo]\nBase de dados etnobotânicos\nportão 3001–3003"]
+    ET["BioCultTermos v2.0\n[Sistema]\nAquisição · Apresentação · Curadoria\nde vocabulário controlado SKOS-XL"]
+    EDB["BioCultDB\n[Sistema externo]\nBase de dados etnobotânicos\nportão 3001–3003"]
     MDB[("MongoDB\n[Banco de Dados]\netnodb")]
 
     U1 -->|"Consulta termos\n(porta 4000)"| ET
@@ -157,7 +157,7 @@ graph TD
 
 ```mermaid
 graph TD
-    subgraph EtnoTermos["EtnoTermos v2.0"]
+    subgraph BioCultTermos["BioCultTermos v2.0"]
         direction TB
         PUB["Interface Pública\n[Express.js + EJS]\nPorta 4000\nLeitura apenas, sem auth"]
         ADM["Interface Admin\n[Express.js + EJS]\nPorta 4001\nAuth bcrypt, curadoria CRUD"]
@@ -167,8 +167,8 @@ graph TD
         MDB[("MongoDB etnodb\n[Banco de Dados]\ncoleções: etnotermos\netnotermos_acquisition_log\netnotermos_audit_log")]
     end
 
-    subgraph EtnoDB["etnoDB (externo)"]
-        EDBAPP["Aplicação etnoDB\nPortas 3001–3003"]
+    subgraph BioCultDB["BioCultDB (externo)"]
+        EDBAPP["Aplicação BioCultDB\nPortas 3001–3003"]
         EDBCOL[("coleção etnodb")]
     end
 
@@ -301,7 +301,7 @@ graph LR
 ## Stack Tecnológica
 
 - **Backend**: Node.js 20 LTS + Express.js + MongoDB Driver 6.x
-- **Frontend**: HTMX 2.x + Alpine.js 3.x + Tailwind CSS 3.x (tema `forest`, idêntico ao etnoDB)
+- **Frontend**: HTMX 2.x + Alpine.js 3.x + Tailwind CSS 3.x (tema `forest`, idêntico ao BioCultDB)
 - **Template Engine**: EJS (server-side rendering)
 - **Banco de Dados**: MongoDB 7.0+, database `etnodb`
 - **Visualização**: Cytoscape.js (grafos de relacionamentos)
@@ -367,14 +367,14 @@ Documentação detalhada:
 
 ## Princípios CARE
 
-O EtnoTermos implementa os Princípios CARE para dados de povos indígenas:
+O BioCultTermos implementa os Princípios CARE para dados de povos indígenas:
 
 | Princípio | Implementação |
 |---|---|
 | **C**ollective Benefit | Vocabulário gerenciado pelas próprias comunidades via interface de curadoria |
 | **A**uthority to Control | `accessLevel` por rótulo: `public`, `restricted`, `sacred` |
 | **R**esponsibility | Trilha de auditoria completa por campo e por responsável |
-| **E**thics | Aquisição não-invasiva (leitura de dados já publicados no etnoDB) |
+| **E**thics | Aquisição não-invasiva (leitura de dados já publicados no BioCultDB) |
 
 ---
 
@@ -385,29 +385,29 @@ O EtnoTermos implementa os Princípios CARE para dados de povos indígenas:
 - [Princípios CARE](https://www.gida-global.org/care) — Governança de dados indígenas
 - [Darwin Core](https://dwc.tdwg.org/) — Interoperabilidade com biodiversidade
 - [Protocolo de Nagoya](https://www.cbd.int/abs/) — Repartição de benefícios
-- [etnoArquitetura](https://github.com/edalcin/etnoArquitetura) — Ecossistema integrado
-- [etnoDB](https://github.com/edalcin/etnoDB) — Sistema fonte de dados etnobotânicos
+- [Arquitetura BioCultural](https://github.com/edalcin/Arquitetura-BioCultural) — Ecossistema integrado
+- [BioCultDB](https://github.com/edalcin/BioCultDB) — Sistema fonte de dados etnobotânicos
 
-## EtnoArquitetura Federada — v3.0
+## Arquitetura BioCultural Federada — v3.0
 
-O **etnoTermos** faz parte da [EtnoArquitetura](https://github.com/edalcin/etnoArquitetura), um ecossistema federado para gestão de Conhecimento Tradicional Associado à Biodiversidade (CTA). Na versão 3.0, o etnoTermos assume um papel central e diferente da versão anterior.
+O **BioCultTermos** faz parte da [Arquitetura BioCultural](https://github.com/edalcin/Arquitetura-BioCultural), um ecossistema federado para gestão de Conhecimento Tradicional Associado à Biodiversidade (CTA). Na versão 3.0, o BioCultTermos assume um papel central e diferente da versão anterior.
 
-### Papel do etnoTermos na Federação
+### Papel do BioCultTermos na Federação
 
-Na arquitetura federada v3.0, **cada membro opera sua própria instância soberana do etnoTermos** com seu próprio `skos:ConceptScheme`. O etnoTermos deixa de ser uma infraestrutura terminológica central compartilhada e passa a ser um componente **por membro** — garantindo o princípio **Authority to Control** do CARE: cada comunidade ou iniciativa é dona de seus próprios vocabulários.
+Na arquitetura federada v3.0, **cada membro opera sua própria instância soberana do BioCultTermos** com seu próprio `skos:ConceptScheme`. O BioCultTermos deixa de ser uma infraestrutura terminológica central compartilhada e passa a ser um componente **por membro** — garantindo o princípio **Authority to Control** do CARE: cada comunidade ou iniciativa é dona de seus próprios vocabulários.
 
 ```mermaid
 graph TD
     subgraph I1["Iniciativa de Fontes Secundárias"]
-        ET1(etnoTermos\nConceptScheme: I1) <--> MDB1[(MongoDB I1)]
+        ET1(BioCultTermos\nConceptScheme: I1) <--> MDB1[(MongoDB I1)]
     end
 
     subgraph C2["Comunidade Tradicional #2"]
-        ET2(etnoTermos\nConceptScheme: C2) <--> MDB2[(MongoDB C2)]
+        ET2(BioCultTermos\nConceptScheme: C2) <--> MDB2[(MongoDB C2)]
     end
 
     subgraph C3["Comunidade Tradicional #N"]
-        ET3(etnoTermos\nConceptScheme: CN) <--> MDB3[(MongoDB CN)]
+        ET3(BioCultTermos\nConceptScheme: CN) <--> MDB3[(MongoDB CN)]
     end
 
     subgraph PL["Pluriverso"]
@@ -443,10 +443,10 @@ O **Pluriverso** mantém uma camada de mapeamentos semânticos (`skos:exactMatch
 
 | Componente | Relação |
 |------------|---------|
-| **[etnoDB](https://github.com/edalcin/etnoDB)** | A instância da Iniciativa #1 do etnoTermos serve ao etnoDB como infraestrutura terminológica |
-| **[etnoRelatos](https://github.com/edalcin/etnoRelatos)** | Cada Comunidade Tradicional opera sua própria instância do etnoTermos integrada ao seu etnoRelatos |
+| **[BioCultDB](https://github.com/edalcin/BioCultDB)** | A instância da Iniciativa #1 do BioCultTermos serve ao BioCultDB como infraestrutura terminológica |
+| **[BioCultRelatos](https://github.com/edalcin/BioCultRelatos)** | Cada Comunidade Tradicional opera sua própria instância do BioCultTermos integrada ao seu BioCultRelatos |
 | **[Pluriverso](https://github.com/edalcin/pluriverso)** | Coleta ConceptSchemes públicos e mantém mapeamentos SKOS entre membros |
-| **[etnoArquitetura](https://github.com/edalcin/etnoArquitetura)** | Documentação completa ([ADR-004](https://github.com/edalcin/etnoArquitetura/blob/main/docs/architecture-decisions/ADR-004-federated-architecture.md)) |
+| **[Arquitetura BioCultural](https://github.com/edalcin/Arquitetura-BioCultural)** | Documentação completa ([ADR-004](https://github.com/edalcin/Arquitetura-BioCultural/blob/main/docs/architecture-decisions/ADR-004-federated-architecture.md)) |
 
 ---
 
@@ -454,4 +454,4 @@ O **Pluriverso** mantém uma camada de mapeamentos semânticos (`skos:exactMatch
 
 **Licença**: A definir
 
-**Contato**: [GitHub Issues](https://github.com/edalcin/etnotermos/issues) · edalcin@jbrj.gov.br
+**Contato**: [GitHub Issues](https://github.com/edalcin/BioCultTermos/issues) · edalcin@jbrj.gov.br

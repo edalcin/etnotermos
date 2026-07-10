@@ -115,7 +115,7 @@ async function upsertConcept(col, field, normalizedValue, comunidades) {
 }
 
 /**
- * Runs a full acquisition cycle from etnoDB → etnotermos.
+ * Runs a full acquisition cycle from BioCultDB → etnotermos.
  * Iterates over all monitored fields, discovers distinct values,
  * and upserts each as a candidate concept.
  * Always persists an AcquisitionLog document, even on failure.

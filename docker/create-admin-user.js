@@ -78,7 +78,7 @@ function parseEnvFile(filePath) {
 }
 
 async function main() {
-  console.log('\n=== EtnoTermos — Configuração de Usuário Admin ===\n');
+  console.log('\n=== BioCultTermos — Configuração de Usuário Admin ===\n');
 
   const existing = parseEnvFile(ENV_FILE);
   let users = [];

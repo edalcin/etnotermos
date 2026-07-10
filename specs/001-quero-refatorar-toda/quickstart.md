@@ -1,4 +1,4 @@
-# Quickstart: EtnoTermos — SKOS-XL + EtnoDB
+# Quickstart: BioCultTermos — SKOS-XL + BioCultDB
 
 **Feature**: 001-quero-refatorar-toda  
 **Date**: 2026-06-06
@@ -8,7 +8,7 @@
 ## Pré-requisitos
 
 - Node.js 20 LTS
-- MongoDB 7.0+ rodando localmente ou em rede (mesma instância do EtnoDB)
+- MongoDB 7.0+ rodando localmente ou em rede (mesma instância do BioCultDB)
 - Docker (opcional, para produção)
 - npm ≥ 10
 

@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: EtnoTermos API
+  title: BioCultTermos API
   version: 1.0.0
   description: API for managing ethnobotanical terms and their relationships.
 

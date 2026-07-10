@@ -1,7 +1,7 @@
 {
   "name": "etnotermos-backend",
   "version": "2.0.0",
-  "description": "EtnoTermos — SKOS-XL vocabulary curation interface integrated with etnoDB",
+  "description": "BioCultTermos — SKOS-XL vocabulary curation interface integrated with BioCultDB",
   "main": "src/start.js",
   "type": "module",
   "scripts": {
@@ -21,9 +21,9 @@
     "skos-xl",
     "controlled-vocabulary",
     "mongodb",
-    "etnodb"
+    "biocultdb"
   ],
-  "author": "EtnoTermos Team",
+  "author": "BioCultTermos Team",
   "license": "MIT",
   "dependencies": {
     "bcrypt": "^5.1.1",

@@ -1,22 +1,22 @@
 # Tasks: Ethnobotanical Terms Database and Management System
 
-**Feature**: EtnoTermos main
+**Feature**: BioCultTermos main
 **Branch**: main
 **Input**: Design documents from `/specs/main/`
 **Prerequisites**: plan.md, research.md, data-model.md, contracts/openapi.yaml
 
 **Generated**: 2026-01-05
-**Updated**: 2026-01-06 (etnoDB integration)
+**Updated**: 2026-01-06 (BioCultDB integration)
 **Status**: Ready for execution
 
-## etnoDB Integration
+## BioCultDB Integration
 
-**CRITICAL**: This system is visually and functionally integrated with etnoDB:
+**CRITICAL**: This system is visually and functionally integrated with BioCultDB:
 - **Shared Database**: MongoDB "etnodb" (collection "etnotermos")
-- **Visual Identity**: Must match etnoDB's "forest" theme colors, fonts, and components exactly
-- **Technology Stack**: HTMX + Alpine.js + Tailwind CSS + EJS (matching etnoDB)
-- **Ports**: 4000 (public), 4001 (admin) - avoiding etnoDB's 3001/3002/3003
-- **Controlled Vocabulary**: Manages terms for etnoDB fields (comunidades.tipo, plantas.tipoUso)
+- **Visual Identity**: Must match BioCultDB's "forest" theme colors, fonts, and components exactly
+- **Technology Stack**: HTMX + Alpine.js + Tailwind CSS + EJS (matching BioCultDB)
+- **Ports**: 4000 (public), 4001 (admin) - avoiding BioCultDB's 3001/3002/3003
+- **Controlled Vocabulary**: Manages terms for BioCultDB fields (comunidades.tipo, plantas.tipoUso)
 
 ---
 
@@ -34,7 +34,7 @@ This task list follows Test-Driven Development (TDD) principles:
 
 ## Path Conventions
 
-Based on plan.md project structure (etnoDB-compatible):
+Based on plan.md project structure (BioCultDB-compatible):
 - Backend: `backend/src/`, `backend/tests/`
 - Contexts: `backend/src/contexts/{public,admin}/`
 - Views: `backend/src/contexts/{public,admin}/views/` (EJS templates)
@@ -47,7 +47,7 @@ Based on plan.md project structure (etnoDB-compatible):
 
 ## Phase 3.1: Infrastructure & Setup
 
-**Goal**: Establish project structure, dependencies, and development environment (etnoDB-compatible)
+**Goal**: Establish project structure, dependencies, and development environment (BioCultDB-compatible)
 
 - [ ] **T001** [P] Create backend directory structure: `backend/src/{contexts/{public,admin},models,services,lib/{search,export,validation},shared,config}` and `backend/tests/{integration,unit}`
 
@@ -57,7 +57,7 @@ Based on plan.md project structure (etnoDB-compatible):
 
 - [ ] **T004** [P] Initialize frontend with Tailwind CSS, create `frontend/package.json` with dependencies: tailwindcss, postcss, autoprefixer, tailwindcss-cli
 
-- [ ] **T005** [P] Create Tailwind configuration in `tailwind.config.js`: define "forest" color theme matching etnoDB (forest-50 to forest-900), configure content paths for EJS templates
+- [ ] **T005** [P] Create Tailwind configuration in `tailwind.config.js`: define "forest" color theme matching BioCultDB (forest-50 to forest-900), configure content paths for EJS templates
 
 - [ ] **T006** [P] Create main Tailwind CSS file in `frontend/src/shared/styles/main.css`: import Tailwind directives, define base styles (body, headings), component classes (btn, btn-primary, card, form-input), using forest colors
 
@@ -263,11 +263,11 @@ Based on plan.md project structure (etnoDB-compatible):
 
 - [ ] **T085** Add deprecation methods to AdminTermsController in `backend/src/api/controllers/AdminTermsController.ts`: deprecateTerm (call TermService.deprecateTerm), mergeTerms (call TermService.mergeTerms, update all references)
 
-- [ ] **T086** Create etnoDB integration routes in `backend/src/api/public/ethnodb.ts`: GET /ethnodb/validate/:termId (validate term exists and is active), GET /ethnodb/vocabulary/:field (get controlled vocabulary for etnoDB field - comunidades.tipo or plantas.tipoUso), GET /ethnodb/terms/search (query terms with filters for dropdown population)
+- [ ] **T086** Create BioCultDB integration routes in `backend/src/api/public/ethnodb.ts`: GET /ethnodb/validate/:termId (validate term exists and is active), GET /ethnodb/vocabulary/:field (get controlled vocabulary for BioCultDB field - comunidades.tipo or plantas.tipoUso), GET /ethnodb/terms/search (query terms with filters for dropdown population)
 
-- [ ] **T087** Create etnoDB integration controller in `backend/src/api/controllers/EtnoDBController.ts`: validateTerm (check term exists, not deprecated), getVocabulary (return terms for specific field with hierarchy), searchTerms (lightweight search for autocomplete)
+- [ ] **T087** Create BioCultDB integration controller in `backend/src/api/controllers/BioCultDBController.ts`: validateTerm (check term exists, not deprecated), getVocabulary (return terms for specific field with hierarchy), searchTerms (lightweight search for autocomplete)
 
-- [ ] **T088** Integration test for etnoDB API in `backend/tests/integration/scenario-13-ethnodb-api.test.ts`: Query /ethnodb/vocabulary/comunidades.tipo → Verify 29 community types returned → Validate term existence → Verify term validation returns active status
+- [ ] **T088** Integration test for BioCultDB API in `backend/tests/integration/scenario-13-ethnodb-api.test.ts`: Query /ethnodb/vocabulary/comunidades.tipo → Verify 29 community types returned → Validate term existence → Verify term validation returns active status
 
 - [ ] **T089** Register all routers in public and admin servers: `backend/src/server-public.ts` (terms, relationships, search, export, ethnodb) and `backend/src/server-admin.ts` (terms, relationships, notes, sources, collections, dashboard) under /api/v1 prefix
 
@@ -275,13 +275,13 @@ Based on plan.md project structure (etnoDB-compatible):
 
 ## Phase 3.7: Frontend Implementation (EJS Templates + HTMX)
 
-**Goal**: Build server-side rendered pages with etnoDB visual identity
+**Goal**: Build server-side rendered pages with BioCultDB visual identity
 
 ### Public Context Views (Port 4000 - Read-only)
 
 - [ ] **T084** [P] Create public layout template in `backend/src/contexts/public/views/layout.ejs`: HTML structure, head with Tailwind CSS link, header with navigation (forest theme), main content area, footer, HTMX and Alpine.js scripts
 
-- [ ] **T085** [P] Create public home page in `backend/src/contexts/public/views/index.ejs`: welcome message matching etnoDB style, search bar, quick stats cards (forest-600 accents), featured terms list
+- [ ] **T085** [P] Create public home page in `backend/src/contexts/public/views/index.ejs`: welcome message matching BioCultDB style, search bar, quick stats cards (forest-600 accents), featured terms list
 
 - [ ] **T086** [P] Create term list view in `backend/src/contexts/public/views/terms/list.ejs`: paginated term cards with forest theme, search filters using HTMX, infinite scroll or pagination controls, Alpine.js for filter dropdowns
 
@@ -297,11 +297,11 @@ Based on plan.md project structure (etnoDB-compatible):
 
 - [ ] **T091** [P] Create admin layout template in `backend/src/contexts/admin/views/layout.ejs`: similar to public but with admin nav menu (Dashboard, Terms, Sources, Collections), admin-specific forest theme accents
 
-- [ ] **T092** [P] Create admin dashboard in `backend/src/contexts/admin/views/dashboard.ejs`: statistics cards (forest-themed), term counts by status, recent changes table, chart placeholders (optional: Google Charts like etnoDB)
+- [ ] **T092** [P] Create admin dashboard in `backend/src/contexts/admin/views/dashboard.ejs`: statistics cards (forest-themed), term counts by status, recent changes table, chart placeholders (optional: Google Charts like BioCultDB)
 
 - [ ] **T093** [P] Create term management list in `backend/src/contexts/admin/views/terms/manage.ejs`: table with all terms, status badges (forest colors), HTMX edit/delete buttons, filter by status, "Create New Term" button
 
-- [ ] **T094** [P] Create term form view in `backend/src/contexts/admin/views/terms/form.ejs`: comprehensive form matching etnoDB form styles, multi-language name inputs, note type textareas, source/collection multi-select, Z39.19 validation messages, HTMX form submission
+- [ ] **T094** [P] Create term form view in `backend/src/contexts/admin/views/terms/form.ejs`: comprehensive form matching BioCultDB form styles, multi-language name inputs, note type textareas, source/collection multi-select, Z39.19 validation messages, HTMX form submission
 
 - [ ] **T095** [P] Create relationship management view in `backend/src/contexts/admin/views/relationships/manage.ejs`: add/remove relationships, relationship type selector (BT/NT/RT etc.), validation display, HTMX updates
 
@@ -311,9 +311,9 @@ Based on plan.md project structure (etnoDB-compatible):
 
 ### Shared Partials & Components
 
-- [ ] **T098** [P] Create header partial in `backend/src/contexts/public/views/partials/header.ejs`: etnoDB-style navigation, logo area, search bar integration, consistent across public/admin
+- [ ] **T098** [P] Create header partial in `backend/src/contexts/public/views/partials/header.ejs`: BioCultDB-style navigation, logo area, search bar integration, consistent across public/admin
 
-- [ ] **T099** [P] Create footer partial in `backend/src/contexts/public/views/partials/footer.ejs`: etnoDB-style footer with links, C.A.R.E. principles acknowledgment
+- [ ] **T099** [P] Create footer partial in `backend/src/contexts/public/views/partials/footer.ejs`: BioCultDB-style footer with links, C.A.R.E. principles acknowledgment
 
 - [ ] **T100** [P] Create loading indicator partial in `backend/src/contexts/public/views/partials/loading.ejs`: HTMX loading spinner with forest colors, reusable via hx-indicator
 
@@ -499,7 +499,7 @@ Before marking Phase 3 complete, verify:
 - Phase 3.3 (Models): 8 tasks (+1 for private note type fix), ~3 days
 - Phase 3.4 (Services): 11 tasks (+1 for deprecation), ~1 week
 - Phase 3.5 (Middleware): 6 tasks, ~2 days
-- Phase 3.6 (API): 25 tasks (+2 deprecation, +3 etnoDB), ~2 weeks
+- Phase 3.6 (API): 25 tasks (+2 deprecation, +3 BioCultDB), ~2 weeks
 - Phase 3.7 (Frontend): 30 tasks (+3 for deprecation UI), ~2.5 weeks
 - Phase 3.8 (Integration): 19 tasks (+7 bulk import, +1 controlled vocab, +1 200k monitoring), ~2 weeks
 - Phase 3.9 (Documentation): 13 tasks, ~1 week
@@ -512,8 +512,8 @@ Before marking Phase 3 complete, verify:
 **Next Step**: Begin with T001 (Create backend directory structure)
 
 **Integration Notes**:
-- All tasks updated to reflect HTMX+Alpine.js+EJS stack (matching etnoDB)
-- Ports changed to 4000/4001 (avoiding etnoDB's 3001/3002/3003)
-- Visual identity must match etnoDB's "forest" theme exactly
+- All tasks updated to reflect HTMX+Alpine.js+EJS stack (matching BioCultDB)
+- Ports changed to 4000/4001 (avoiding BioCultDB's 3001/3002/3003)
+- Visual identity must match BioCultDB's "forest" theme exactly
 - Database "etnodb" shared, collection "etnotermos" separate
-- New FR-034 through FR-040 added for etnoDB integration requirements
+- New FR-034 through FR-040 added for BioCultDB integration requirements

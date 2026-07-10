@@ -11,7 +11,7 @@ Templates Requiring Updates:
 Follow-up TODOs: None
 -->
 
-# EtnoTermos Constitution
+# BioCultTermos Constitution
 
 ## Core Principles
 
@@ -25,7 +25,7 @@ Follow-up TODOs: None
 - Test coverage MUST be ≥80% for services, models, and API routes
 - Exception: Infrastructure setup tasks (Docker, config files) may precede tests
 
-**Rationale**: EtnoTermos manages controlled vocabulary for research integrity. Untested code risks data corruption, relationship inconsistencies, and Z39.19 compliance violations that undermine scientific credibility.
+**Rationale**: BioCultTermos manages controlled vocabulary for research integrity. Untested code risks data corruption, relationship inconsistencies, and Z39.19 compliance violations that undermine scientific credibility.
 
 ### II. Standards Compliance (ANSI/NISO Z39.19-2005)
 
@@ -44,19 +44,19 @@ Follow-up TODOs: None
 
 **Rationale**: Z39.19 compliance ensures interoperability with library systems, professional credibility, and long-term vocabulary sustainability. Non-compliance renders the system incompatible with academic and institutional requirements.
 
-### III. etnoDB Visual Integration
+### III. BioCultDB Visual Integration
 
-**Visual identity MUST be identical to etnoDB** - the two systems must appear as one integrated platform.
+**Visual identity MUST be identical to BioCultDB** - the two systems must appear as one integrated platform.
 
-- Color theme: Tailwind "forest" (forest-50 to forest-900) matching etnoDB exactly
-- Typography: Same font families, sizes, and weights as etnoDB
+- Color theme: Tailwind "forest" (forest-50 to forest-900) matching BioCultDB exactly
+- Typography: Same font families, sizes, and weights as BioCultDB
 - Components: Buttons, cards, forms, tables must use identical styles
-- Layouts: Page structure, navigation, spacing must mirror etnoDB patterns
-- Technology stack: HTMX + Alpine.js + Tailwind CSS + EJS (same as etnoDB)
+- Layouts: Page structure, navigation, spacing must mirror BioCultDB patterns
+- Technology stack: HTMX + Alpine.js + Tailwind CSS + EJS (same as BioCultDB)
 
 **Validation**: Visual regression testing or manual comparison checklist before major releases.
 
-**Rationale**: EtnoTermos provides controlled vocabulary for etnoDB fields. Users must experience seamless navigation between systems without visual discontinuity that would suggest separate, disconnected tools.
+**Rationale**: BioCultTermos provides controlled vocabulary for BioCultDB fields. Users must experience seamless navigation between systems without visual discontinuity that would suggest separate, disconnected tools.
 
 ### IV. CARE Principles for Indigenous Data Governance
 
@@ -90,7 +90,7 @@ Follow-up TODOs: None
 - Service layer abstraction requires justification (when is route→model insufficient?)
 - Custom framework/library requires justification (when are established tools insufficient?)
 
-**Rationale**: EtnoTermos is maintained by graduate students and researchers, not full-time engineers. Over-engineered systems become unmaintainable, accumulate technical debt, and fail to serve their academic mission.
+**Rationale**: BioCultTermos is maintained by graduate students and researchers, not full-time engineers. Over-engineered systems become unmaintainable, accumulate technical debt, and fail to serve their academic mission.
 
 ## Quality Standards
 
@@ -141,7 +141,7 @@ Before marking feature complete:
 - [ ] Test coverage ≥80%
 - [ ] Performance requirements validated (search <500ms, graph rendering)
 - [ ] Z39.19 validation utilities confirm compliance
-- [ ] Visual consistency with etnoDB verified (manual checklist)
+- [ ] Visual consistency with BioCultDB verified (manual checklist)
 - [ ] CARE Principles compliance verified (attribution fields, cultural guidance)
 - [ ] Security baseline met (input validation, output encoding, no secrets)
 - [ ] Documentation updated (README, API docs, quickstart)

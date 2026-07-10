@@ -1,6 +1,6 @@
 # Contract: Admin Acquisition & Audit API (Porta 4001)
 
-**Context**: Curadoria — Aquisição do EtnoDB e Trilha de Auditoria  
+**Context**: Curadoria — Aquisição do BioCultDB e Trilha de Auditoria
 **Base URL**: `http://host:4001`  
 **Auth**: HTTP Basic Auth (mesmo que admin-concepts-api.md)
 
@@ -8,7 +8,7 @@
 
 ## POST /acquisition/run
 
-**Descrição**: Dispara manualmente a sincronização com o EtnoDB (equivalente ao job agendado)  
+**Descrição**: Dispara manualmente a sincronização com o BioCultDB (equivalente ao job agendado)
 **Body**: vazio  
 **Response 202** (Accepted): `{ "ok": true, "message": "Aquisição iniciada em background." }`  
 

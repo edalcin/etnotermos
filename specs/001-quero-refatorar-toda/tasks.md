@@ -1,4 +1,4 @@
-# Tasks: Refatoração EtnoTermos — SKOS-XL + Integração EtnoDB
+# Tasks: Refatoração BioCultTermos — SKOS-XL + Integração BioCultDB
 
 **Feature**: 001-quero-refatorar-toda  
 **Input**: `specs/001-quero-refatorar-toda/`  
@@ -38,7 +38,7 @@
 
 - [X] T006 [P] Criar `docker/etnotermos.Dockerfile` e `docker/docker-compose.yml`
   - `Dockerfile`: Node.js 20 Alpine; multi-stage (build Tailwind → prod); expor portas 4000 e 4001; `CMD` inicia ambos os servidores
-  - `docker-compose.yml`: serviço `etnotermos`; variáveis de ambiente via `.env`; volume para `AUDIO_STORAGE_PATH`; sem serviço MongoDB próprio (usa instância compartilhada do EtnoDB)
+  - `docker-compose.yml`: serviço `etnotermos`; variáveis de ambiente via `.env`; volume para `AUDIO_STORAGE_PATH`; sem serviço MongoDB próprio (usa instância compartilhada do BioCultDB)
 
 - [X] T007 Criar `scripts/db-init.js` — criação de índices MongoDB
   - Criar coleções `etnotermos`, `etnotermos_acquisition_log`, `etnotermos_audit_log`
@@ -90,7 +90,7 @@
   - Depende de: T004
 
 - [X] T011 [P] Teste de integração US1 — Aquisição automática em `backend/tests/integration/us1-acquisition.test.js`
-  - Cenário: executar `AcquisitionService.run()` com banco EtnoDB mock contendo valores nos campos monitorados
+  - Cenário: executar `AcquisitionService.run()` com banco BioCultDB mock contendo valores nos campos monitorados
   - Verificar: conceitos criados com `status:"candidate"`, `sourceFields[]` corretos, `sourceCommunities[]` corretos
   - Verificar deduplicação cross-field: mesmo literalForm em dois campos → 1 conceito com ambos no `sourceFields`
   - Verificar idempotência: segunda execução não cria duplicatas, apenas $addToSet
@@ -201,7 +201,7 @@
   - `findMany({ conceptId, responsible, page, limit })` — busca com filtros, ordem cronológica reversa
   - Depende de: T017
 
-- [X] T023 Implementar `backend/src/services/AcquisitionService.js` — sync EtnoDB → etnotermos
+- [X] T023 Implementar `backend/src/services/AcquisitionService.js` — sync BioCultDB → etnotermos
   - `run()` — idempotente; executável manualmente e pelo cron
   - Para cada campo em `MONITORED_FIELDS` = `['comunidades.tipo', 'comunidades.plantas.nomeVernacular', 'comunidades.plantas.tipoUso', 'comunidades.atividadesEconomicas']`:
     - Aggregate na coleção `etnodb` para obter valores distintos + comunidades associadas (conforme queries em `data-model.md`)
@@ -293,7 +293,7 @@
   - `backend/src/contexts/public/views/layout.ejs` — HTML base com tema forest, HTMX CDN, Alpine.js CDN, CSS compilado; meta viewport e lang="pt-BR"
   - `backend/src/contexts/public/views/index.ejs` — cards de grupos semânticos (`sourceFields`) com contador; caixa de busca com HTMX (`hx-get="/concepts"`, `hx-target="#results"`, `hx-trigger="keyup changed delay:300ms"`)
   - `backend/src/contexts/public/views/concept-detail.ejs` — prefLabel destacado como protagonista; altLabels organizados por `accessLevel:public`; player HTML5 `<audio>` se `audioPath`; breadcrumb de broader; lista de narrower/related com links; notas SKOS
-  - Tema visual idêntico ao EtnoDB: forest-600 primary, forest-50 backgrounds, mesmos padrões de botão/card
+  - Tema visual idêntico ao BioCultDB: forest-600 primary, forest-50 backgrounds, mesmos padrões de botão/card
   - Depende de: T026, T027
 
 - [X] T034 [P] Implementar views do contexto admin — conceitos

@@ -8,7 +8,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Forest theme matching etnoDB
+        // Forest theme matching BioCultDB
         forest: {
           50: '#f0fdf4',
           100: '#dcfce7',

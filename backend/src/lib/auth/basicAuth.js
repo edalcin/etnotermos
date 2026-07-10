@@ -5,7 +5,7 @@ export default async function requireAuth(req, res, next) {
   const authHeader = req.headers['authorization'];
 
   if (!authHeader || !authHeader.startsWith('Basic ')) {
-    res.set('WWW-Authenticate', 'Basic realm="EtnoTermos Admin"');
+    res.set('WWW-Authenticate', 'Basic realm="BioCultTermos Admin"');
     return res.status(401).json({ error: 'Authentication required' });
   }
 
@@ -17,7 +17,7 @@ export default async function requireAuth(req, res, next) {
     username = decoded.slice(0, separatorIndex);
     password = decoded.slice(separatorIndex + 1);
   } catch {
-    res.set('WWW-Authenticate', 'Basic realm="EtnoTermos Admin"');
+    res.set('WWW-Authenticate', 'Basic realm="BioCultTermos Admin"');
     return res.status(401).json({ error: 'Malformed credentials' });
   }
 

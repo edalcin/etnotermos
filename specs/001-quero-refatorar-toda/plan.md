@@ -1,4 +1,4 @@
-# Implementation Plan: Refatoração EtnoTermos — SKOS-XL + Integração EtnoDB
+# Implementation Plan: Refatoração BioCultTermos — SKOS-XL + Integração BioCultDB
 
 **Branch**: `001-quero-refatorar-toda` | **Date**: 2026-06-06 | **Spec**: `specs/001-quero-refatorar-toda/spec.md`
 
@@ -6,7 +6,7 @@
 
 ## Summary
 
-Refatoração completa do EtnoTermos: substituição do padrão Z39.19 por SKOS-XL (W3C), integração com EtnoDB via MongoDB compartilhado, e adoção do vocabulário vernacular como protagonista. O sistema passa a ter três contextos C4: **Aquisição** (sync automático de termos do EtnoDB), **Apresentação** (porto 4000, read-only público) e **Curadoria** (porto 4001, enriquecimento SKOS-XL com CARE). Todo código legado Z39.19 é eliminado.
+Refatoração completa do BioCultTermos: substituição do padrão Z39.19 por SKOS-XL (W3C), integração com BioCultDB via MongoDB compartilhado, e adoção do vocabulário vernacular como protagonista. O sistema passa a ter três contextos C4: **Aquisição** (sync automático de termos do BioCultDB), **Apresentação** (porto 4000, read-only público) e **Curadoria** (porto 4001, enriquecimento SKOS-XL com CARE). Todo código legado Z39.19 é eliminado.
 
 ---
 
@@ -16,11 +16,11 @@ Refatoração completa do EtnoTermos: substituição do padrão Z39.19 por SKOS-
 **Primary Dependencies**: Express.js, MongoDB Driver 6.x, HTMX 2.x, Alpine.js 3.x, Tailwind CSS 3.x (tema forest), EJS 3.x, multer, node-cron, bcrypt
 **Storage**: MongoDB 7.0+ — banco `etnodb`, coleções `etnotermos`, `etnotermos_acquisition_log`, `etnotermos_audit_log`
 **Testing**: Jest 29, Supertest, mongodb-memory-server
-**Target Platform**: Docker Alpine Linux + Unraid (mesmo host que EtnoDB)
+**Target Platform**: Docker Alpine Linux + Unraid (mesmo host que BioCultDB)
 **Project Type**: web
 **Performance Goals**: p95 <500ms busca textual; 5-10 usuários simultâneos sem degradação
 **Constraints**: Docker image mínimo; sem dependências externas além do MongoDB compartilhado; `AUDIO_STORAGE_PATH` via variável de ambiente Docker
-**Scale/Scope**: ~1.000–10.000 conceitos iniciais; corpus cresce com inserções no EtnoDB
+**Scale/Scope**: ~1.000–10.000 conceitos iniciais; corpus cresce com inserções no BioCultDB
 
 ---
 
@@ -32,7 +32,7 @@ Refatoração completa do EtnoTermos: substituição do padrão Z39.19 por SKOS-
 |-----------|--------|------------|
 | I. TDD (Red-Green-Refactor) | ✅ PASS | Testes de contrato → falham → implementação → verde |
 | II. Standards Compliance (Z39.19) | ⚠️ DESVIO JUSTIFICADO | Ver Complexity Tracking — Z39.19 substituído por SKOS-XL |
-| III. Visual Integration com EtnoDB | ✅ PASS | FR-015: tema forest idêntico; mesmos componentes HTMX+Alpine+EJS |
+| III. Visual Integration com BioCultDB | ✅ PASS | FR-015: tema forest idêntico; mesmos componentes HTMX+Alpine+EJS |
 | IV. CARE Principles | ✅ PASS | accessLevel por rótulo, proveniência, PIC — feature de primeira classe |
 | V. Simplicity & Maintainability | ✅ PASS | SKOS-XL embedded em MongoDB sem ORM, sem repositório desnecessário |
 
@@ -94,7 +94,7 @@ backend/
 │   │   └── AuditEntry.js
 │   ├── services/
 │   │   ├── ConceptService.js    # CRUD + relações + ancestors
-│   │   ├── AcquisitionService.js # Sync EtnoDB → etnotermos
+│   │   ├── AcquisitionService.js # Sync BioCultDB → etnotermos
 │   │   └── AuditService.js
 │   ├── lib/
 │   │   ├── skosxl/

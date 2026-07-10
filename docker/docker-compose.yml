@@ -13,7 +13,7 @@ services:
       NODE_ENV: production
       PUBLIC_PORT: 4000
       ADMIN_PORT: 4001
-      # Shared MongoDB instance — same host as EtnoDB
+      # Shared MongoDB instance — same host as BioCultDB
       MONGODB_URI: ${MONGODB_URI:-mongodb://host.docker.internal:27017/etnodb}
       # JSON array: [{"username":"x","passwordHash":"$2b$10$..."}]
       ADMIN_USERS: ${ADMIN_USERS}

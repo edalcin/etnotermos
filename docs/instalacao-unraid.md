@@ -1,4 +1,4 @@
-# Instalação do EtnoTermos v2.0 no UNRAID
+# Instalação do BioCultTermos v2.0 no UNRAID
 
 Guia passo a passo via interface web do UNRAID. Sem linha de comando necessária.
 
@@ -16,7 +16,7 @@ Guia passo a passo via interface web do UNRAID. Sem linha de comando necessária
 
 ## Passo 1 — Construir a imagem
 
-O EtnoTermos precisa ser construído a partir do código-fonte.
+O BioCultTermos precisa ser construído a partir do código-fonte.
 
 1. No UNRAID, abra **Settings → Management Access** e habilite **SSH**
 2. Conecte via SSH:
@@ -26,8 +26,8 @@ O EtnoTermos precisa ser construído a partir do código-fonte.
 3. Execute:
    ```bash
    cd /mnt/user/appdata
-   git clone https://github.com/edalcin/etnotermos.git
-   cd etnotermos
+   git clone https://github.com/edalcin/BioCultTermos.git
+   cd BioCultTermos
    docker build -t etnotermos:latest -f docker/etnotermos.Dockerfile .
    ```
 4. Aguarde o build (5–10 minutos na primeira vez)
@@ -85,7 +85,7 @@ Clique em **"Add another Path, Port, Variable..."** → **Path**:
 
 | Name | Container Path | Host Path |
 |---|---|---|
-| Audio Storage | `/data/audio` | `/mnt/user/appdata/etnotermos/audio` |
+| Audio Storage | `/data/audio` | `/mnt/user/appdata/BioCultTermos/audio` |
 
 3. Clique em **Apply**
 
@@ -96,11 +96,11 @@ Clique em **"Add another Path, Port, Variable..."** → **Path**:
 1. No painel **Docker**, clique no container `etnotermos` → **Logs**
 2. Aguarde ver mensagens como:
    ```
-   Starting EtnoTermos dual-context servers...
+   Starting BioCultTermos dual-context servers...
    Spawned public  server → http://localhost:4000 (initializing...)
    Spawned admin   server → http://localhost:4001 (initializing...)
-   EtnoTermos PUBLIC interface running on port 4000
-   EtnoTermos ADMIN interface running on port 4001
+   BioCultTermos PUBLIC interface running on port 4000
+   BioCultTermos ADMIN interface running on port 4001
    MongoDB connected
    ```
 
@@ -128,12 +128,12 @@ Substitua `192.168.1.100` pelo IP do seu UNRAID:
 
 ## Passo 5 — Disparar aquisição inicial
 
-O EtnoTermos lê os dados do etnoDB automaticamente, mas você pode forçar a primeira aquisição:
+O BioCultTermos lê os dados do BioCultDB automaticamente, mas você pode forçar a primeira aquisição:
 
 1. Acesse `http://192.168.1.100:4001`
 2. Faça login
 3. Clique em **Aquisição → Executar agora**
-4. Os termos do etnoDB aparecerão como "candidatos" para curadoria
+4. Os termos do BioCultDB aparecerão como "candidatos" para curadoria
 
 ---
 
@@ -143,7 +143,7 @@ Para atualizar para uma nova versão:
 
 1. SSH no UNRAID:
    ```bash
-   cd /mnt/user/appdata/etnotermos
+   cd /mnt/user/appdata/BioCultTermos
    git pull origin main
    docker build -t etnotermos:latest -f docker/etnotermos.Dockerfile .
    ```
@@ -219,7 +219,7 @@ Usando **User Scripts** (plugin Community Applications):
 
 ```bash
 #!/bin/bash
-BACKUP_DIR="/mnt/user/backups/etnotermos"
+BACKUP_DIR="/mnt/user/backups/BioCultTermos"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 MONGODB_CONTAINER="mongodb"   # ajuste com o nome do seu container
 
@@ -236,4 +236,4 @@ Configure para rodar diariamente às 2h.
 
 ---
 
-**Dúvidas ou problemas**: [GitHub Issues](https://github.com/edalcin/etnotermos/issues)
+**Dúvidas ou problemas**: [GitHub Issues](https://github.com/edalcin/BioCultTermos/issues)
