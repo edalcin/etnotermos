@@ -82,7 +82,20 @@
       "Bash(NODE_OPTIONS='--experimental-vm-modules' npx jest --testPathPattern=\"contract/admin-concepts\" --no-coverage)",
       "Bash(NODE_OPTIONS='--experimental-vm-modules' npx jest --testPathPattern=\"contract/public-api\" --no-coverage)",
       "Bash(NODE_OPTIONS='--experimental-vm-modules' npx jest --testPathPattern=\"contract/admin\" --no-coverage)",
-      "Bash(npx cross-env *)"
+      "Bash(npx cross-env *)",
+      "Bash(git merge *)",
+      "Bash(git stash *)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(grep -n \"docker/.env\\\\|docker\\\\\\\\.env\" D:/git/etnotermos/.gitignore)",
+      "mcp__plugin_mongodb_mongodb__list-databases",
+      "mcp__plugin_mongodb_mongodb__connect",
+      "mcp__plugin_mongodb_mongodb__find",
+      "mcp__plugin_mongodb_mongodb__collection-indexes",
+      "mcp__plugin_mongodb_mongodb__drop-index",
+      "mcp__plugin_mongodb_mongodb__create-index",
+      "mcp__plugin_mongodb_mongodb__update-many",
+      "PowerShell(git add *)",
+      "PowerShell(git push *)"
     ],
     "deny": [],
     "ask": []

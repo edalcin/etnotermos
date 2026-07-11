@@ -2,7 +2,7 @@
 ## Versão 2.0
 
 <div align="center">
-  <img src="docs/etnoImagens/etnotermosTrans.png" alt="BioCultTermos Logo" width="200">
+  <img src="docs/BioCultTermosLogo.png" alt="BioCultTermos Logo" width="200">
 </div>
 
 **BioCultTermos v2.0** é um sistema integrado ao [BioCultDB](https://github.com/edalcin/BioCultDB) para aquisição, apresentação e curadoria de vocabulário controlado etnobotânico, operando sob o padrão **SKOS-XL** (Simple Knowledge Organization System — eXtension for Labels).
