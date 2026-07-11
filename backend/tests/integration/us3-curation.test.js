@@ -6,7 +6,7 @@
  * for unrelated CI jobs while clearly showing what still needs to be built.
  */
 
-import { ObjectId } from 'mongodb';
+import { randomUUID } from 'crypto';
 import { connect, disconnect, clearCollections, getDb } from '../helpers/db.js';
 
 // ---------------------------------------------------------------------------
@@ -34,17 +34,17 @@ try {
 // ---------------------------------------------------------------------------
 
 function makeConceptFixture(overrides = {}) {
-  const id = new ObjectId();
+  const id = overrides.id ?? randomUUID();
 
   return {
-    _id: id,
+    id,
     uri: 'etnotermos:test',
     status: 'candidate',
     sourceFields: ['comunidades.tipo'],
     sourceCommunities: [],
     prefLabels: [
       {
-        _id: new ObjectId(),
+        id: randomUUID(),
         literalForm: 'erva-mate',
         language: 'pt',
         type: 'pref',
@@ -55,8 +55,8 @@ function makeConceptFixture(overrides = {}) {
         priorInformedConsent: null,
         bibliographicSource: null,
         labelRelations: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       },
     ],
     altLabels: [],
@@ -72,9 +72,10 @@ function makeConceptFixture(overrides = {}) {
     replacedBy: null,
     deprecatedDate: null,
     version: 1,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     ...overrides,
+    id,
   };
 }
 
@@ -97,22 +98,35 @@ describeFn('US-3: SKOS-XL Curation', () => {
     await disconnect();
   });
 
+  function insertConceptRow(c) {
+    const now = new Date().toISOString();
+    db.prepare(
+      `INSERT INTO etnotermos (id, doc, created_at, updated_at) VALUES (?, ?, ?, ?)`
+    ).run(c.id, JSON.stringify(c), now, now);
+    return c;
+  }
+
+  function findConceptRow(id) {
+    const row = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(id);
+    return row ? JSON.parse(row.doc) : null;
+  }
+
   beforeEach(async () => {
     await clearCollections();
 
     concept = makeConceptFixture();
-    await db.collection('etnotermos').insertOne(concept);
+    insertConceptRow(concept);
   });
 
   // -------------------------------------------------------------------------
   // 1. activate changes status from "candidate" to "active"
   // -------------------------------------------------------------------------
   test('activate changes status from candidate to active', async () => {
-    const updated = await ConceptService.activate(db, concept._id, concept.version, 'curador1');
+    const updated = await ConceptService.activate(db, concept.id, concept.version, 'curador1');
 
     expect(updated.status).toBe('active');
 
-    const saved = await db.collection('etnotermos').findOne({ _id: concept._id });
+    const saved = findConceptRow(concept.id);
     expect(saved.status).toBe('active');
   });
 
@@ -120,24 +134,24 @@ describeFn('US-3: SKOS-XL Curation', () => {
   // 2. Activated concept visible in findMany with status:"active"
   // -------------------------------------------------------------------------
   test('activated concept appears in findMany with status:active and publicOnly:true', async () => {
-    await ConceptService.activate(db, concept._id, concept.version, 'curador1');
+    await ConceptService.activate(db, concept.id, concept.version, 'curador1');
 
     const results = await ConceptService.findMany(db, { status: 'active', publicOnly: true });
 
-    const ids = results.data.map((c) => c._id.toString());
-    expect(ids).toContain(concept._id.toString());
+    const ids = results.data.map((c) => c.id.toString());
+    expect(ids).toContain(concept.id.toString());
   });
 
   // -------------------------------------------------------------------------
   // 3. activate on already-active concept throws (400-like behaviour)
   // -------------------------------------------------------------------------
   test('activate on already-active concept rejects', async () => {
-    await ConceptService.activate(db, concept._id, concept.version, 'curador1');
+    await ConceptService.activate(db, concept.id, concept.version, 'curador1');
 
-    const activatedConcept = await db.collection('etnotermos').findOne({ _id: concept._id });
+    const activatedConcept = findConceptRow(concept.id);
 
     await expect(
-      ConceptService.activate(db, concept._id, activatedConcept.version, 'curador1'),
+      ConceptService.activate(db, concept.id, activatedConcept.version, 'curador1'),
     ).rejects.toThrow();
   });
 
@@ -147,7 +161,7 @@ describeFn('US-3: SKOS-XL Curation', () => {
   test('updateNotes saves notes and increments version', async () => {
     const updated = await ConceptService.updateNotes(
       db,
-      concept._id,
+      concept.id,
       concept.version,
       { definition: 'Planta nativa da Região Sul do Brasil.' },
       'curador1',
@@ -166,7 +180,7 @@ describeFn('US-3: SKOS-XL Curation', () => {
     await expect(
       ConceptService.updateNotes(
         db,
-        concept._id,
+        concept.id,
         staleVersion,
         { definition: 'Tentativa com versão desatualizada.' },
         'curador1',
@@ -180,13 +194,13 @@ describeFn('US-3: SKOS-XL Curation', () => {
   test('addLabel adds a restricted alt label to altLabels', async () => {
     await ConceptService.addLabel(
       db,
-      concept._id,
+      concept.id,
       concept.version,
       { type: 'alt', literalForm: 'ilex', language: 'pt', accessLevel: 'restricted' },
       'curador1',
     );
 
-    const saved = await db.collection('etnotermos').findOne({ _id: concept._id });
+    const saved = findConceptRow(concept.id);
     const found = saved.altLabels.find(
       (l) => l.literalForm === 'ilex' && l.language === 'pt',
     );
@@ -200,7 +214,7 @@ describeFn('US-3: SKOS-XL Curation', () => {
   test('addLabel with duplicate literalForm+language+type rejects', async () => {
     const updated = await ConceptService.addLabel(
       db,
-      concept._id,
+      concept.id,
       concept.version,
       { type: 'alt', literalForm: 'chimarrão', language: 'pt', accessLevel: 'public' },
       'curador1',
@@ -209,7 +223,7 @@ describeFn('US-3: SKOS-XL Curation', () => {
     await expect(
       ConceptService.addLabel(
         db,
-        concept._id,
+        concept.id,
         updated.version,
         { type: 'alt', literalForm: 'chimarrão', language: 'pt', accessLevel: 'public' },
         'curador1',
@@ -223,25 +237,25 @@ describeFn('US-3: SKOS-XL Curation', () => {
   test('removeLabel removes a non-pref alt label', async () => {
     const afterAdd = await ConceptService.addLabel(
       db,
-      concept._id,
+      concept.id,
       concept.version,
       { type: 'alt', literalForm: 'congonha', language: 'pt', accessLevel: 'public' },
       'curador1',
     );
 
-    const savedAfterAdd = await db.collection('etnotermos').findOne({ _id: concept._id });
+    const savedAfterAdd = findConceptRow(concept.id);
     const altLabel = savedAfterAdd.altLabels.find((l) => l.literalForm === 'congonha');
     expect(altLabel).toBeDefined();
 
     await ConceptService.removeLabel(
       db,
-      concept._id,
+      concept.id,
       afterAdd.version,
-      altLabel._id,
+      altLabel.id,
       'curador1',
     );
 
-    const savedAfterRemove = await db.collection('etnotermos').findOne({ _id: concept._id });
+    const savedAfterRemove = findConceptRow(concept.id);
     expect(savedAfterRemove.altLabels.find((l) => l.literalForm === 'congonha')).toBeUndefined();
   });
 
@@ -249,10 +263,10 @@ describeFn('US-3: SKOS-XL Curation', () => {
   // 9. removeLabel on the only prefLabel throws
   // -------------------------------------------------------------------------
   test('removeLabel on the only prefLabel rejects', async () => {
-    const prefLabelId = concept.prefLabels[0]._id;
+    const prefLabelId = concept.prefLabels[0].id;
 
     await expect(
-      ConceptService.removeLabel(db, concept._id, concept.version, prefLabelId, 'curador1'),
+      ConceptService.removeLabel(db, concept.id, concept.version, prefLabelId, 'curador1'),
     ).rejects.toThrow();
   });
 
@@ -261,37 +275,37 @@ describeFn('US-3: SKOS-XL Curation', () => {
   // -------------------------------------------------------------------------
   test('addBroader creates broader relationship with reciprocal narrower and ancestor update', async () => {
     const parent = makeConceptFixture({
-      _id: new ObjectId(),
+      id: randomUUID(),
       uri: 'etnotermos:parent',
       prefLabels: [
         {
-          _id: new ObjectId(),
+          id: randomUUID(),
           literalForm: 'planta',
           language: 'pt',
           type: 'pref',
           accessLevel: 'public',
           labelRelations: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         },
       ],
     });
-    await db.collection('etnotermos').insertOne(parent);
+    insertConceptRow(parent);
 
     await ConceptService.addBroader(
       db,
-      concept._id,
+      concept.id,
       concept.version,
-      parent._id,
+      parent.id,
       'curador1',
     );
 
-    const updatedChild = await db.collection('etnotermos').findOne({ _id: concept._id });
-    expect(updatedChild.broader.map((id) => id.toString())).toContain(parent._id.toString());
-    expect(updatedChild.ancestors.map((id) => id.toString())).toContain(parent._id.toString());
+    const updatedChild = findConceptRow(concept.id);
+    expect(updatedChild.broader.map((id) => id.toString())).toContain(parent.id.toString());
+    expect(updatedChild.ancestors.map((id) => id.toString())).toContain(parent.id.toString());
 
-    const updatedParent = await db.collection('etnotermos').findOne({ _id: parent._id });
-    expect(updatedParent.narrower.map((id) => id.toString())).toContain(concept._id.toString());
+    const updatedParent = findConceptRow(parent.id);
+    expect(updatedParent.narrower.map((id) => id.toString())).toContain(concept.id.toString());
   });
 
   // -------------------------------------------------------------------------
@@ -299,29 +313,29 @@ describeFn('US-3: SKOS-XL Curation', () => {
   // -------------------------------------------------------------------------
   test('addBroader rejects with "ciclo" when target is already a descendant', async () => {
     const parent = makeConceptFixture({
-      _id: new ObjectId(),
+      id: randomUUID(),
       uri: 'etnotermos:parent-cycle',
       prefLabels: [
         {
-          _id: new ObjectId(),
+          id: randomUUID(),
           literalForm: 'planta-ciclo',
           language: 'pt',
           type: 'pref',
           accessLevel: 'public',
           labelRelations: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         },
       ],
     });
-    await db.collection('etnotermos').insertOne(parent);
+    insertConceptRow(parent);
 
-    await ConceptService.addBroader(db, concept._id, concept.version, parent._id, 'curador1');
+    await ConceptService.addBroader(db, concept.id, concept.version, parent.id, 'curador1');
 
-    const updatedParent = await db.collection('etnotermos').findOne({ _id: parent._id });
+    const updatedParent = findConceptRow(parent.id);
 
     await expect(
-      ConceptService.addBroader(db, parent._id, updatedParent.version, concept._id, 'curador1'),
+      ConceptService.addBroader(db, parent.id, updatedParent.version, concept.id, 'curador1'),
     ).rejects.toThrow(/ciclo/i);
   });
 
@@ -329,22 +343,22 @@ describeFn('US-3: SKOS-XL Curation', () => {
   // 12. deprecate marks status as "deprecated"
   // -------------------------------------------------------------------------
   test('deprecate marks concept status as deprecated', async () => {
-    const replacement = makeConceptFixture({ _id: new ObjectId(), uri: 'etnotermos:replacement' });
-    await db.collection('etnotermos').insertOne(replacement);
+    const replacement = makeConceptFixture({ id: randomUUID(), uri: 'etnotermos:replacement' });
+    insertConceptRow(replacement);
 
     const updated = await ConceptService.deprecate(
       db,
-      concept._id,
+      concept.id,
       concept.version,
-      { replacedById: replacement._id },
+      { replacedById: replacement.id },
       'curador1',
     );
 
     expect(updated.status).toBe('deprecated');
 
-    const saved = await db.collection('etnotermos').findOne({ _id: concept._id });
+    const saved = findConceptRow(concept.id);
     expect(saved.status).toBe('deprecated');
-    expect(saved.replacedBy.toString()).toBe(replacement._id.toString());
+    expect(saved.replacedBy.toString()).toBe(replacement.id.toString());
   });
 
   // -------------------------------------------------------------------------
@@ -353,7 +367,7 @@ describeFn('US-3: SKOS-XL Curation', () => {
   test('concurrent updates reject the second one when it carries a stale version', async () => {
     await ConceptService.updateNotes(
       db,
-      concept._id,
+      concept.id,
       concept.version,
       { definition: 'Primeira atualização.' },
       'curador1',
@@ -362,7 +376,7 @@ describeFn('US-3: SKOS-XL Curation', () => {
     await expect(
       ConceptService.updateNotes(
         db,
-        concept._id,
+        concept.id,
         concept.version,
         { definition: 'Segunda atualização com versão desatualizada.' },
         'curador2',
@@ -374,14 +388,15 @@ describeFn('US-3: SKOS-XL Curation', () => {
   // 14. AuditEntry created for each mutation
   // -------------------------------------------------------------------------
   test('each mutation writes an audit entry to etnotermos_audit_log', async () => {
-    await ConceptService.activate(db, concept._id, concept.version, 'curador1');
+    await ConceptService.activate(db, concept.id, concept.version, 'curador1');
 
-    const entry = await db
-      .collection('etnotermos_audit_log')
-      .findOne({ conceptId: concept._id });
+    const entry = db
+      .prepare(`SELECT doc FROM etnotermos_audit_log WHERE json_extract(doc,'$.conceptId') = ?`)
+      .get(concept.id);
 
-    expect(entry).not.toBeNull();
-    expect(entry.conceptId.toString()).toBe(concept._id.toString());
+    expect(entry).not.toBeUndefined();
+    const parsed = JSON.parse(entry.doc);
+    expect(parsed.conceptId.toString()).toBe(concept.id.toString());
   });
 
   // -------------------------------------------------------------------------
@@ -389,47 +404,47 @@ describeFn('US-3: SKOS-XL Curation', () => {
   // -------------------------------------------------------------------------
   test('removeRelated removes the relationship from both concepts', async () => {
     const other = makeConceptFixture({
-      _id: new ObjectId(),
+      id: randomUUID(),
       uri: 'etnotermos:other-related',
       prefLabels: [
         {
-          _id: new ObjectId(),
+          id: randomUUID(),
           literalForm: 'guaraná',
           language: 'pt',
           type: 'pref',
           accessLevel: 'public',
           labelRelations: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         },
       ],
     });
-    await db.collection('etnotermos').insertOne(other);
+    insertConceptRow(other);
 
     const afterAdd = await ConceptService.addRelated(
       db,
-      concept._id,
+      concept.id,
       concept.version,
-      other._id,
+      other.id,
       'curador1',
     );
 
     await ConceptService.removeRelated(
       db,
-      concept._id,
+      concept.id,
       afterAdd.version,
-      other._id,
+      other.id,
       'curador1',
     );
 
-    const updatedConcept = await db.collection('etnotermos').findOne({ _id: concept._id });
-    const updatedOther = await db.collection('etnotermos').findOne({ _id: other._id });
+    const updatedConcept = findConceptRow(concept.id);
+    const updatedOther = findConceptRow(other.id);
 
     expect(updatedConcept.related.map((id) => id.toString())).not.toContain(
-      other._id.toString(),
+      other.id.toString(),
     );
     expect(updatedOther.related.map((id) => id.toString())).not.toContain(
-      concept._id.toString(),
+      concept.id.toString(),
     );
   });
 });

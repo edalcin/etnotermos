@@ -1,18 +1,18 @@
 // Validation Middleware - T060
 // Request validation for query params, body, and path params
 
-import { ObjectId } from 'mongodb';
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * Validate ObjectId format
+ * Validate that a route param is a non-empty string id (UUID v4).
  */
-export function validateObjectId(paramName) {
+export function validateId(paramName) {
   return (req, res, next) => {
     const id = req.params[paramName];
 
-    if (!id || !ObjectId.isValid(id)) {
+    if (!id || typeof id !== 'string' || !UUID_RE.test(id)) {
       return res.status(400).json({
-        error: `Invalid ${paramName}: must be a valid ObjectId`,
+        error: `Invalid ${paramName}: must be a valid id`,
         field: paramName,
       });
     }
@@ -210,7 +210,7 @@ export function validateSourceType(req, res, next) {
 }
 
 export default {
-  validateObjectId,
+  validateId,
   validateRequiredFields,
   validatePagination,
   validateSearchQuery,

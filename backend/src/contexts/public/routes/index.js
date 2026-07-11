@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import path from 'path';
 import { config } from '../../../config/index.js';
-import { getConceptCollection, CONCEPT_STATUS } from '../../../models/Concept.js';
+import { CONCEPT_STATUS } from '../../../models/Concept.js';
 
 const router = Router();
 
@@ -9,13 +9,16 @@ router.get('/', async (req, res, next) => {
   const db = req.app.locals.db;
 
   try {
-    const col = getConceptCollection(db);
-    const filter = { status: CONCEPT_STATUS.ACTIVE };
-
-    const [sourceFields, total] = await Promise.all([
-      col.distinct('sourceFields', filter),
-      col.countDocuments(filter),
-    ]);
+    const sourceFieldsRows = db
+      .prepare(
+        `SELECT DISTINCT je.value AS field FROM etnotermos e, json_each(json_extract(e.doc,'$.sourceFields')) je
+         WHERE json_extract(e.doc,'$.status') = ?`
+      )
+      .all(CONCEPT_STATUS.ACTIVE);
+    const sourceFields = sourceFieldsRows.map((r) => r.field);
+    const total = db
+      .prepare(`SELECT COUNT(*) as n FROM etnotermos WHERE json_extract(doc,'$.status') = ?`)
+      .get(CONCEPT_STATUS.ACTIVE).n;
 
     res.render('index', {
       title: 'Início',
@@ -43,10 +46,10 @@ router.get('/health', async (req, res) => {
   const db = req.app.locals.db;
 
   try {
-    await db.command({ ping: 1 });
-    res.json({ status: 'ok', mongodb: 'connected' });
+    db.prepare('SELECT 1').get();
+    res.json({ status: 'ok', sqlite: 'connected' });
   } catch {
-    res.status(503).json({ status: 'error', mongodb: 'disconnected' });
+    res.status(503).json({ status: 'error', sqlite: 'disconnected' });
   }
 });
 

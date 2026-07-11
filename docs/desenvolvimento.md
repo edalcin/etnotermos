@@ -3,8 +3,8 @@
 ## Pré-requisitos
 
 - Node.js 20 LTS
-- MongoDB 7.0+ (ou use o do BioCultDB se já estiver rodando)
 - Git
+- Python 3 e um compilador C++ (build tools) — necessários porque `better-sqlite3` compila um addon nativo via node-gyp. No Linux: `build-essential`; no macOS: Xcode Command Line Tools (`xcode-select --install`); no Windows: Visual Studio Build Tools (workload "Desktop development with C++").
 
 ---
 
@@ -26,8 +26,8 @@ cd frontend && npm install && cd ..
 ### 2. Criar `backend/.env`
 
 ```bash
-# MongoDB — mesmo banco do BioCultDB
-MONGODB_URI=mongodb://localhost:27017/etnodb
+# SQLite — mesmo arquivo compartilhado com o BioCultDB (ADR-005)
+SQLITE_DB_PATH=./data/unidade.sqlite
 
 # Portas
 PUBLIC_PORT=4000
@@ -45,11 +45,9 @@ ADMIN_PASSWORD=senha123
 NODE_ENV=development
 ```
 
-### 3. Subir MongoDB local (se necessário)
+### 3. Banco de dados
 
-```bash
-docker run -d -p 27017:27017 --name mongo-dev mongo:7.0-alpine
-```
+Não é necessário subir nenhum serviço externo. O arquivo SQLite indicado em `SQLITE_DB_PATH` é criado automaticamente (com WAL e as tabelas necessárias) na primeira conexão — veja `backend/src/shared/database.js`.
 
 ### 4. Compilar CSS
 
@@ -152,8 +150,7 @@ BioCultTermos/
 
 | Variável | Obrigatório | Padrão | Descrição |
 |---|---|---|---|
-| `MONGODB_URI` | Sim | — | URI completa do MongoDB |
-| `MONGO_URI` | Sim (alternativa) | — | Alias aceito para MONGODB_URI |
+| `SQLITE_DB_PATH` | Sim | `./data/unidade.sqlite` | Caminho do arquivo SQLite (compartilhado com o BioCultDB, ADR-005) |
 | `ADMIN_USERNAME` | Sim* | — | Usuário admin (Opção A) |
 | `ADMIN_PASSWORD` | Sim* | — | Senha admin em texto plano, hash gerado no boot (Opção A) |
 | `ADMIN_USERS` | Sim* | — | JSON array com hashes pré-gerados (Opção B, produção) |
@@ -171,9 +168,9 @@ BioCultTermos/
 ## Fluxo de Dados (SKOS-XL)
 
 ```
-BioCultDB (coleção etnodb)
+BioCultDB (tabela biocultdb_records)
     ↓ AcquisitionService.run()
-etnotermos (coleção etnotermos) — status: "candidate"
+etnotermos (tabela etnotermos) — status: "candidate"
     ↓ Curador via interface admin
 etnotermos — status: "active"
     ↓ Interface pública (porta 4000)
@@ -207,34 +204,39 @@ Campos adquiridos do BioCultDB:
   hiddenLabels: [],
   definition: "",
   scopeNote: "",
-  broader: [ObjectId],
-  narrower: [ObjectId],
-  related: [ObjectId],
-  ancestors: [ObjectId],   // Array of Ancestors para O(1) em hierarquias
+  broader: [string],     // UUID v4
+  narrower: [string],    // UUID v4
+  related: [string],     // UUID v4
+  ancestors: [string],   // UUID v4 — Array of Ancestors para O(1) em hierarquias
   version: 1               // Optimistic locking (conflito → HTTP 409)
 }
 ```
 
 ---
 
-## MongoDB — Coleções
+## SQLite — Tabelas
 
-| Coleção | Descrição |
+| Tabela | Descrição |
 |---|---|
 | `etnotermos` | Conceitos SKOS-XL |
 | `etnotermos_acquisition_log` | Log das execuções de aquisição |
 | `etnotermos_audit_log` | Auditoria de alterações por campo |
-| `etnodb` | Fonte (read-only pelo AcquisitionService) |
+| `etnotermos_fts` | Índice full-text (FTS5) sobre prefLabels/altLabels/definition/scopeNote |
+| `biocultdb_records` | Fonte (read-only pelo AcquisitionService, tabela do BioCultDB no mesmo arquivo) |
 
 ```bash
-# Acesso direto ao MongoDB
-mongosh mongodb://localhost:27017/etnodb
+# Acesso direto ao arquivo SQLite
+sqlite3 ./data/unidade.sqlite
 
-# Ver conceitos
-db.etnotermos.find({ status: "candidate" }).limit(10)
+-- Ver conceitos
+SELECT id, status FROM etnotermos WHERE status = 'candidate' LIMIT 10;
 
-# Contar por status
-db.etnotermos.aggregate([{ $group: { _id: "$status", n: { $sum: 1 } } }])
+-- Contar por status
+SELECT status, COUNT(*) AS n FROM etnotermos GROUP BY status;
+
+-- Busca full-text (FTS5)
+SELECT id, bm25(etnotermos_fts) AS rank FROM etnotermos_fts
+WHERE etnotermos_fts MATCH 'indígena' ORDER BY rank LIMIT 10;
 ```
 
 ---
@@ -247,14 +249,11 @@ db.etnotermos.aggregate([{ $group: { _id: "$status", n: { $sum: 1 } } }])
 **Erro `EACCES: permission denied, mkdir '/data'`**
 → Erro corrigido na v2.0 — verifique se está usando a imagem mais recente
 
-**Senha do MongoDB com `!` `*` `@` `#` na URI**
-→ Faça URL-encode: `!`→`%21`, `*`→`%2A`, `@`→`%40`, `#`→`%23`
-
 **CSS não aparece**
 → Execute `npm run build:css` em `frontend/` e reinicie o servidor
 
-**Testes falhando com erro de MongoDB**
-→ Os testes usam `mongodb-memory-server` — não precisa de MongoDB externo. Execute `npm install` novamente.
+**Testes falhando com erro de SQLite**
+→ Os testes usam SQLite `:memory:` — cada suíte sobe um banco em memória isolado, não precisa de nenhum banco externo. Execute `npm install` novamente.
 
 ---
 

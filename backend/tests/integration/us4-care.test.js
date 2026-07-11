@@ -6,7 +6,7 @@
  * for unrelated CI jobs while clearly showing what still needs to be built.
  */
 
-import { ObjectId } from 'mongodb';
+import { randomUUID } from 'crypto';
 import { connect, disconnect, clearCollections, getDb } from '../helpers/db.js';
 
 // ---------------------------------------------------------------------------
@@ -34,17 +34,17 @@ try {
 // ---------------------------------------------------------------------------
 
 function makeConceptFixture(overrides = {}) {
-  const id = new ObjectId();
+  const id = overrides.id ?? randomUUID();
 
   return {
-    _id: id,
+    id,
     uri: 'etnotermos:care-test',
     status: 'candidate',
     sourceFields: ['comunidades.tipo'],
     sourceCommunities: [],
     prefLabels: [
       {
-        _id: new ObjectId(),
+        id: randomUUID(),
         literalForm: 'erva-mate',
         language: 'pt',
         type: 'pref',
@@ -55,8 +55,8 @@ function makeConceptFixture(overrides = {}) {
         priorInformedConsent: null,
         bibliographicSource: null,
         labelRelations: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       },
     ],
     altLabels: [],
@@ -72,9 +72,10 @@ function makeConceptFixture(overrides = {}) {
     replacedBy: null,
     deprecatedDate: null,
     version: 1,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     ...overrides,
+    id,
   };
 }
 
@@ -97,18 +98,31 @@ describeFn('US-4: CARE Governance', () => {
     await disconnect();
   });
 
+  function insertConceptRow(c) {
+    const now = new Date().toISOString();
+    db.prepare(
+      `INSERT INTO etnotermos (id, doc, created_at, updated_at) VALUES (?, ?, ?, ?)`
+    ).run(c.id, JSON.stringify(c), now, now);
+    return c;
+  }
+
+  function findConceptRow(id) {
+    const row = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(id);
+    return row ? JSON.parse(row.doc) : null;
+  }
+
   beforeEach(async () => {
     await clearCollections();
 
     concept = makeConceptFixture();
-    await db.collection('etnotermos').insertOne(concept);
+    insertConceptRow(concept);
   });
 
   // -------------------------------------------------------------------------
   // 1. Public label visible in publicOnly view
   // -------------------------------------------------------------------------
   test('public label is visible in findById with publicOnly:true', async () => {
-    const result = await ConceptService.findById(db, concept._id, { publicOnly: true });
+    const result = await ConceptService.findById(db, concept.id, { publicOnly: true });
 
     const publicLabel = result.prefLabels.find(
       (l) => l.literalForm === 'erva-mate' && l.accessLevel === 'public',
@@ -122,14 +136,14 @@ describeFn('US-4: CARE Governance', () => {
   test('restricted label is hidden in publicOnly:true but visible in publicOnly:false', async () => {
     await ConceptService.addLabel(
       db,
-      concept._id,
+      concept.id,
       concept.version,
       { type: 'alt', literalForm: 'nome-restrito', language: 'pt', accessLevel: 'restricted' },
       'curador1',
     );
 
-    const publicView = await ConceptService.findById(db, concept._id, { publicOnly: true });
-    const adminView = await ConceptService.findById(db, concept._id, { publicOnly: false });
+    const publicView = await ConceptService.findById(db, concept.id, { publicOnly: true });
+    const adminView = await ConceptService.findById(db, concept.id, { publicOnly: false });
 
     const allPublicLabels = [
       ...(publicView.prefLabels ?? []),
@@ -152,14 +166,14 @@ describeFn('US-4: CARE Governance', () => {
   test('sacred label is hidden in publicOnly:true but visible in publicOnly:false', async () => {
     await ConceptService.addLabel(
       db,
-      concept._id,
+      concept.id,
       concept.version,
       { type: 'alt', literalForm: 'nome-sagrado', language: 'pt', accessLevel: 'sacred' },
       'curador1',
     );
 
-    const publicView = await ConceptService.findById(db, concept._id, { publicOnly: true });
-    const adminView = await ConceptService.findById(db, concept._id, { publicOnly: false });
+    const publicView = await ConceptService.findById(db, concept.id, { publicOnly: true });
+    const adminView = await ConceptService.findById(db, concept.id, { publicOnly: false });
 
     const allPublicLabels = [
       ...(publicView.prefLabels ?? []),
@@ -182,7 +196,7 @@ describeFn('US-4: CARE Governance', () => {
   test('addLabel persists CARE fields: holderPeople, collectorResearcher, priorInformedConsent, bibliographicSource', async () => {
     await ConceptService.addLabel(
       db,
-      concept._id,
+      concept.id,
       concept.version,
       {
         type: 'alt',
@@ -197,7 +211,7 @@ describeFn('US-4: CARE Governance', () => {
       'curador1',
     );
 
-    const saved = await db.collection('etnotermos').findOne({ _id: concept._id });
+    const saved = findConceptRow(concept.id);
     const label = saved.altLabels.find((l) => l.literalForm === 'ka-a' && l.language === 'gn');
 
     expect(label).toBeDefined();
@@ -211,19 +225,19 @@ describeFn('US-4: CARE Governance', () => {
   // 5. saveAudio persists audioPath on the label
   // -------------------------------------------------------------------------
   test('saveAudio sets audioPath on the target label', async () => {
-    const labelId = concept.prefLabels[0]._id;
+    const labelId = concept.prefLabels[0].id;
 
     await ConceptService.saveAudio(
       db,
-      concept._id,
+      concept.id,
       concept.version,
       labelId,
       'path/to/audio.mp3',
       'curador1',
     );
 
-    const saved = await db.collection('etnotermos').findOne({ _id: concept._id });
-    const label = saved.prefLabels.find((l) => l._id.toString() === labelId.toString());
+    const saved = findConceptRow(concept.id);
+    const label = saved.prefLabels.find((l) => l.id.toString() === labelId.toString());
 
     expect(label).toBeDefined();
     expect(label.audioPath).toBe('path/to/audio.mp3');
@@ -233,11 +247,11 @@ describeFn('US-4: CARE Governance', () => {
   // 6. removeAudio sets audioPath to null
   // -------------------------------------------------------------------------
   test('removeAudio sets audioPath to null on the target label', async () => {
-    const labelId = concept.prefLabels[0]._id;
+    const labelId = concept.prefLabels[0].id;
 
     const afterSave = await ConceptService.saveAudio(
       db,
-      concept._id,
+      concept.id,
       concept.version,
       labelId,
       'path/to/audio.mp3',
@@ -246,14 +260,14 @@ describeFn('US-4: CARE Governance', () => {
 
     await ConceptService.removeAudio(
       db,
-      concept._id,
+      concept.id,
       afterSave.version,
       labelId,
       'curador1',
     );
 
-    const saved = await db.collection('etnotermos').findOne({ _id: concept._id });
-    const label = saved.prefLabels.find((l) => l._id.toString() === labelId.toString());
+    const saved = findConceptRow(concept.id);
+    const label = saved.prefLabels.find((l) => l.id.toString() === labelId.toString());
 
     expect(label).toBeDefined();
     expect(label.audioPath).toBeNull();
@@ -265,31 +279,32 @@ describeFn('US-4: CARE Governance', () => {
   test('audit entry is written when a label accessLevel changes', async () => {
     const afterAdd = await ConceptService.addLabel(
       db,
-      concept._id,
+      concept.id,
       concept.version,
       { type: 'alt', literalForm: 'mate', language: 'pt', accessLevel: 'public' },
       'curador1',
     );
 
-    const savedAfterAdd = await db.collection('etnotermos').findOne({ _id: concept._id });
+    const savedAfterAdd = findConceptRow(concept.id);
     const label = savedAfterAdd.altLabels.find((l) => l.literalForm === 'mate');
     expect(label).toBeDefined();
 
     await ConceptService.updateLabelAccessLevel(
       db,
-      concept._id,
+      concept.id,
       afterAdd.version,
-      label._id,
+      label.id,
       'restricted',
       'curador1',
     );
 
-    const auditEntry = await db
-      .collection('etnotermos_audit_log')
-      .findOne({ conceptId: concept._id });
+    const auditRow = db
+      .prepare(`SELECT doc FROM etnotermos_audit_log WHERE json_extract(doc,'$.conceptId') = ?`)
+      .get(concept.id);
 
-    expect(auditEntry).not.toBeNull();
-    expect(auditEntry.conceptId.toString()).toBe(concept._id.toString());
+    expect(auditRow).not.toBeUndefined();
+    const auditEntry = JSON.parse(auditRow.doc);
+    expect(auditEntry.conceptId.toString()).toBe(concept.id.toString());
   });
 
   // -------------------------------------------------------------------------
@@ -298,7 +313,7 @@ describeFn('US-4: CARE Governance', () => {
   test('multiple labels with mixed accessLevels are each filtered correctly', async () => {
     const afterFirst = await ConceptService.addLabel(
       db,
-      concept._id,
+      concept.id,
       concept.version,
       { type: 'alt', literalForm: 'nome-publico', language: 'pt', accessLevel: 'public' },
       'curador1',
@@ -306,7 +321,7 @@ describeFn('US-4: CARE Governance', () => {
 
     const afterSecond = await ConceptService.addLabel(
       db,
-      concept._id,
+      concept.id,
       afterFirst.version,
       { type: 'alt', literalForm: 'nome-restrito', language: 'pt', accessLevel: 'restricted' },
       'curador1',
@@ -314,14 +329,14 @@ describeFn('US-4: CARE Governance', () => {
 
     await ConceptService.addLabel(
       db,
-      concept._id,
+      concept.id,
       afterSecond.version,
       { type: 'alt', literalForm: 'nome-sagrado', language: 'es', accessLevel: 'sacred' },
       'curador1',
     );
 
-    const publicView = await ConceptService.findById(db, concept._id, { publicOnly: true });
-    const adminView = await ConceptService.findById(db, concept._id, { publicOnly: false });
+    const publicView = await ConceptService.findById(db, concept.id, { publicOnly: true });
+    const adminView = await ConceptService.findById(db, concept.id, { publicOnly: false });
 
     const publicForms = (publicView.altLabels ?? []).map((l) => l.literalForm);
     expect(publicForms).toContain('nome-publico');

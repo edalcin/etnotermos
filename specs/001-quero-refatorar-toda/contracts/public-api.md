@@ -22,7 +22,7 @@
 
 | Parâmetro | Tipo | Obrigatório | Descrição |
 |-----------|------|-------------|-----------|
-| `q` | string | não | Busca textual em prefLabels e altLabels |
+| `q` | string | não | Busca textual full-text (FTS5, `MATCH` + ranking `bm25()`) em prefLabels e altLabels; fallback para `LIKE` se a query FTS5 for inválida |
 | `sourceField` | string | não | Filtro por grupo semântico |
 | `page` | integer | não | Página (default: 1) |
 | `limit` | integer | não | Itens por página (default: 20, max: 100) |
@@ -38,7 +38,7 @@
 {
   "data": [
     {
-      "_id": "string",
+      "id": "string",
       "prefLabel": { "literalForm": "string", "language": "string" },
       "altLabels": [{ "literalForm": "string", "language": "string", "sourcePeople": "string" }],
       "sourceFields": ["string"],
@@ -61,7 +61,7 @@
 ## GET /concepts/:id
 
 **Descrição**: Detalhe de um conceito  
-**Path Parameters**: `id` — ObjectId do conceito
+**Path Parameters**: `id` — UUID v4 (string) do conceito
 
 **Response 200** (HTML):
 ```html
@@ -78,13 +78,13 @@
 **Response 200** (JSON — se `Accept: application/json`):
 ```json
 {
-  "_id": "string",
+  "id": "string",
   "uri": "string",
   "status": "active",
   "sourceFields": ["string"],
   "prefLabels": [
     {
-      "_id": "string",
+      "id": "string",
       "literalForm": "string",
       "language": "string",
       "sourcePeople": "string",
@@ -98,9 +98,9 @@
   "scopeNote": "string",
   "historyNote": "string",
   "example": "string",
-  "broader": [{ "_id": "string", "prefLabel": "string" }],
-  "narrower": [{ "_id": "string", "prefLabel": "string" }],
-  "related": [{ "_id": "string", "prefLabel": "string" }]
+  "broader": [{ "id": "string", "prefLabel": "string" }],
+  "narrower": [{ "id": "string", "prefLabel": "string" }],
+  "related": [{ "id": "string", "prefLabel": "string" }]
 }
 ```
 
@@ -125,9 +125,9 @@
 **Descrição**: Health check  
 **Response 200**:
 ```json
-{ "status": "ok", "mongodb": "connected" }
+{ "status": "ok", "sqlite": "connected" }
 ```
-**Response 503**: MongoDB indisponível
+**Response 503**: SQLite indisponível
 
 ---
 
@@ -139,4 +139,4 @@
 | 404 | Recurso não encontrado |
 | 410 | Conceito deprecado |
 | 500 | Erro interno |
-| 503 | MongoDB indisponível |
+| 503 | SQLite indisponível |

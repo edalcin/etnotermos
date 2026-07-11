@@ -127,18 +127,13 @@ async function main() {
     addMore = more.trim().toLowerCase() === 's';
   }
 
-  // MongoDB URI
-  console.log('');
-  const defaultUri = existing.MONGODB_URI || 'mongodb://host.docker.internal:27017/etnodb';
-  const mongoUri = (await ask(`MONGODB_URI [${defaultUri}]: `)).trim() || defaultUri;
-
   rl.close();
 
   // Write .env
   const lines = [
     '# Gerado por docker/create-admin-user.js — NÃO commitar este arquivo',
     '',
-    `MONGODB_URI=${mongoUri}`,
+    `SQLITE_DB_PATH=${existing.SQLITE_DB_PATH || '/data/unidade-dev.sqlite'}`,
     `ADMIN_USERS=${JSON.stringify(users)}`,
     `ACQUISITION_CRON_SCHEDULE=${existing.ACQUISITION_CRON_SCHEDULE || '0 3 * * *'}`,
     `LOG_LEVEL=${existing.LOG_LEVEL || 'info'}`,

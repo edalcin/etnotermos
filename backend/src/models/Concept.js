@@ -1,4 +1,4 @@
-import { ObjectId } from 'mongodb';
+import { randomUUID } from 'crypto';
 
 export const CONCEPT_STATUS = Object.freeze({
   CANDIDATE: 'candidate',
@@ -32,7 +32,7 @@ export const LABEL_RELATION_TYPE = Object.freeze({
 export function generateSlug(literalForm) {
   return literalForm
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
@@ -68,17 +68,15 @@ export function createLabel(data) {
       throw new Error(`Invalid label relation type: ${rel.relationType}`);
     }
     return {
-      relatedLabelId: rel.relatedLabelId instanceof ObjectId
-        ? rel.relatedLabelId
-        : new ObjectId(rel.relatedLabelId),
+      relatedLabelId: String(rel.relatedLabelId),
       relationType: rel.relationType,
     };
   });
 
-  const now = new Date();
+  const now = new Date().toISOString();
 
   return {
-    _id: new ObjectId(),
+    id: randomUUID(),
     literalForm: data.literalForm.trim(),
     language: data.language,
     type: data.type,
@@ -113,11 +111,10 @@ export function createConcept(data) {
     throw new Error(`Invalid concept status: ${status}`);
   }
 
-  const toObjectIds = (arr) =>
-    (arr ?? []).map((id) => (id instanceof ObjectId ? id : new ObjectId(id)));
+  const toIds = (arr) => (arr ?? []).map((id) => String(id));
 
-  const now = new Date();
-  const id = data._id instanceof ObjectId ? data._id : (data._id ? new ObjectId(data._id) : new ObjectId());
+  const now = new Date().toISOString();
+  const id = data.id ? String(data.id) : randomUUID();
 
   const prefLabels = (data.prefLabels ?? []).map(createLabel);
   const altLabels = (data.altLabels ?? []).map(createLabel);
@@ -125,10 +122,10 @@ export function createConcept(data) {
 
   const slug = data.uri ?? (prefLabels[0]
     ? `etnotermos:${generateSlug(prefLabels[0].literalForm)}`
-    : `etnotermos:${id.toHexString()}`);
+    : `etnotermos:${id}`);
 
   return {
-    _id: id,
+    id,
     uri: slug,
     status,
     sourceFields: data.sourceFields,
@@ -140,13 +137,11 @@ export function createConcept(data) {
     scopeNote: data.scopeNote ?? null,
     historyNote: data.historyNote ?? null,
     example: data.example ?? null,
-    broader: toObjectIds(data.broader),
-    narrower: toObjectIds(data.narrower),
-    related: toObjectIds(data.related),
-    ancestors: toObjectIds(data.ancestors),
-    replacedBy: data.replacedBy
-      ? (data.replacedBy instanceof ObjectId ? data.replacedBy : new ObjectId(data.replacedBy))
-      : null,
+    broader: toIds(data.broader),
+    narrower: toIds(data.narrower),
+    related: toIds(data.related),
+    ancestors: toIds(data.ancestors),
+    replacedBy: data.replacedBy ? String(data.replacedBy) : null,
     deprecatedDate: data.deprecatedDate ?? null,
     version: 1,
     createdAt: now,
@@ -155,10 +150,56 @@ export function createConcept(data) {
 }
 
 /**
- * Returns the MongoDB collection for concepts.
- * Keeping the accessor here ensures the collection name is defined
- * in one place and never duplicated across services.
+ * Returns the SQLite table name for concepts (ADR-005: document-per-row, JSON1).
+ * Keeping the accessor here ensures the table name is defined in one place.
  */
-export function getConceptCollection(db) {
-  return db.collection('etnotermos');
+export function getConceptTable() {
+  return 'etnotermos';
+}
+
+/**
+ * Fetch a concept row (parsed doc, with `id` merged in) by id.
+ * @param {import('better-sqlite3').Database} db
+ * @param {string} id
+ * @returns {object|null}
+ */
+export function findConceptById(db, id) {
+  const row = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(id);
+  return row ? JSON.parse(row.doc) : null;
+}
+
+/**
+ * Insert a new concept row (doc + FTS row) in one transaction.
+ * @param {import('better-sqlite3').Database} db
+ * @param {object} concept
+ */
+export function insertConcept(db, concept) {
+  const insert = db.transaction((c) => {
+    db.prepare(
+      `INSERT INTO etnotermos (id, doc, created_at, updated_at) VALUES (?, ?, ?, ?)`
+    ).run(c.id, JSON.stringify(c), c.createdAt, c.updatedAt);
+    syncConceptFts(db, c);
+  });
+  insert(concept);
+  return concept;
+}
+
+/**
+ * Replace the FTS5 row for a concept (DELETE+INSERT — FTS5 has no partial UPDATE).
+ * Call inside the same transaction as the `doc` write.
+ * @param {import('better-sqlite3').Database} db
+ * @param {object} concept
+ */
+export function syncConceptFts(db, concept) {
+  db.prepare(`DELETE FROM etnotermos_fts WHERE id = ?`).run(concept.id);
+  const labelText = (labels) => (labels ?? []).map((l) => l.literalForm).join(' ');
+  db.prepare(
+    `INSERT INTO etnotermos_fts (id, prefLabels, altLabels, definition, scopeNote) VALUES (?, ?, ?, ?, ?)`
+  ).run(
+    concept.id,
+    labelText(concept.prefLabels),
+    labelText(concept.altLabels),
+    concept.definition ?? '',
+    concept.scopeNote ?? ''
+  );
 }

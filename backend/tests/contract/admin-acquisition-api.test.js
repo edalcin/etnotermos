@@ -1,7 +1,7 @@
 // Contract Test: Admin Acquisition & Audit API (port 4001)
 // Tests FAIL intentionally until the server is implemented (TDD).
 import request from 'supertest';
-import { ObjectId } from 'mongodb';
+import { randomUUID } from 'crypto';
 import bcrypt from 'bcrypt';
 import { connect, disconnect, clearCollections, getDb } from '../helpers/db.js';
 import { createTestApp, basicAuthHeader } from '../helpers/app-admin.js';
@@ -12,8 +12,8 @@ const TEST_PASSWORD = 'testpassword';
 // Fixtures
 function makeAcquisitionLog(overrides = {}) {
   return {
-    _id: new ObjectId(),
-    executedAt: new Date(),
+    id: randomUUID(),
+    executedAt: new Date().toISOString(),
     status: 'success',
     errorMessage: null,
     fieldsProcessed: ['comunidades.tipo'],
@@ -28,14 +28,14 @@ function makeAcquisitionLog(overrides = {}) {
 
 function makeAuditEntry(overrides = {}) {
   return {
-    _id: new ObjectId(),
-    conceptId: new ObjectId(),
+    id: randomUUID(),
+    conceptId: randomUUID(),
     conceptLiteralForm: 'guarita',
     field: 'status',
     previousValue: 'candidate',
     newValue: 'active',
     responsible: TEST_USERNAME,
-    timestamp: new Date(),
+    timestamp: new Date().toISOString(),
     ...overrides,
   };
 }
@@ -43,6 +43,23 @@ function makeAuditEntry(overrides = {}) {
 describe('Contract: Admin Acquisition & Audit API', () => {
   let app;
   let authHeader;
+  let db;
+
+  function insertAcquisitionLogRow(log) {
+    const now = new Date().toISOString();
+    db.prepare(
+      `INSERT INTO etnotermos_acquisition_log (id, doc, created_at, updated_at) VALUES (?, ?, ?, ?)`
+    ).run(log.id, JSON.stringify(log), now, now);
+    return log;
+  }
+
+  function insertAuditEntryRow(entry) {
+    const now = new Date().toISOString();
+    db.prepare(
+      `INSERT INTO etnotermos_audit_log (id, doc, created_at, updated_at) VALUES (?, ?, ?, ?)`
+    ).run(entry.id, JSON.stringify(entry), now, now);
+    return entry;
+  }
 
   beforeAll(async () => {
     // Seed ADMIN_USERS env before importing the app so auth middleware picks it up
@@ -50,11 +67,11 @@ describe('Contract: Admin Acquisition & Audit API', () => {
     process.env.ADMIN_USERS = JSON.stringify([{ username: TEST_USERNAME, passwordHash }]);
 
     await connect();
+    db = getDb();
 
     // App creation is wrapped in try/catch because the server is not implemented yet.
     // Tests that require `app` will fail on `expect(app).toBeDefined()`.
     try {
-      const db = getDb();
       app = await createTestApp(db);
     } catch {
       app = undefined;
@@ -114,9 +131,8 @@ describe('Contract: Admin Acquisition & Audit API', () => {
     test('returns lastRun object with required fields after a run exists', async () => {
       expect(app).toBeDefined();
 
-      const db = getDb();
       const log = makeAcquisitionLog();
-      await db.collection('etnotermos_acquisition_log').insertOne(log);
+      insertAcquisitionLogRow(log);
 
       const res = await request(app)
         .get('/acquisition/status')
@@ -155,11 +171,8 @@ describe('Contract: Admin Acquisition & Audit API', () => {
     test('returns all logs when they exist', async () => {
       expect(app).toBeDefined();
 
-      const db = getDb();
-      await db.collection('etnotermos_acquisition_log').insertMany([
-        makeAcquisitionLog({ status: 'success' }),
-        makeAcquisitionLog({ status: 'failure', errorMessage: 'timeout' }),
-      ]);
+      insertAcquisitionLogRow(makeAcquisitionLog({ status: 'success' }));
+      insertAcquisitionLogRow(makeAcquisitionLog({ status: 'failure', errorMessage: 'timeout' }));
 
       const res = await request(app)
         .get('/acquisition/logs')
@@ -173,11 +186,8 @@ describe('Contract: Admin Acquisition & Audit API', () => {
     test('filters logs by ?status=success', async () => {
       expect(app).toBeDefined();
 
-      const db = getDb();
-      await db.collection('etnotermos_acquisition_log').insertMany([
-        makeAcquisitionLog({ status: 'success' }),
-        makeAcquisitionLog({ status: 'failure', errorMessage: 'timeout' }),
-      ]);
+      insertAcquisitionLogRow(makeAcquisitionLog({ status: 'success' }));
+      insertAcquisitionLogRow(makeAcquisitionLog({ status: 'failure', errorMessage: 'timeout' }));
 
       const res = await request(app)
         .get('/acquisition/logs?status=success')
@@ -191,11 +201,8 @@ describe('Contract: Admin Acquisition & Audit API', () => {
     test('filters logs by ?status=failure', async () => {
       expect(app).toBeDefined();
 
-      const db = getDb();
-      await db.collection('etnotermos_acquisition_log').insertMany([
-        makeAcquisitionLog({ status: 'success' }),
-        makeAcquisitionLog({ status: 'failure', errorMessage: 'timeout' }),
-      ]);
+      insertAcquisitionLogRow(makeAcquisitionLog({ status: 'success' }));
+      insertAcquisitionLogRow(makeAcquisitionLog({ status: 'failure', errorMessage: 'timeout' }));
 
       const res = await request(app)
         .get('/acquisition/logs?status=failure')
@@ -231,12 +238,11 @@ describe('Contract: Admin Acquisition & Audit API', () => {
     test('returns 200 with log details for a known id', async () => {
       expect(app).toBeDefined();
 
-      const db = getDb();
       const log = makeAcquisitionLog();
-      await db.collection('etnotermos_acquisition_log').insertOne(log);
+      insertAcquisitionLogRow(log);
 
       const res = await request(app)
-        .get(`/acquisition/logs/${log._id.toString()}`)
+        .get(`/acquisition/logs/${log.id.toString()}`)
         .set('Authorization', authHeader)
         .expect(200);
 
@@ -250,7 +256,7 @@ describe('Contract: Admin Acquisition & Audit API', () => {
     test('returns 404 for an unknown id', async () => {
       expect(app).toBeDefined();
 
-      const unknownId = new ObjectId().toString();
+      const unknownId = randomUUID();
 
       await request(app)
         .get(`/acquisition/logs/${unknownId}`)
@@ -269,6 +275,7 @@ describe('Contract: Admin Acquisition & Audit API', () => {
       const res = await request(app)
         .get('/audit')
         .set('Authorization', authHeader)
+        .set('Accept', 'application/json')
         .expect(200);
 
       expect(res.body).toHaveProperty('data');
@@ -292,16 +299,14 @@ describe('Contract: Admin Acquisition & Audit API', () => {
     test('filters by ?conceptId=...', async () => {
       expect(app).toBeDefined();
 
-      const db = getDb();
-      const targetConceptId = new ObjectId();
-      await db.collection('etnotermos_audit_log').insertMany([
-        makeAuditEntry({ conceptId: targetConceptId }),
-        makeAuditEntry({ conceptId: new ObjectId() }),
-      ]);
+      const targetConceptId = randomUUID();
+      insertAuditEntryRow(makeAuditEntry({ conceptId: targetConceptId }));
+      insertAuditEntryRow(makeAuditEntry({ conceptId: randomUUID() }));
 
       const res = await request(app)
         .get(`/audit?conceptId=${targetConceptId.toString()}`)
         .set('Authorization', authHeader)
+        .set('Accept', 'application/json')
         .expect(200);
 
       expect(res.body.total).toBe(1);
@@ -311,15 +316,13 @@ describe('Contract: Admin Acquisition & Audit API', () => {
     test('filters by ?responsible=...', async () => {
       expect(app).toBeDefined();
 
-      const db = getDb();
-      await db.collection('etnotermos_audit_log').insertMany([
-        makeAuditEntry({ responsible: 'testcurator' }),
-        makeAuditEntry({ responsible: 'othercurator' }),
-      ]);
+      insertAuditEntryRow(makeAuditEntry({ responsible: 'testcurator' }));
+      insertAuditEntryRow(makeAuditEntry({ responsible: 'othercurator' }));
 
       const res = await request(app)
         .get('/audit?responsible=testcurator')
         .set('Authorization', authHeader)
+        .set('Accept', 'application/json')
         .expect(200);
 
       expect(res.body.total).toBe(1);
@@ -332,6 +335,7 @@ describe('Contract: Admin Acquisition & Audit API', () => {
       const res = await request(app)
         .get('/audit?page=1')
         .set('Authorization', authHeader)
+        .set('Accept', 'application/json')
         .expect(200);
 
       expect(res.body).toHaveProperty('page', 1);

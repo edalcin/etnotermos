@@ -8,12 +8,13 @@
 //   GET /concepts?sourceField → filter by source field
 //   GET /concepts/:id → 200 full concept; 404 not found; 410 deprecated
 //   GET /audio/:fn   → 200 stream | 404 not found | 400 path traversal
-//   GET /health      → 200 {status:"ok", mongodb:"connected"}
+//   GET /health      → 200 {status:"ok", sqlite:"connected"}
 
 import request from 'supertest';
-import { ObjectId } from 'mongodb';
+import { randomUUID } from 'crypto';
 import { connect, disconnect, clearCollections, getDb } from '../helpers/db.js';
 import { createTestApp } from '../helpers/app-public.js';
+import { syncConceptFts } from '../../src/models/Concept.js';
 
 // ---------------------------------------------------------------------------
 // Attempt to bootstrap the public app once, before any suite runs.
@@ -22,12 +23,13 @@ import { createTestApp } from '../helpers/app-public.js';
 // ---------------------------------------------------------------------------
 let app = null;
 let serverAvailable = false;
+let db = null;
 
 beforeAll(async () => {
   await connect();
+  db = getDb();
 
   try {
-    const db = getDb();
     app = await createTestApp(db);
     serverAvailable = true;
   } catch {
@@ -51,19 +53,33 @@ function req() {
   return request(app);
 }
 
+function insertConceptRow(concept) {
+  const now = new Date().toISOString();
+  db.prepare(
+    `INSERT INTO etnotermos (id, doc, created_at, updated_at) VALUES (?, ?, ?, ?)`
+  ).run(concept.id, JSON.stringify(concept), now, now);
+  syncConceptFts(db, concept);
+  return concept;
+}
+
+function insertConceptRows(list) {
+  list.forEach(insertConceptRow);
+}
+
 // ---------------------------------------------------------------------------
 // Fixtures
 // ---------------------------------------------------------------------------
 
 /** Builds a minimal valid concept document for insertion. */
 function makeConcept(overrides = {}) {
+  const id = overrides.id ?? randomUUID();
   return {
-    _id: new ObjectId(),
-    uri: `urn:etnotermos:test:${new ObjectId().toHexString()}`,
+    id,
+    uri: `urn:etnotermos:test:${id}`,
     status: 'active',
     sourceFields: [],
     prefLabels: [
-      { literalForm: 'Termo Padrão', language: 'pt', type: 'pref', accessLevel: 'public' },
+      { id: randomUUID(), literalForm: 'Termo Padrão', language: 'pt', type: 'pref', accessLevel: 'public' },
     ],
     altLabels: [],
     hiddenLabels: [],
@@ -72,9 +88,10 @@ function makeConcept(overrides = {}) {
     related: [],
     ancestors: [],
     version: 1,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     ...overrides,
+    id,
   };
 }
 
@@ -95,12 +112,12 @@ describe('GET /', () => {
 // ---------------------------------------------------------------------------
 
 describe('GET /health', () => {
-  test('returns 200 with {status:"ok", mongodb:"connected"}', async () => {
+  test('returns 200 with {status:"ok", sqlite:"connected"}', async () => {
     if (!serverAvailable) return;
 
     const res = await req().get('/health').expect(200);
 
-    expect(res.body).toMatchObject({ status: 'ok', mongodb: 'connected' });
+    expect(res.body).toMatchObject({ status: 'ok', sqlite: 'connected' });
   });
 });
 
@@ -124,8 +141,7 @@ describe('GET /concepts (JSON)', () => {
   test('returns only active concepts', async () => {
     if (!serverAvailable) return;
 
-    const db = getDb();
-    await db.collection('etnotermos').insertMany([
+    insertConceptRows([
       makeConcept({ status: 'active' }),
       makeConcept({ status: 'candidate' }),
       makeConcept({ status: 'deprecated' }),
@@ -143,14 +159,13 @@ describe('GET /concepts (JSON)', () => {
   test('never exposes labels with accessLevel "sacred"', async () => {
     if (!serverAvailable) return;
 
-    const db = getDb();
-    await db.collection('etnotermos').insertOne(
+    insertConceptRow(
       makeConcept({
         prefLabels: [
-          { literalForm: 'Nome Público', language: 'pt', type: 'pref', accessLevel: 'public' },
+          { id: randomUUID(), literalForm: 'Nome Público', language: 'pt', type: 'pref', accessLevel: 'public' },
         ],
         hiddenLabels: [
-          { literalForm: 'Nome Sagrado', language: 'pt', type: 'hidden', accessLevel: 'sacred' },
+          { id: randomUUID(), literalForm: 'Nome Sagrado', language: 'pt', type: 'hidden', accessLevel: 'sacred' },
         ],
       })
     );
@@ -173,11 +188,10 @@ describe('GET /concepts (JSON)', () => {
   test('never exposes labels with accessLevel "restricted"', async () => {
     if (!serverAvailable) return;
 
-    const db = getDb();
-    await db.collection('etnotermos').insertOne(
+    insertConceptRow(
       makeConcept({
         altLabels: [
-          { literalForm: 'Restrito', language: 'pt', type: 'alt', accessLevel: 'restricted' },
+          { id: randomUUID(), literalForm: 'Restrito', language: 'pt', type: 'alt', accessLevel: 'restricted' },
         ],
       })
     );
@@ -200,8 +214,7 @@ describe('GET /concepts (JSON)', () => {
   test('response envelope has data, total and page keys', async () => {
     if (!serverAvailable) return;
 
-    const db = getDb();
-    await db.collection('etnotermos').insertMany([
+    insertConceptRows([
       makeConcept({ status: 'active' }),
       makeConcept({ status: 'active' }),
     ]);
@@ -240,16 +253,15 @@ describe('GET /concepts?q (text search)', () => {
   test('returns matching concepts for a search term', async () => {
     if (!serverAvailable) return;
 
-    const db = getDb();
-    await db.collection('etnotermos').insertMany([
+    insertConceptRows([
       makeConcept({
         prefLabels: [
-          { literalForm: 'Erva Medicinal', language: 'pt', type: 'pref', accessLevel: 'public' },
+          { id: randomUUID(), literalForm: 'Erva Medicinal', language: 'pt', type: 'pref', accessLevel: 'public' },
         ],
       }),
       makeConcept({
         prefLabels: [
-          { literalForm: 'Planta Alimentícia', language: 'pt', type: 'pref', accessLevel: 'public' },
+          { id: randomUUID(), literalForm: 'Planta Alimentícia', language: 'pt', type: 'pref', accessLevel: 'public' },
         ],
       }),
     ]);
@@ -284,8 +296,7 @@ describe('GET /concepts?sourceField (filter)', () => {
   test('returns only concepts matching the given sourceField', async () => {
     if (!serverAvailable) return;
 
-    const db = getDb();
-    await db.collection('etnotermos').insertMany([
+    insertConceptRows([
       makeConcept({ sourceFields: ['comunidades.tipo'] }),
       makeConcept({ sourceFields: ['comunidades.plantas.tipoUso'] }),
     ]);
@@ -321,12 +332,11 @@ describe('GET /concepts/:id', () => {
   test('returns 200 with full concept when it exists', async () => {
     if (!serverAvailable) return;
 
-    const db = getDb();
     const concept = makeConcept();
-    await db.collection('etnotermos').insertOne(concept);
+    insertConceptRow(concept);
 
     const res = await req()
-      .get(`/concepts/${concept._id.toHexString()}`)
+      .get(`/concepts/${concept.id.toString()}`)
       .set('Accept', 'application/json')
       .expect(200);
 
@@ -341,7 +351,7 @@ describe('GET /concepts/:id', () => {
   test('returns 404 for a nonexistent id', async () => {
     if (!serverAvailable) return;
 
-    const id = new ObjectId().toHexString();
+    const id = randomUUID();
     await req()
       .get(`/concepts/${id}`)
       .set('Accept', 'application/json')
@@ -351,16 +361,15 @@ describe('GET /concepts/:id', () => {
   test('returns 410 for a deprecated concept and includes replacedBy', async () => {
     if (!serverAvailable) return;
 
-    const db = getDb();
     const replacement = makeConcept({ status: 'active' });
     const deprecated = makeConcept({
       status: 'deprecated',
-      replacedBy: replacement._id,
+      replacedBy: replacement.id,
     });
-    await db.collection('etnotermos').insertMany([replacement, deprecated]);
+    insertConceptRows([replacement, deprecated]);
 
     const res = await req()
-      .get(`/concepts/${deprecated._id.toHexString()}`)
+      .get(`/concepts/${deprecated.id.toString()}`)
       .set('Accept', 'application/json')
       .expect(410);
 
@@ -370,20 +379,19 @@ describe('GET /concepts/:id', () => {
   test('strips sacred/restricted labels from concept detail response', async () => {
     if (!serverAvailable) return;
 
-    const db = getDb();
     const concept = makeConcept({
       prefLabels: [
-        { literalForm: 'Público', language: 'pt', type: 'pref', accessLevel: 'public' },
+        { id: randomUUID(), literalForm: 'Público', language: 'pt', type: 'pref', accessLevel: 'public' },
       ],
       altLabels: [
-        { literalForm: 'Sagrado', language: 'pt', type: 'alt', accessLevel: 'sacred' },
-        { literalForm: 'Restrito', language: 'pt', type: 'alt', accessLevel: 'restricted' },
+        { id: randomUUID(), literalForm: 'Sagrado', language: 'pt', type: 'alt', accessLevel: 'sacred' },
+        { id: randomUUID(), literalForm: 'Restrito', language: 'pt', type: 'alt', accessLevel: 'restricted' },
       ],
     });
-    await db.collection('etnotermos').insertOne(concept);
+    insertConceptRow(concept);
 
     const res = await req()
-      .get(`/concepts/${concept._id.toHexString()}`)
+      .get(`/concepts/${concept.id.toString()}`)
       .set('Accept', 'application/json')
       .expect(200);
 
@@ -401,12 +409,11 @@ describe('GET /concepts/:id', () => {
   test('returns 200 HTML for concept detail when no Accept header is sent', async () => {
     if (!serverAvailable) return;
 
-    const db = getDb();
     const concept = makeConcept();
-    await db.collection('etnotermos').insertOne(concept);
+    insertConceptRow(concept);
 
     await req()
-      .get(`/concepts/${concept._id.toHexString()}`)
+      .get(`/concepts/${concept.id.toString()}`)
       .expect(200)
       .expect('Content-Type', /html/);
   });
@@ -455,7 +462,7 @@ describe('Error response shapes', () => {
     if (!serverAvailable) return;
 
     const res = await req()
-      .get(`/concepts/${new ObjectId().toHexString()}`)
+      .get(`/concepts/${randomUUID()}`)
       .set('Accept', 'application/json')
       .expect(404);
 
@@ -465,13 +472,12 @@ describe('Error response shapes', () => {
   test('410 responses include message and replacedBy fields', async () => {
     if (!serverAvailable) return;
 
-    const db = getDb();
     const replacement = makeConcept({ status: 'active' });
-    const deprecated = makeConcept({ status: 'deprecated', replacedBy: replacement._id });
-    await db.collection('etnotermos').insertMany([replacement, deprecated]);
+    const deprecated = makeConcept({ status: 'deprecated', replacedBy: replacement.id });
+    insertConceptRows([replacement, deprecated]);
 
     const res = await req()
-      .get(`/concepts/${deprecated._id.toHexString()}`)
+      .get(`/concepts/${deprecated.id.toString()}`)
       .set('Accept', 'application/json')
       .expect(410);
 

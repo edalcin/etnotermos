@@ -7,10 +7,8 @@ Guia passo a passo via interface web do UNRAID. Sem linha de comando necessária
 ## Pré-requisitos
 
 - UNRAID com Docker habilitado
-- Container **MongoDB** já instalado e rodando (database `etnodb`)
 - IP do servidor UNRAID na sua rede (ex: `192.168.1.100`)
-
-> Se o MongoDB ainda não estiver instalado, veja a seção [Instalar MongoDB](#instalar-mongodb) no final deste guia.
+- Um volume persistente em `/mnt/user/appdata/` para o arquivo do banco SQLite e os áudios (configurado no Passo 2)
 
 ---
 
@@ -65,7 +63,7 @@ Clique em **"Add another Path, Port, Variable..."** → **Variable** — adicion
 
 | Key | Value | Descrição |
 |---|---|---|
-| `MONGODB_URI` | `mongodb://172.17.0.1:27017/etnodb` | IP padrão do host no UNRAID. Ajuste se necessário. |
+| `SQLITE_DB_PATH` | `/data/db/unidade.sqlite` | Caminho do arquivo SQLite dentro do container. Deve ficar dentro do volume persistente **SQLite Database** configurado abaixo. |
 | `ADMIN_USERNAME` | `curador1` | Nome do usuário admin |
 | `ADMIN_PASSWORD` | `sua_senha_aqui` | Senha do admin (mín. 6 caracteres) |
 | `NODE_ENV` | `production` | |
@@ -79,13 +77,16 @@ Clique em **"Add another Path, Port, Variable..."** → **Variable** — adicion
 | `ACQUISITION_CRON_SCHEDULE` | `0 3 * * *` | Horário de aquisição automática (padrão: 3h da manhã) |
 | `LOG_LEVEL` | `info` | Nível de log (`debug`, `info`, `warn`, `error`) |
 
-### Volume (armazenamento de áudio)
+### Volumes (banco SQLite e armazenamento de áudio)
 
-Clique em **"Add another Path, Port, Variable..."** → **Path**:
+Clique em **"Add another Path, Port, Variable..."** → **Path** — adicione as duas entradas abaixo. Ambas garantem que os dados sobrevivem a updates e restarts do container:
 
 | Name | Container Path | Host Path |
 |---|---|---|
+| SQLite Database | `/data/db` | `/mnt/user/appdata/etnotermos/data` |
 | Audio Storage | `/data/audio` | `/mnt/user/appdata/BioCultTermos/audio` |
+
+> O arquivo apontado por `SQLITE_DB_PATH` (`/data/db/unidade.sqlite`) fica dentro do volume **SQLite Database**. Sem esse mapeamento, o banco seria perdido a cada atualização do container.
 
 3. Clique em **Apply**
 
@@ -101,17 +102,16 @@ Clique em **"Add another Path, Port, Variable..."** → **Path**:
    Spawned admin   server → http://localhost:4001 (initializing...)
    BioCultTermos PUBLIC interface running on port 4000
    BioCultTermos ADMIN interface running on port 4001
-   MongoDB connected
    ```
 
 **Se aparecer erro `ADMIN_USERS is not set or invalid`:**
 - Verifique se `ADMIN_USERNAME` e `ADMIN_PASSWORD` foram adicionadas corretamente
 - Edite o container e confirme as variáveis
 
-**Se aparecer erro de conexão com MongoDB:**
-- Verifique se o container MongoDB está rodando
-- Tente usar o IP `172.17.0.1` — é o IP padrão do host Docker no UNRAID
-- Ou use o nome do container MongoDB com `--link` (ver [Solução de Problemas](#solução-de-problemas))
+**Se aparecer erro `SQLITE_DB_PATH is not set` ou falha ao abrir o banco:**
+- Verifique se a variável `SQLITE_DB_PATH` aponta para um caminho dentro do volume **SQLite Database** (`/data/db/...`)
+- Confirme que o volume `/data/db` → `/mnt/user/appdata/etnotermos/data` foi mapeado corretamente no container
+- Verifique se o diretório do host tem permissão de escrita para o usuário do container
 
 ---
 
@@ -153,38 +153,16 @@ Para atualizar para uma nova versão:
 
 ## Solução de Problemas
 
-### Erro de conexão com MongoDB
+### Erro ao abrir o arquivo SQLite (permissão negada)
 
-O container Docker não alcança `172.17.0.1`? Tente:
+Se o log mostrar erro de permissão ao abrir `/data/db/unidade.sqlite`:
 
-1. **Usar nome do container** — em **Extra Parameters** no UNRAID, adicione:
-   ```
-   --link nome-do-seu-mongodb:mongodb
-   ```
-   E mude `MONGODB_URI` para:
-   ```
-   mongodb://mongodb:27017/etnodb
-   ```
-
-2. **Verificar IP correto** do host Docker:
+1. Confirme que o diretório host `/mnt/user/appdata/etnotermos/data` existe e pertence ao usuário `nobody:users` (padrão UNRAID):
    ```bash
    # SSH no UNRAID
-   ip addr show docker0
+   chown -R nobody:users /mnt/user/appdata/etnotermos
    ```
-
-### Senha com caracteres especiais no MongoDB URI
-
-Se o MongoDB tem autenticação e a senha contém `!`, `@`, `#`, `$`, etc., encode os caracteres:
-
-| Char | Encoded |
-|---|---|
-| `!` | `%21` |
-| `@` | `%40` |
-| `#` | `%23` |
-| `$` | `%24` |
-| `*` | `%2A` |
-
-Exemplo: `mongodb://usuario:senha%21secreta@172.17.0.1:27017/etnodb?authSource=admin`
+2. Reinicie o container `etnotermos`
 
 ### Container inicia mas admin não autentica
 
@@ -194,43 +172,35 @@ Exemplo: `mongodb://usuario:senha%21secreta@172.17.0.1:27017/etnodb?authSource=a
 
 ---
 
-## Instalar MongoDB
+## Backup do banco SQLite
 
-Se ainda não tiver MongoDB no UNRAID:
-
-1. Docker → **Add Container**
-2. Preencha:
-
-| Campo | Valor |
-|---|---|
-| **Name** | `mongodb` |
-| **Repository** | `mongo:7.0-alpine` |
-| **Network Type** | `Bridge` |
-
-3. Adicione Port: Container `27017` → Host `27017`
-4. Adicione Path: Container `/data/db` → Host `/mnt/user/appdata/mongodb/data`
-5. Clique em **Apply**
-
----
-
-## Backup do MongoDB
+Como o arquivo `.sqlite` fica em um volume mapeado (`/mnt/user/appdata/etnotermos/data/unidade.sqlite`), o backup é uma cópia de arquivo — sem dump/restore de banco de dados.
 
 Usando **User Scripts** (plugin Community Applications):
 
 ```bash
 #!/bin/bash
 BACKUP_DIR="/mnt/user/backups/BioCultTermos"
+DATA_FILE="/mnt/user/appdata/etnotermos/data/unidade.sqlite"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-MONGODB_CONTAINER="mongodb"   # ajuste com o nome do seu container
 
 mkdir -p $BACKUP_DIR
-docker exec $MONGODB_CONTAINER mongodump --out=/tmp/bkp_$TIMESTAMP --db=etnodb
-docker cp $MONGODB_CONTAINER:/tmp/bkp_$TIMESTAMP $BACKUP_DIR/
-tar -czf $BACKUP_DIR/bkp_$TIMESTAMP.tar.gz -C $BACKUP_DIR bkp_$TIMESTAMP
-rm -rf $BACKUP_DIR/bkp_$TIMESTAMP
-find $BACKUP_DIR -name "bkp_*.tar.gz" -mtime +30 -delete
-echo "Backup: $BACKUP_DIR/bkp_$TIMESTAMP.tar.gz"
+
+# Parar o container garante um arquivo consistente (sem WAL pendente)
+docker stop etnotermos
+cp "$DATA_FILE" "$BACKUP_DIR/unidade_$TIMESTAMP.sqlite"
+cp "$DATA_FILE-wal" "$BACKUP_DIR/unidade_$TIMESTAMP.sqlite-wal" 2>/dev/null
+docker start etnotermos
+
+gzip "$BACKUP_DIR/unidade_$TIMESTAMP.sqlite"
+find $BACKUP_DIR -name "unidade_*.sqlite.gz" -mtime +30 -delete
+echo "Backup: $BACKUP_DIR/unidade_$TIMESTAMP.sqlite.gz"
 ```
+
+> **Backup sem downtime:** para evitar parar o container, use o backup online do SQLite via `VACUUM INTO`, que gera uma cópia consistente sem interromper o serviço:
+> ```bash
+> docker exec etnotermos node -e "require('better-sqlite3')('/data/db/unidade.sqlite').exec(\"VACUUM INTO '/data/db/backup_$(date +%Y%m%d_%H%M%S).sqlite'\")"
+> ```
 
 Configure para rodar diariamente às 2h.
 

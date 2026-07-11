@@ -1,5 +1,7 @@
 # Phase 0: Research & Decisions
 
+> **Nota:** Este documento descreve uma arquitetura histórica/divergente (Mongoose/MongoDB, Z39.19) de um projeto anterior. A implementação atual do BioCultTermos segue a arquitetura v3.1 (SQLite + JSON1 via better-sqlite3), conforme ADR-005 da "Arquitetura-BioCultural". Mantido apenas como referência histórica.
+
 **Date**: 2026-01-05
 **Status**: Complete
 

@@ -19,12 +19,12 @@ router.get('/health', async (req, res) => {
   };
 
   try {
-    // Check MongoDB connection
+    // Check SQLite connection
     const db = getDb();
-    const pingResult = await db.admin().ping();
-    health.checks.mongodb = {
-      status: pingResult.ok === 1 ? 'healthy' : 'unhealthy',
-      message: 'MongoDB connection successful'
+    db.prepare('SELECT 1').get();
+    health.checks.sqlite = {
+      status: 'healthy',
+      message: 'SQLite connection successful'
     };
 
     // Check memory usage
@@ -37,8 +37,7 @@ router.get('/health', async (req, res) => {
       percentage: `${memoryUsedPercent.toFixed(2)}%`
     };
 
-    // Check term count (200k limit monitoring)
-    const termCount = await db.collection('etnotermos').countDocuments();
+    const termCount = db.prepare('SELECT COUNT(*) as n FROM etnotermos').get().n;
     const termLimitPercent = (termCount / 200000) * 100;
     health.checks.termLimit = {
       status: termLimitPercent < 90 ? 'healthy' : 'warning',
@@ -72,7 +71,7 @@ router.get('/health', async (req, res) => {
 router.get('/health/ready', async (req, res) => {
   try {
     const db = getDb();
-    await db.admin().ping();
+    db.prepare('SELECT 1').get();
     res.status(200).json({ ready: true });
   } catch (error) {
     res.status(503).json({ ready: false, error: error.message });

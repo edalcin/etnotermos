@@ -1,5 +1,6 @@
-import { ObjectId } from 'mongodb';
+import { randomUUID } from 'crypto';
 import { connect, disconnect, clearCollections, getDb } from '../helpers/db.js';
+import { syncConceptFts } from '../../src/models/Concept.js';
 
 let ConceptService;
 let serviceImportFailed = false;
@@ -30,21 +31,22 @@ maybeDescribe('US2: Public term browsing', () => {
 
   function makeLabel(literalForm, accessLevel = 'public') {
     return {
-      _id: new ObjectId(),
+      id: randomUUID(),
       literalForm,
       language: 'pt',
       type: 'pref',
       accessLevel,
       labelRelations: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
   }
 
   function makeConcept(overrides = {}) {
+    const id = randomUUID();
     return {
-      _id: new ObjectId(),
-      uri: `etnotermos:${overrides.slug ?? new ObjectId().toHexString()}`,
+      id,
+      uri: `etnotermos:${overrides.slug ?? id}`,
       status: 'active',
       sourceFields: ['comunidades.tipo'],
       sourceCommunities: [],
@@ -62,14 +64,27 @@ maybeDescribe('US2: Public term browsing', () => {
       replacedBy: null,
       deprecatedDate: null,
       version: 1,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       ...overrides,
     };
   }
 
+  function insertConceptRow(concept) {
+    const now = new Date().toISOString();
+    db.prepare(
+      `INSERT INTO etnotermos (id, doc, created_at, updated_at) VALUES (?, ?, ?, ?)`
+    ).run(concept.id, JSON.stringify(concept), now, now);
+    syncConceptFts(db, concept);
+    return concept;
+  }
+
+  function insertConceptRows(concepts) {
+    concepts.forEach(insertConceptRow);
+  }
+
   test('findMany with {status:"active", publicOnly:true} returns only active concepts', async () => {
-    await db.collection('etnotermos').insertMany([
+    insertConceptRows([
       makeConcept({ slug: 'ativo', prefLabel: 'ativo', status: 'active' }),
       makeConcept({ slug: 'candidato', prefLabel: 'candidato', status: 'candidate' }),
       makeConcept({ slug: 'depreciado', prefLabel: 'depreciado', status: 'deprecated' }),
@@ -82,9 +97,7 @@ maybeDescribe('US2: Public term browsing', () => {
   });
 
   test('candidate concepts are NOT returned in public interface', async () => {
-    await db.collection('etnotermos').insertOne(
-      makeConcept({ slug: 'candidato', prefLabel: 'candidato', status: 'candidate' })
-    );
+    insertConceptRow(makeConcept({ slug: 'candidato', prefLabel: 'candidato', status: 'candidate' }));
 
     const result = await ConceptService.findMany(db, { publicOnly: true });
 
@@ -93,9 +106,7 @@ maybeDescribe('US2: Public term browsing', () => {
   });
 
   test('deprecated concepts are NOT returned in public interface', async () => {
-    await db.collection('etnotermos').insertOne(
-      makeConcept({ slug: 'depreciado', prefLabel: 'depreciado', status: 'deprecated' })
-    );
+    insertConceptRow(makeConcept({ slug: 'depreciado', prefLabel: 'depreciado', status: 'deprecated' }));
 
     const result = await ConceptService.findMany(db, { publicOnly: true });
 
@@ -106,7 +117,7 @@ maybeDescribe('US2: Public term browsing', () => {
   test('labels with accessLevel "sacred" are stripped from public response', async () => {
     const concept = makeConcept({ slug: 'sagrado', prefLabel: 'sagrado', status: 'active' });
     concept.altLabels = [makeLabel('nome-sagrado', 'sacred')];
-    await db.collection('etnotermos').insertOne(concept);
+    insertConceptRow(concept);
 
     const result = await ConceptService.findMany(db, { publicOnly: true });
 
@@ -120,7 +131,7 @@ maybeDescribe('US2: Public term browsing', () => {
   test('labels with accessLevel "restricted" are stripped from public response', async () => {
     const concept = makeConcept({ slug: 'restrito', prefLabel: 'restrito', status: 'active' });
     concept.altLabels = [makeLabel('nome-restrito', 'restricted')];
-    await db.collection('etnotermos').insertOne(concept);
+    insertConceptRow(concept);
 
     const result = await ConceptService.findMany(db, { publicOnly: true });
 
@@ -132,9 +143,7 @@ maybeDescribe('US2: Public term browsing', () => {
   });
 
   test('labels with accessLevel "public" are included in public response', async () => {
-    await db.collection('etnotermos').insertOne(
-      makeConcept({ slug: 'publico', prefLabel: 'erva-mate', status: 'active' })
-    );
+    insertConceptRow(makeConcept({ slug: 'publico', prefLabel: 'erva-mate', status: 'active' }));
 
     const result = await ConceptService.findMany(db, { publicOnly: true });
 
@@ -145,19 +154,9 @@ maybeDescribe('US2: Public term browsing', () => {
   });
 
   test('findMany with {q:"erva-mate", publicOnly:true} returns text-search match', async () => {
-    await db.collection('etnotermos').insertOne(
-      makeConcept({ slug: 'erva-mate', prefLabel: 'erva-mate', status: 'active' })
-    );
+    insertConceptRow(makeConcept({ slug: 'erva-mate', prefLabel: 'erva-mate', status: 'active' }));
 
-    let result;
-    try {
-      result = await ConceptService.findMany(db, { q: 'erva-mate', publicOnly: true });
-    } catch (err) {
-      if (/text index/i.test(err.message)) {
-        return;
-      }
-      throw err;
-    }
+    const result = await ConceptService.findMany(db, { q: 'erva-mate', publicOnly: true });
 
     const found = result.data.find((c) =>
       c.prefLabels.some((l) => l.literalForm === 'erva-mate')
@@ -166,7 +165,7 @@ maybeDescribe('US2: Public term browsing', () => {
   });
 
   test('findMany with {sourceField:"comunidades.tipo"} returns filtered results', async () => {
-    await db.collection('etnotermos').insertMany([
+    insertConceptRows([
       makeConcept({ slug: 'tipo', prefLabel: 'indígena', status: 'active', sourceFields: ['comunidades.tipo'] }),
       makeConcept({ slug: 'uso', prefLabel: 'medicinal', status: 'active', sourceFields: ['comunidades.plantas.tipoUso'] }),
     ]);
@@ -180,11 +179,11 @@ maybeDescribe('US2: Public term browsing', () => {
   test('findById returns broader/narrower/related with prefLabel resolved', async () => {
     const broader = makeConcept({ slug: 'broader', prefLabel: 'comunidade', status: 'active' });
     const concept = makeConcept({ slug: 'child', prefLabel: 'criança', status: 'active' });
-    concept.broader = [broader._id];
+    concept.broader = [broader.id];
 
-    await db.collection('etnotermos').insertMany([broader, concept]);
+    insertConceptRows([broader, concept]);
 
-    const result = await ConceptService.findById(db, concept._id, { publicOnly: true });
+    const result = await ConceptService.findById(db, concept.id, { publicOnly: true });
 
     expect(result).not.toBeNull();
     expect(Array.isArray(result.broader)).toBe(true);
@@ -193,31 +192,31 @@ maybeDescribe('US2: Public term browsing', () => {
   });
 
   test('findById returns null for a nonexistent id', async () => {
-    const result = await ConceptService.findById(db, new ObjectId(), { publicOnly: true });
+    const result = await ConceptService.findById(db, randomUUID(), { publicOnly: true });
     expect(result).toBeNull();
   });
 
   test('deprecated concept via findById returns concept with status "deprecated" and replacedBy populated', async () => {
     const replacement = makeConcept({ slug: 'novo', prefLabel: 'novo-termo', status: 'active' });
     const deprecated = makeConcept({ slug: 'velho', prefLabel: 'velho-termo', status: 'deprecated' });
-    deprecated.replacedBy = replacement._id;
-    deprecated.deprecatedDate = new Date();
+    deprecated.replacedBy = replacement.id;
+    deprecated.deprecatedDate = new Date().toISOString();
 
-    await db.collection('etnotermos').insertMany([replacement, deprecated]);
+    insertConceptRows([replacement, deprecated]);
 
-    const result = await ConceptService.findById(db, deprecated._id, { publicOnly: false });
+    const result = await ConceptService.findById(db, deprecated.id, { publicOnly: false });
 
     expect(result).not.toBeNull();
     expect(result.status).toBe('deprecated');
     expect(result.replacedBy).toBeDefined();
-    expect(result.replacedBy.toString()).toBe(replacement._id.toString());
+    expect(result.replacedBy.toString()).toBe(replacement.id.toString());
   });
 
   test('pagination: findMany with {page:2, limit:2} returns correct slice', async () => {
     const concepts = Array.from({ length: 5 }, (_, i) =>
       makeConcept({ slug: `termo-${i}`, prefLabel: `termo-${i}`, status: 'active' })
     );
-    await db.collection('etnotermos').insertMany(concepts);
+    insertConceptRows(concepts);
 
     const result = await ConceptService.findMany(db, { status: 'active', page: 2, limit: 2 });
 

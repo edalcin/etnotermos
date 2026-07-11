@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { ObjectId } from 'mongodb';
 import multer from 'multer';
 import path from 'path';
 import { config } from '../../../config/index.js';
@@ -34,12 +33,12 @@ const upload = multer({
 });
 
 /** Fetch the current version of a concept when not provided in the request. */
+
 async function resolveVersion(db, id, bodyVersion, headerVersion) {
   const v = parseInt(bodyVersion ?? headerVersion, 10);
   if (!isNaN(v)) return v;
-  const col = db.collection('etnotermos');
-  const doc = await col.findOne({ _id: new ObjectId(id) }, { projection: { version: 1 } });
-  return doc ? doc.version : null;
+  const row = db.prepare(`SELECT json_extract(doc,'$.version') as version FROM etnotermos WHERE id = ?`).get(id);
+  return row ? row.version : null;
 }
 
 const router = Router();

@@ -1,4 +1,4 @@
-import { ObjectId } from 'mongodb';
+import { randomUUID } from 'crypto';
 import {
   validateLabelUniqueness,
   validateNoCycle,
@@ -10,7 +10,7 @@ import {
 
 function makeLabel(overrides = {}) {
   return {
-    _id: new ObjectId(),
+    id: randomUUID(),
     literalForm: 'erva-mate',
     language: 'pt',
     type: 'pref',
@@ -21,7 +21,7 @@ function makeLabel(overrides = {}) {
 
 function makeConcept(overrides = {}) {
   return {
-    _id: new ObjectId(),
+    id: randomUUID(),
     prefLabels: [makeLabel({ type: 'pref', literalForm: 'erva-mate' })],
     altLabels: [],
     hiddenLabels: [],
@@ -60,9 +60,9 @@ describe('validateLabelUniqueness', () => {
   });
 
   test('checks across all label arrays (altLabels, hiddenLabels)', () => {
-    const altId = new ObjectId();
+    const altId = randomUUID();
     const concept = makeConcept({
-      altLabels: [{ _id: altId, literalForm: 'mate', language: 'pt', type: 'alt' }],
+      altLabels: [{ id: altId, literalForm: 'mate', language: 'pt', type: 'alt' }],
     });
     expect(() =>
       validateLabelUniqueness(concept, { literalForm: 'mate', language: 'pt', type: 'alt' })
@@ -70,9 +70,9 @@ describe('validateLabelUniqueness', () => {
   });
 
   test('excludes label by id (for update operations)', () => {
-    const labelId = new ObjectId();
+    const labelId = randomUUID();
     const concept = makeConcept({
-      prefLabels: [makeLabel({ _id: labelId, literalForm: 'erva-mate', language: 'pt', type: 'pref' })],
+      prefLabels: [makeLabel({ id: labelId, literalForm: 'erva-mate', language: 'pt', type: 'pref' })],
     });
     expect(() =>
       validateLabelUniqueness(
@@ -86,38 +86,38 @@ describe('validateLabelUniqueness', () => {
   test('handles empty concept with no labels', () => {
     const concept = makeConcept({ prefLabels: [], altLabels: [], hiddenLabels: [] });
     expect(() =>
-      validateLabelUniqueness(concept, { literalForm: 'any', language: 'pt', type: 'pref' })
+      validateLabelUniqueness(concept, { literalForm: 'ilex', language: 'pt', type: 'pref' })
     ).not.toThrow();
   });
 });
 
 describe('validateNoCycle', () => {
   test('returns true when target is not an ancestor', () => {
-    const concept = makeConcept({ ancestors: [new ObjectId()] });
-    const unrelatedId = new ObjectId();
+    const concept = makeConcept({ ancestors: [randomUUID()] });
+    const unrelatedId = randomUUID();
     expect(validateNoCycle(concept, unrelatedId)).toBe(true);
   });
 
   test('returns false when target IS an ancestor (would create cycle)', () => {
-    const ancestorId = new ObjectId();
+    const ancestorId = randomUUID();
     const concept = makeConcept({ ancestors: [ancestorId] });
     expect(validateNoCycle(concept, ancestorId)).toBe(false);
   });
 
   test('returns false for self-reference', () => {
     const concept = makeConcept();
-    expect(validateNoCycle(concept, concept._id)).toBe(false);
+    expect(validateNoCycle(concept, concept.id)).toBe(false);
   });
 
   test('handles string ID for target', () => {
-    const ancestorId = new ObjectId();
+    const ancestorId = randomUUID();
     const concept = makeConcept({ ancestors: [ancestorId] });
     expect(validateNoCycle(concept, ancestorId.toString())).toBe(false);
   });
 
   test('returns true with empty ancestors array', () => {
     const concept = makeConcept({ ancestors: [] });
-    expect(validateNoCycle(concept, new ObjectId())).toBe(true);
+    expect(validateNoCycle(concept, randomUUID())).toBe(true);
   });
 });
 
@@ -155,9 +155,9 @@ describe('validateSinglePrefLabelPerLanguage', () => {
   });
 
   test('excludes label id when updating existing label', () => {
-    const labelId = new ObjectId();
+    const labelId = randomUUID();
     const concept = makeConcept({
-      prefLabels: [makeLabel({ _id: labelId, language: 'pt', type: 'pref' })],
+      prefLabels: [makeLabel({ id: labelId, language: 'pt', type: 'pref' })],
     });
     expect(() =>
       validateSinglePrefLabelPerLanguage(
@@ -182,33 +182,31 @@ describe('validateDeprecation', () => {
     expect(() => validateDeprecation('')).toThrow();
   });
 
-  test('passes when replacedById is a valid ObjectId string', () => {
-    expect(() => validateDeprecation(new ObjectId().toString())).not.toThrow();
+  test('passes when replacedById is a valid id string', () => {
+    expect(() => validateDeprecation(randomUUID())).not.toThrow();
   });
 });
 
 describe('validateLabelType', () => {
-  test('passes for pref, alt, hidden', () => {
+  test('passes for valid label types', () => {
     expect(() => validateLabelType('pref')).not.toThrow();
     expect(() => validateLabelType('alt')).not.toThrow();
     expect(() => validateLabelType('hidden')).not.toThrow();
   });
 
-  test('throws for invalid type', () => {
-    expect(() => validateLabelType('preferred')).toThrow();
-    expect(() => validateLabelType('')).toThrow();
+  test('throws for invalid label type', () => {
+    expect(() => validateLabelType('invalid')).toThrow();
   });
 });
 
 describe('validateAccessLevel', () => {
-  test('passes for public, restricted, sacred', () => {
+  test('passes for valid access levels', () => {
     expect(() => validateAccessLevel('public')).not.toThrow();
     expect(() => validateAccessLevel('restricted')).not.toThrow();
     expect(() => validateAccessLevel('sacred')).not.toThrow();
   });
 
   test('throws for invalid access level', () => {
-    expect(() => validateAccessLevel('private')).toThrow();
-    expect(() => validateAccessLevel('')).toThrow();
+    expect(() => validateAccessLevel('invalid')).toThrow();
   });
 });

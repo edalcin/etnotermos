@@ -13,8 +13,10 @@ services:
       NODE_ENV: production
       PUBLIC_PORT: 4000
       ADMIN_PORT: 4001
-      # Shared MongoDB instance — same host as BioCultDB
-      MONGODB_URI: ${MONGODB_URI:-mongodb://host.docker.internal:27017/etnodb}
+      # Arquivo SQLite local de dev standalone. Em produção (Etapa 7 do plano de
+      # migração v3.1), este compose é substituído pelo container único da unidade
+      # federada, que compartilha o mesmo arquivo SQLite com o BioCultDB.
+      SQLITE_DB_PATH: ${SQLITE_DB_PATH:-/data/unidade-dev.sqlite}
       # JSON array: [{"username":"x","passwordHash":"$2b$10$..."}]
       ADMIN_USERS: ${ADMIN_USERS}
       AUDIO_STORAGE_PATH: /data/audio
@@ -24,10 +26,8 @@ services:
       - "4000:4000"
       - "4001:4001"
     volumes:
-      - audio_data:/data/audio
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - unit_data:/data
 
 volumes:
-  audio_data:
+  unit_data:
     driver: local

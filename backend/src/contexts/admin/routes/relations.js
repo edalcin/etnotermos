@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { ObjectId } from 'mongodb';
 import * as ConceptService from '../../../services/ConceptService.js';
 
 const router = Router();
@@ -7,49 +6,45 @@ const router = Router();
 router.get('/relationships', async (req, res, next) => {
   try {
     const db = req.app.locals.db;
-    const col = db.collection('etnotermos');
 
-    const [withRelations, stats] = await Promise.all([
-      col
-        .find({
-          $or: [
-            { broader: { $exists: true, $ne: [] } },
-            { narrower: { $exists: true, $ne: [] } },
-            { related: { $exists: true, $ne: [] } },
-          ],
-        })
-        .project({ prefLabels: 1, broader: 1, narrower: 1, related: 1, status: 1 })
-        .sort({ updatedAt: -1 })
-        .limit(100)
-        .toArray(),
-      col
-        .aggregate([
-          {
-            $group: {
-              _id: null,
-              totalBroader: { $sum: { $size: { $ifNull: ['$broader', []] } } },
-              totalNarrower: { $sum: { $size: { $ifNull: ['$narrower', []] } } },
-              totalRelated: { $sum: { $size: { $ifNull: ['$related', []] } } },
-              withAnyRelation: {
-                $sum: {
-                  $cond: [
-                    {
-                      $or: [
-                        { $gt: [{ $size: { $ifNull: ['$broader', []] } }, 0] },
-                        { $gt: [{ $size: { $ifNull: ['$narrower', []] } }, 0] },
-                        { $gt: [{ $size: { $ifNull: ['$related', []] } }, 0] },
-                      ],
-                    },
-                    1,
-                    0,
-                  ],
-                },
-              },
-            },
-          },
-        ])
-        .toArray(),
-    ]);
+    const rows = db
+      .prepare(
+        `SELECT doc FROM etnotermos e
+         WHERE json_array_length(json_extract(e.doc,'$.broader')) > 0
+            OR json_array_length(json_extract(e.doc,'$.narrower')) > 0
+            OR json_array_length(json_extract(e.doc,'$.related')) > 0
+         ORDER BY updated_at DESC
+         LIMIT 100`
+      )
+      .all();
+    const withRelations = rows.map((r) => {
+      const c = JSON.parse(r.doc);
+      return {
+        prefLabels: c.prefLabels,
+        broader: c.broader,
+        narrower: c.narrower,
+        related: c.related,
+        status: c.status,
+      };
+    });
+
+    const totals = db
+      .prepare(
+        `SELECT
+           SUM(json_array_length(json_extract(doc,'$.broader'))) as totalBroader,
+           SUM(json_array_length(json_extract(doc,'$.narrower'))) as totalNarrower,
+           SUM(json_array_length(json_extract(doc,'$.related'))) as totalRelated,
+           SUM(
+             CASE WHEN json_array_length(json_extract(doc,'$.broader')) > 0
+                     OR json_array_length(json_extract(doc,'$.narrower')) > 0
+                     OR json_array_length(json_extract(doc,'$.related')) > 0
+                  THEN 1 ELSE 0 END
+           ) as withAnyRelation
+         FROM etnotermos`
+      )
+      .get();
+
+    const stats = [totals];
 
     const s = stats[0] || { totalBroader: 0, totalNarrower: 0, totalRelated: 0, withAnyRelation: 0 };
 
@@ -67,9 +62,8 @@ router.get('/relationships', async (req, res, next) => {
 async function resolveVersion(db, id, bodyVersion) {
   const v = parseInt(bodyVersion, 10);
   if (!isNaN(v)) return v;
-  const col = db.collection('etnotermos');
-  const doc = await col.findOne({ _id: new ObjectId(id) }, { projection: { version: 1 } });
-  return doc ? doc.version : null;
+  const row = db.prepare(`SELECT json_extract(doc,'$.version') as version FROM etnotermos WHERE id = ?`).get(id);
+  return row ? row.version : null;
 }
 
 router.post('/concepts/:id/broader', async (req, res, next) => {

@@ -6,39 +6,39 @@
 
 ---
 
-## Decisão 1: SKOS-XL no MongoDB — Labels embedded vs. coleção separada
+## Decisão 1: SKOS-XL no SQLite (JSON1) — Labels embedded no JSON vs. tabela separada
 
-**Decisão**: Labels (`skosxl:Label`) como **subdocumentos embedded** dentro do documento Concept.
+**Decisão**: Labels (`skosxl:Label`) como **objetos aninhados (embedded) dentro do JSON** armazenado na coluna `doc` do documento Concept.
 
 **Justificativa**:
 - Labels são sempre lidos e escritos no contexto de seu Concept; nunca são acessados isoladamente
-- Embedded garante atomic updates: alterar um label e seus metadados é uma única operação `$set`
-- Elimina `$lookup` joins em cada leitura de conceito
-- Volume esperado: ~5–15 labels por conceito × 1k–10k conceitos = gerenciável em documentos BSON (limite 16MB por documento está longe)
-- `$graphLookup` para hierarquias opera sobre `_id` do Concept, não sobre Labels — embedding não afeta navegação hierárquica
+- Embedded no JSON garante atomic updates: alterar um label e seus metadados é uma única reserialização do documento (`UPDATE etnotermos SET doc = ? WHERE id = ?`)
+- Elimina `JOIN`s em cada leitura de conceito
+- Volume esperado: ~5–15 labels por conceito × 1k–10k conceitos = gerenciável em um único campo `TEXT`/JSON1 por linha (sem limite prático de tamanho relevante no volume esperado)
+- Navegação hierárquica opera sobre o `id` do Concept, não sobre Labels — embedding não afeta navegação hierárquica
 
-**Alternativa considerada**: Labels em coleção separada `etnotermos_labels`
-- Rejeitada: exigiria `$lookup` em toda leitura de conceito (write-rare, read-heavy); sem ganho de performance no volume esperado; aumenta complexidade de transações
+**Alternativa considerada**: Labels em tabela separada `etnotermos_labels`
+- Rejeitada: exigiria `JOIN` em toda leitura de conceito (write-rare, read-heavy); sem ganho de performance no volume esperado; aumenta complexidade de transações
 
-**Referência**: MongoDB Documentation — "Embedded Data Models" (BSON limit 16MB; embedded suits one-to-few relationships)
+**Referência**: SQLite Documentation — JSON1 Extension (`json_extract`, `json_each`, colunas geradas para índice sobre campos do JSON; embedding suits one-to-few relationships)
 
 ---
 
 ## Decisão 2: Hierarquias — Array of Ancestors vs. parent-ref simples
 
-**Decisão**: **Array of Ancestors** — cada Concept armazena array `ancestors` com todos os ObjectIds de seus ancestrais (raiz → pai imediato).
+**Decisão**: **Array of Ancestors** — cada Concept armazena, dentro do JSON, um array `ancestors` com todos os ids (UUID string) de seus ancestrais (raiz → pai imediato).
 
 **Justificativa**:
-- Busca "todos os descendentes de X" = uma única query `{ ancestors: conceptId }` com índice de array
+- Busca "todos os descendentes de X" = uma única query `json_each`/`EXISTS` sobre `ancestors` (ver data-model.md)
 - Busca "caminho completo até raiz" = array `ancestors` já disponível no documento, sem recursão
-- `$graphLookup` do MongoDB pode complementar para queries mais complexas (grau de separação)
+- Navegação de descendentes usa BFS em memória sobre o campo `narrower` (baixo volume por subgrafo) para complementar queries mais complexas
 - Custo: `ancestors` deve ser atualizado em cascata quando conceito muda de pai — aceitável pois mudanças hierárquicas são raras e impactam pequenos subgrafos
 - Detecção de ciclos: ao adicionar `broader`, verificar que `targetId` não está em `ancestors` do Concept fonte
 
-**Alternativa considerada**: Referência de pai simples (`parent: ObjectId`)
-- Rejeitada: exige recursão ou `$graphLookup` para qualquer query que precisar do caminho completo; FR-022 explicitamente pede Array of Ancestors
+**Alternativa considerada**: Referência de pai simples (campo `parent` com o `id` de outro Concept)
+- Rejeitada: exige recursão (`WITH RECURSIVE` ou BFS em memória) para qualquer query que precisar do caminho completo; FR-022 explicitamente pede Array of Ancestors
 
-**Referência**: MongoDB Blog — "Model Tree Structures" / "Array of Ancestors" pattern
+**Referência**: Padrão de modelagem hierárquica "Array of Ancestors" (denormalização do caminho para leitura O(1); aplicável a qualquer document store, incluindo SQLite com JSON1)
 
 ---
 
@@ -94,14 +94,14 @@
 - Intervalo padrão: diário às 03:00 (configurável via `ACQUISITION_CRON_SCHEDULE`)
 - Em caso de falha: `AcquisitionLog.status = "failure"`, flag `hasUnresolved: true` no último log — dashboard de curadoria consulta esse flag
 
-**Alternativa considerada**: Agenda (job scheduler com MongoDB)
+**Alternativa considerada**: Agenda (job scheduler dependente de um document store dedicado para persistência dos jobs)
 - Rejeitada: overhead desnecessário; node-cron é suficiente para 1 job simples
 
 ---
 
 ## Decisão 6: Optimistic Locking para edições concorrentes
 
-**Decisão**: Campo `version: Number` em cada Concept. Toda operação de update em curadoria inclui `version` esperado; o MongoDB update usa `{ _id: id, version: expectedVersion }` como filtro; se `matchedCount === 0`, retorna 409 Conflict.
+**Decisão**: Campo `version` (integer) dentro do JSON de cada Concept. Toda operação de update em curadoria inclui `version` esperado; o `UPDATE` SQLite filtra por `WHERE id = ? AND version = ?`; se `changes === 0`, retorna 409 Conflict.
 
 **Justificativa**:
 - US3.8: "o segundo tenta salvar → sistema detecta conflito de versão e alerta sem perder nenhuma edição"
@@ -111,8 +111,8 @@
 
 **Fluxo**:
 1. GET /concepts/:id → retorna documento com `version`
-2. PUT /concepts/:id → body inclui `version`; MongoDB filtra `{ _id, version }`
-3. Se `matchedCount === 0` → 409; se `matchedCount === 1` → incrementa version
+2. PUT /concepts/:id → body inclui `version`; SQLite filtra `WHERE id = ? AND version = ?`
+3. Se `changes === 0` → 409; se `changes === 1` → incrementa version
 
 ---
 
@@ -183,7 +183,7 @@ frontend/src/styles/input.css          (manter)
 
 | # | Tópico | Decisão |
 |---|--------|---------|
-| 1 | Labels no MongoDB | Embedded subdocuments no Concept |
+| 1 | Labels no SQLite (JSON1) | Embedded (aninhados) no JSON do Concept |
 | 2 | Hierarquias | Array of Ancestors pattern |
 | 3 | Auth curadoria | Custom Basic Auth middleware + bcrypt + env vars |
 | 4 | Upload áudio | multer + diskStorage + AUDIO_STORAGE_PATH |

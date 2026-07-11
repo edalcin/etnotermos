@@ -51,14 +51,10 @@ export function errorHandler(err, req, res, next) {
     statusCode = 400;
     message = formatValidationError(err);
     isOperational = true;
-  } else if (err.name === 'MongoError' || err.name === 'MongoServerError') {
-    const mongoError = handleMongoError(err);
-    statusCode = mongoError.statusCode;
-    message = mongoError.message;
-    isOperational = true;
-  } else if (err.name === 'CastError') {
-    statusCode = 400;
-    message = 'Invalid ID format';
+  } else if (err.name === 'SqliteError' || (typeof err.code === 'string' && err.code.startsWith('SQLITE_'))) {
+    const sqliteError = handleSqliteError(err);
+    statusCode = sqliteError.statusCode;
+    message = sqliteError.message;
     isOperational = true;
   }
 
@@ -113,35 +109,34 @@ function formatValidationError(err) {
 }
 
 /**
- * Handle MongoDB-specific errors
+ * Handle SQLite-specific errors (better-sqlite3)
  */
-function handleMongoError(err) {
-  // Duplicate key error
-  if (err.code === 11000) {
-    const field = Object.keys(err.keyPattern || {})[0] || 'field';
+function handleSqliteError(err) {
+  // Primary key / unique constraint violation
+  if (err.code === 'SQLITE_CONSTRAINT_PRIMARYKEY' || err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
     return {
       statusCode: 400,
-      message: `Duplicate value for ${field}. This value already exists.`,
+      message: 'Duplicate value. This record already exists.',
     };
   }
 
-  // Document validation error
-  if (err.code === 121) {
+  // CHECK constraint violation (e.g. json_valid(doc))
+  if (err.code === 'SQLITE_CONSTRAINT_CHECK') {
     return {
       statusCode: 400,
-      message: 'Document validation failed. Please check your data.',
+      message: 'Data validation failed. Please check your data.',
     };
   }
 
-  // Connection errors
-  if (err.name === 'MongoNetworkError') {
+  // Database locked/busy (concurrent writers under WAL)
+  if (err.code === 'SQLITE_BUSY' || err.code === 'SQLITE_LOCKED') {
     return {
       statusCode: 503,
-      message: 'Database connection error. Please try again later.',
+      message: 'Database is busy. Please try again.',
     };
   }
 
-  // Generic MongoDB error
+  // Generic SQLite error
   return {
     statusCode: 500,
     message: config.isDevelopment

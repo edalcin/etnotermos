@@ -1,24 +1,25 @@
-import { ObjectId } from 'mongodb';
+import { randomUUID } from 'crypto';
 import { connect, disconnect, clearCollections, getDb } from '../helpers/db.js';
 import * as ConceptService from '../../src/services/ConceptService.js';
 
 function makeConcept(overrides = {}) {
+  const id = randomUUID();
   return {
-    _id: new ObjectId(),
-    uri: `etnotermos:test-${new ObjectId()}`,
+    id,
+    uri: `etnotermos:test-${id}`,
     status: 'candidate',
     sourceFields: ['comunidades.tipo'],
     sourceCommunities: [],
     prefLabels: [
       {
-        _id: new ObjectId(),
+        id: randomUUID(),
         literalForm: 'guarita',
         language: 'pt',
         type: 'pref',
         accessLevel: 'public',
         labelRelations: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       },
     ],
     altLabels: [],
@@ -34,8 +35,8 @@ function makeConcept(overrides = {}) {
     replacedBy: null,
     deprecatedDate: null,
     version: 1,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     ...overrides,
   };
 }
@@ -57,35 +58,59 @@ describe('ConceptService — unit tests', () => {
   });
 
   // ---------------------------------------------------------------------------
+  // Test helpers — direct SQLite access mirroring the etnotermos/audit_log schema
+  // ---------------------------------------------------------------------------
+
+  function insertConceptRow(concept) {
+    const now = new Date().toISOString();
+    db.prepare(
+      `INSERT INTO etnotermos (id, doc, created_at, updated_at) VALUES (?, ?, ?, ?)`
+    ).run(concept.id, JSON.stringify(concept), now, now);
+    return concept;
+  }
+
+  function findConceptRow(id) {
+    const row = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(id);
+    return row ? JSON.parse(row.doc) : null;
+  }
+
+  function findAuditEntries(responsible) {
+    return db
+      .prepare(`SELECT doc FROM etnotermos_audit_log WHERE json_extract(doc,'$.responsible') = ?`)
+      .all(responsible)
+      .map((r) => JSON.parse(r.doc));
+  }
+
+  // ---------------------------------------------------------------------------
   // Optimistic locking
   // ---------------------------------------------------------------------------
 
   describe('optimistic locking', () => {
     test('updateNotes rejects with 409 when version is stale', async () => {
       const concept = makeConcept({ version: 5 });
-      await db.collection('etnotermos').insertOne(concept);
+      insertConceptRow(concept);
 
       await expect(
-        ConceptService.updateNotes(db, concept._id, 4, { definition: 'stale' }, 'user1')
+        ConceptService.updateNotes(db, concept.id, 4, { definition: 'stale' }, 'user1')
       ).rejects.toMatchObject({ code: 409 });
     });
 
     test('updateNotes increments version on success', async () => {
       const concept = makeConcept({ version: 1 });
-      await db.collection('etnotermos').insertOne(concept);
+      insertConceptRow(concept);
 
       const result = await ConceptService.updateNotes(
-        db, concept._id, 1, { definition: 'updated' }, 'user1'
+        db, concept.id, 1, { definition: 'updated' }, 'user1'
       );
       expect(result.version).toBe(2);
     });
 
     test('activate rejects with 409 on version mismatch', async () => {
       const concept = makeConcept({ version: 3 });
-      await db.collection('etnotermos').insertOne(concept);
+      insertConceptRow(concept);
 
       await expect(
-        ConceptService.activate(db, concept._id, 1, 'user1')
+        ConceptService.activate(db, concept.id, 1, 'user1')
       ).rejects.toMatchObject({ code: 409 });
     });
   });
@@ -98,47 +123,51 @@ describe('ConceptService — unit tests', () => {
     test('sets broader link and creates narrower reciprocal', async () => {
       const child = makeConcept();
       const parent = makeConcept();
-      await db.collection('etnotermos').insertMany([child, parent]);
+      insertConceptRow(child);
+      insertConceptRow(parent);
 
-      await ConceptService.addBroader(db, child._id, child.version, parent._id, 'user1');
+      await ConceptService.addBroader(db, child.id, child.version, parent.id, 'user1');
 
-      const savedChild = await db.collection('etnotermos').findOne({ _id: child._id });
-      const savedParent = await db.collection('etnotermos').findOne({ _id: parent._id });
+      const savedChild = findConceptRow(child.id);
+      const savedParent = findConceptRow(parent.id);
 
-      expect(savedChild.broader.map(String)).toContain(parent._id.toString());
-      expect(savedParent.narrower.map(String)).toContain(child._id.toString());
+      expect(savedChild.broader.map(String)).toContain(parent.id);
+      expect(savedParent.narrower.map(String)).toContain(child.id);
     });
 
     test('populates ancestors in cascade', async () => {
       const grandparent = makeConcept();
-      const parent = makeConcept({ ancestors: [grandparent._id] });
+      const parent = makeConcept({ ancestors: [grandparent.id] });
       const child = makeConcept();
-      await db.collection('etnotermos').insertMany([grandparent, parent, child]);
+      insertConceptRow(grandparent);
+      insertConceptRow(parent);
+      insertConceptRow(child);
 
-      await ConceptService.addBroader(db, child._id, child.version, parent._id, 'user1');
+      await ConceptService.addBroader(db, child.id, child.version, parent.id, 'user1');
 
-      const savedChild = await db.collection('etnotermos').findOne({ _id: child._id });
+      const savedChild = findConceptRow(child.id);
       const ancestorStrs = savedChild.ancestors.map(String);
-      expect(ancestorStrs).toContain(parent._id.toString());
-      expect(ancestorStrs).toContain(grandparent._id.toString());
+      expect(ancestorStrs).toContain(parent.id);
+      expect(ancestorStrs).toContain(grandparent.id);
     });
 
     test('rejects cycle with code 400', async () => {
       const a = makeConcept();
-      const b = makeConcept({ ancestors: [a._id] });
-      await db.collection('etnotermos').insertMany([a, b]);
+      const b = makeConcept({ ancestors: [a.id] });
+      insertConceptRow(a);
+      insertConceptRow(b);
 
       await expect(
-        ConceptService.addBroader(db, a._id, a.version, b._id, 'user1')
+        ConceptService.addBroader(db, a.id, a.version, b.id, 'user1')
       ).rejects.toMatchObject({ code: 400 });
     });
 
     test('rejects self-reference with code 400', async () => {
       const a = makeConcept();
-      await db.collection('etnotermos').insertOne(a);
+      insertConceptRow(a);
 
       await expect(
-        ConceptService.addBroader(db, a._id, a.version, a._id, 'user1')
+        ConceptService.addBroader(db, a.id, a.version, a.id, 'user1')
       ).rejects.toMatchObject({ code: 400 });
     });
   });
@@ -151,15 +180,16 @@ describe('ConceptService — unit tests', () => {
     test('creates bidirectional related links', async () => {
       const a = makeConcept();
       const b = makeConcept();
-      await db.collection('etnotermos').insertMany([a, b]);
+      insertConceptRow(a);
+      insertConceptRow(b);
 
-      await ConceptService.addRelated(db, a._id, a.version, b._id, 'user1');
+      await ConceptService.addRelated(db, a.id, a.version, b.id, 'user1');
 
-      const savedA = await db.collection('etnotermos').findOne({ _id: a._id });
-      const savedB = await db.collection('etnotermos').findOne({ _id: b._id });
+      const savedA = findConceptRow(a.id);
+      const savedB = findConceptRow(b.id);
 
-      expect(savedA.related.map(String)).toContain(b._id.toString());
-      expect(savedB.related.map(String)).toContain(a._id.toString());
+      expect(savedA.related.map(String)).toContain(b.id);
+      expect(savedB.related.map(String)).toContain(a.id);
     });
   });
 
@@ -173,20 +203,20 @@ describe('ConceptService — unit tests', () => {
         status: 'active',
         altLabels: [
           {
-            _id: new ObjectId(),
+            id: randomUUID(),
             literalForm: 'nome-sagrado',
             language: 'pt',
             type: 'alt',
             accessLevel: 'sacred',
             labelRelations: [],
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
           },
         ],
       });
-      await db.collection('etnotermos').insertOne(concept);
+      insertConceptRow(concept);
 
-      const result = await ConceptService.findById(db, concept._id, { publicOnly: true });
+      const result = await ConceptService.findById(db, concept.id, { publicOnly: true });
       const sacredLabels = result.altLabels.filter((l) => l.accessLevel === 'sacred');
       expect(sacredLabels).toHaveLength(0);
     });
@@ -196,20 +226,20 @@ describe('ConceptService — unit tests', () => {
         status: 'active',
         altLabels: [
           {
-            _id: new ObjectId(),
+            id: randomUUID(),
             literalForm: 'nome-restrito',
             language: 'pt',
             type: 'alt',
             accessLevel: 'restricted',
             labelRelations: [],
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
           },
         ],
       });
-      await db.collection('etnotermos').insertOne(concept);
+      insertConceptRow(concept);
 
-      const result = await ConceptService.findById(db, concept._id, { publicOnly: true });
+      const result = await ConceptService.findById(db, concept.id, { publicOnly: true });
       const restrictedLabels = result.altLabels.filter((l) => l.accessLevel === 'restricted');
       expect(restrictedLabels).toHaveLength(0);
     });
@@ -219,20 +249,20 @@ describe('ConceptService — unit tests', () => {
         status: 'active',
         altLabels: [
           {
-            _id: new ObjectId(),
+            id: randomUUID(),
             literalForm: 'nome-sagrado',
             language: 'pt',
             type: 'alt',
             accessLevel: 'sacred',
             labelRelations: [],
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
           },
         ],
       });
-      await db.collection('etnotermos').insertOne(concept);
+      insertConceptRow(concept);
 
-      const result = await ConceptService.findById(db, concept._id, { publicOnly: false });
+      const result = await ConceptService.findById(db, concept.id, { publicOnly: false });
       expect(result.altLabels).toHaveLength(1);
     });
   });
@@ -244,26 +274,26 @@ describe('ConceptService — unit tests', () => {
   describe('audit trail', () => {
     test('activate creates an audit entry', async () => {
       const concept = makeConcept();
-      await db.collection('etnotermos').insertOne(concept);
+      insertConceptRow(concept);
 
-      await ConceptService.activate(db, concept._id, concept.version, 'auditor1');
+      await ConceptService.activate(db, concept.id, concept.version, 'auditor1');
 
-      const entry = await db.collection('etnotermos_audit_log').findOne({ responsible: 'auditor1' });
-      expect(entry).not.toBeNull();
+      const [entry] = findAuditEntries('auditor1');
+      expect(entry).toBeDefined();
       expect(entry.newValue).toBe('active');
     });
 
     test('updateNotes creates audit entries per changed field', async () => {
       const concept = makeConcept();
-      await db.collection('etnotermos').insertOne(concept);
+      insertConceptRow(concept);
 
       await ConceptService.updateNotes(
-        db, concept._id, concept.version,
+        db, concept.id, concept.version,
         { definition: 'nova definição', scopeNote: 'nova nota' },
         'editor1'
       );
 
-      const entries = await db.collection('etnotermos_audit_log').find({ responsible: 'editor1' }).toArray();
+      const entries = findAuditEntries('editor1');
       const fields = entries.map((e) => e.field);
       expect(fields).toContain('definition');
       expect(fields).toContain('scopeNote');
@@ -276,10 +306,8 @@ describe('ConceptService — unit tests', () => {
 
   describe('findMany', () => {
     test('publicOnly excludes candidate concepts', async () => {
-      await db.collection('etnotermos').insertMany([
-        makeConcept({ status: 'active' }),
-        makeConcept({ status: 'candidate' }),
-      ]);
+      insertConceptRow(makeConcept({ status: 'active' }));
+      insertConceptRow(makeConcept({ status: 'candidate' }));
 
       const result = await ConceptService.findMany(db, { status: 'active', publicOnly: true });
       const statuses = result.data.map((c) => c.status);
@@ -287,7 +315,7 @@ describe('ConceptService — unit tests', () => {
     });
 
     test('returns pagination metadata', async () => {
-      await db.collection('etnotermos').insertOne(makeConcept({ status: 'active' }));
+      insertConceptRow(makeConcept({ status: 'active' }));
 
       const result = await ConceptService.findMany(db, { status: 'active', page: 1, limit: 10 });
       expect(result).toHaveProperty('pagination');

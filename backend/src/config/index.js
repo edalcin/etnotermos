@@ -34,8 +34,7 @@ export const config = {
   publicPort: parseInt(process.env.PUBLIC_PORT || '4000', 10),
   adminPort: parseInt(process.env.ADMIN_PORT || '4001', 10),
 
-  mongodbUri: process.env.MONGODB_URI || process.env.MONGO_URI || null,
-  mongoDbName: process.env.MONGO_DB_NAME || 'etnodb',
+  sqlitePath: process.env.SQLITE_DB_PATH || './data/unidade.sqlite',
 
   adminUsers: parseAdminUsers(),
 
@@ -51,7 +50,7 @@ export const config = {
 
 export function validateConfig() {
   const errors = [];
-  if (!config.mongodbUri) errors.push('MONGODB_URI is not set');
+  if (!config.sqlitePath) errors.push('SQLITE_DB_PATH is not set');
   if (!config.adminUsers) errors.push('ADMIN_USERS is not set or invalid');
   return errors;
 }

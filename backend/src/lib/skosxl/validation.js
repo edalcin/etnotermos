@@ -1,5 +1,3 @@
-import { ObjectId } from 'mongodb';
-
 export const LABEL_TYPE = ['pref', 'alt', 'hidden'];
 export const ACCESS_LEVEL = ['public', 'restricted', 'sacred'];
 
@@ -23,7 +21,7 @@ function allLabels(concept) {
  */
 export function validateLabelUniqueness(concept, newLabel, excludeLabelId = null) {
   const labels = allLabels(concept).filter(
-    (l) => !excludeLabelId || l._id?.toString() !== excludeLabelId.toString(),
+    (l) => !excludeLabelId || l.id?.toString() !== excludeLabelId.toString(),
   );
 
   const duplicate = labels.find(
@@ -49,7 +47,7 @@ export function validateLabelUniqueness(concept, newLabel, excludeLabelId = null
 export function validateNoCycle(concept, targetId) {
   const targetStr = targetId.toString();
 
-  if (concept._id?.toString() === targetStr) {
+  if (concept.id?.toString() === targetStr) {
     return false;
   }
 
@@ -67,7 +65,7 @@ export function validateSinglePrefLabelPerLanguage(concept, newLabel, excludeLab
   }
 
   const existing = (concept.prefLabels ?? []).filter(
-    (l) => !excludeLabelId || l._id?.toString() !== excludeLabelId.toString(),
+    (l) => !excludeLabelId || l.id?.toString() !== excludeLabelId.toString(),
   );
 
   const conflict = existing.find((l) => l.language === newLabel.language);

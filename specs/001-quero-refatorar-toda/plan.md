@@ -6,20 +6,20 @@
 
 ## Summary
 
-Refatoração completa do BioCultTermos: substituição do padrão Z39.19 por SKOS-XL (W3C), integração com BioCultDB via MongoDB compartilhado, e adoção do vocabulário vernacular como protagonista. O sistema passa a ter três contextos C4: **Aquisição** (sync automático de termos do BioCultDB), **Apresentação** (porto 4000, read-only público) e **Curadoria** (porto 4001, enriquecimento SKOS-XL com CARE). Todo código legado Z39.19 é eliminado.
+Refatoração completa do BioCultTermos: substituição do padrão Z39.19 por SKOS-XL (W3C), integração com BioCultDB via SQLite compartilhado, e adoção do vocabulário vernacular como protagonista. O sistema passa a ter três contextos C4: **Aquisição** (sync automático de termos do BioCultDB), **Apresentação** (porto 4000, read-only público) e **Curadoria** (porto 4001, enriquecimento SKOS-XL com CARE). Todo código legado Z39.19 é eliminado.
 
 ---
 
 ## Technical Context
 
 **Language/Version**: Node.js 20 LTS (ES2022+)
-**Primary Dependencies**: Express.js, MongoDB Driver 6.x, HTMX 2.x, Alpine.js 3.x, Tailwind CSS 3.x (tema forest), EJS 3.x, multer, node-cron, bcrypt
-**Storage**: MongoDB 7.0+ — banco `etnodb`, coleções `etnotermos`, `etnotermos_acquisition_log`, `etnotermos_audit_log`
-**Testing**: Jest 29, Supertest, mongodb-memory-server
+**Primary Dependencies**: Express.js, better-sqlite3, HTMX 2.x, Alpine.js 3.x, Tailwind CSS 3.x (tema forest), EJS 3.x, multer, node-cron, bcrypt
+**Storage**: SQLite (better-sqlite3, JSON1) — arquivo único `unidade.sqlite` (WAL), tabelas `etnotermos`, `etnotermos_acquisition_log`, `etnotermos_audit_log`, índice full-text `etnotermos_fts` (FTS5)
+**Testing**: Jest 29, Supertest, SQLite `:memory:`
 **Target Platform**: Docker Alpine Linux + Unraid (mesmo host que BioCultDB)
 **Project Type**: web
 **Performance Goals**: p95 <500ms busca textual; 5-10 usuários simultâneos sem degradação
-**Constraints**: Docker image mínimo; sem dependências externas além do MongoDB compartilhado; `AUDIO_STORAGE_PATH` via variável de ambiente Docker
+**Constraints**: Docker image mínimo; sem dependências externas além do arquivo SQLite compartilhado; `AUDIO_STORAGE_PATH` via variável de ambiente Docker
 **Scale/Scope**: ~1.000–10.000 conceitos iniciais; corpus cresce com inserções no BioCultDB
 
 ---
@@ -34,7 +34,7 @@ Refatoração completa do BioCultTermos: substituição do padrão Z39.19 por SK
 | II. Standards Compliance (Z39.19) | ⚠️ DESVIO JUSTIFICADO | Ver Complexity Tracking — Z39.19 substituído por SKOS-XL |
 | III. Visual Integration com BioCultDB | ✅ PASS | FR-015: tema forest idêntico; mesmos componentes HTMX+Alpine+EJS |
 | IV. CARE Principles | ✅ PASS | accessLevel por rótulo, proveniência, PIC — feature de primeira classe |
-| V. Simplicity & Maintainability | ✅ PASS | SKOS-XL embedded em MongoDB sem ORM, sem repositório desnecessário |
+| V. Simplicity & Maintainability | ✅ PASS | SKOS-XL embedded em SQLite (JSON1) sem ORM, sem repositório desnecessário |
 
 **Resultado**: PASS com desvio documentado. Progressão autorizada.
 
@@ -105,9 +105,9 @@ backend/
 │   │   │   └── acquisitionCron.js
 │   │   └── logger.js            # Structured JSON logging
 │   ├── shared/
-│   │   └── database.js          # MongoDB connection (shared)
+│   │   └── database.js          # SQLite connection (shared, better-sqlite3)
 │   └── config/
-│       └── index.js             # Env vars: MONGODB_URI, AUDIO_STORAGE_PATH, ADMIN_USERS
+│       └── index.js             # Env vars: SQLITE_DB_PATH, AUDIO_STORAGE_PATH, ADMIN_USERS
 ├── tests/
 │   ├── contract/                # Testes de contrato por rota (falham primeiro)
 │   ├── integration/             # User story scenarios
@@ -124,7 +124,7 @@ docker/
 └── docker-compose.yml
 
 scripts/
-└── db-init.js                   # Criação de índices MongoDB
+└── db-init.js                   # Criação de tabelas e índices SQLite
 ```
 
 **Structure Decision**: Web application (backend + frontend separados). Backend: dual-server Express (public/admin). Frontend: Tailwind CSS compilado com `npm run build:css`. Sem SPA framework — HTMX + EJS server-side rendering.
@@ -136,7 +136,7 @@ scripts/
 *Concluída. Ver `research.md` para decisões e justificativas.*
 
 Tópicos investigados:
-1. SKOS-XL no MongoDB — embedding vs. referência para Labels
+1. SKOS-XL em SQLite (JSON1) — embedding vs. referência para Labels
 2. Array of Ancestors pattern para hierarquias sem recursão
 3. HTTP Basic Auth multi-usuário no Express.js
 4. Upload de arquivos com multer + volume Docker
@@ -150,7 +150,7 @@ Tópicos investigados:
 
 *Concluída. Ver artefatos gerados:*
 
-- **`data-model.md`**: Schemas MongoDB completos para `etnotermos`, `etnotermos_acquisition_log`, `etnotermos_audit_log`; índices; regras de validação; transições de estado
+- **`data-model.md`**: Schemas SQLite (JSON1) completos para `etnotermos`, `etnotermos_acquisition_log`, `etnotermos_audit_log`; índices; regras de validação; transições de estado
 - **`contracts/public-api.md`**: Rotas públicas (porta 4000)
 - **`contracts/admin-concepts-api.md`**: Rotas de curadoria — conceitos e labels (porta 4001)
 - **`contracts/admin-acquisition-api.md`**: Rotas de aquisição e auditoria (porta 4001)
@@ -197,7 +197,7 @@ Infraestrutura (Docker, DB, config)
 | Violação | Por que necessário | Alternativa mais simples rejeitada por |
 |----------|--------------------|----------------------------------------|
 | Substituição de Z39.19 por SKOS-XL (Princípio II da Constituição) | SKOS-XL é o padrão correto para vocabulários multilíngues com proveniência por rótulo — Z39.19 não suporta `accessLevel` por rótulo, atribuição étnica, nem áudio de pronúncia, tornando impossível implementar os Princípios CARE conforme especificado | Z39.19 torna o sistema inadequado para o propósito central: governança de dados indígenas. SKOS-XL é um padrão W3C com mapeamento retrocompatível para SKOS core, garantindo interoperabilidade internacional com GBIF, WFO, Flora do Brasil. A constituição deve ser atualizada para refletir SKOS-XL como o padrão de vocabulário após esta feature |
-| Labels como subdocumentos embedded (não coleção separada) | Simplicidade: Labels são sempre acessados no contexto de seu Concept; queries sempre por Concept | Coleção separada exigiria joins ($lookup) em cada leitura, aumentando complexidade sem ganho de performance para o volume esperado (1k–10k conceitos, poucos labels por conceito) |
+| Labels como subdocumentos embedded (não tabela separada) | Simplicidade: Labels são sempre acessados no contexto de seu Concept; queries sempre por Concept | Tabela separada exigiria joins (`JOIN`) em cada leitura, aumentando complexidade sem ganho de performance para o volume esperado (1k–10k conceitos, poucos labels por conceito) |
 
 ---
 

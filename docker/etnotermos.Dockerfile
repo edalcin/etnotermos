@@ -9,6 +9,9 @@ COPY backend/package*.json ./backend/
 COPY frontend/package*.json ./frontend/
 COPY tailwind.config.js ./
 
+# Install build toolchain for native addons (better-sqlite3)
+RUN apk add --no-cache python3 make g++
+
 # Install dependencies
 RUN cd backend && npm ci --only=production && npm cache clean --force
 RUN cd frontend && npm ci && npm cache clean --force

@@ -55,7 +55,7 @@ publicServer.on('exit', (code, signal) => {
 
 adminServer.on('exit', (code, signal) => {
   if (code !== 0 && code !== null) {
-    console.error(`Admin server exited with code ${code} — check ADMIN_USERS and MONGODB_URI env vars`);
+    console.error(`Admin server exited with code ${code} — check ADMIN_USERS and SQLITE_DB_PATH env vars`);
     publicServer.kill('SIGTERM');
     process.exit(code);
   }

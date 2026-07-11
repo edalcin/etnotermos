@@ -1,7 +1,6 @@
-import { ObjectId } from 'mongodb';
 import {
-  getConceptCollection,
   createLabel,
+  syncConceptFts,
   CONCEPT_STATUS,
   ACCESS_LEVEL,
 } from '../models/Concept.js';
@@ -17,27 +16,40 @@ import * as AuditService from './AuditService.js';
 // ---------------------------------------------------------------------------
 
 /**
- * Apply an update to a concept using optimistic locking.
- * Automatically increments version and sets updatedAt.
- * Throws a 409 error when the document has been modified concurrently.
+ * Apply an update to a concept using optimistic locking (ADR-005 SQLite).
+ * Reads the current doc, checks `version` inside a transaction, applies
+ * `mutateFn` (mutates the concept object in place), bumps version/updatedAt,
+ * writes `doc` back and syncs the FTS5 row — all atomically.
+ * Throws a 409 error when the document has been modified concurrently, or
+ * returns null when the concept does not exist.
  */
-async function optimisticUpdate(col, id, version, update) {
-  const result = await col.updateOne(
-    { _id: new ObjectId(id), version },
-    {
-      ...update,
-      $inc: { version: 1 },
-      $set: { ...(update.$set ?? {}), updatedAt: new Date() },
-    },
-  );
+function optimisticUpdate(db, id, version, mutateFn) {
+  const tx = db.transaction(() => {
+    const row = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(id);
+    if (!row) return null;
 
-  if (result.matchedCount === 0) {
-    const err = new Error('Conceito foi modificado por outro usuário. Recarregue antes de salvar.');
-    err.code = 409;
-    throw err;
-  }
+    const concept = JSON.parse(row.doc);
+    if (concept.version !== version) {
+      const err = new Error('Conceito foi modificado por outro usuário. Recarregue antes de salvar.');
+      err.code = 409;
+      throw err;
+    }
 
-  return result;
+    mutateFn(concept);
+    concept.version = version + 1;
+    concept.updatedAt = new Date().toISOString();
+
+    db.prepare(`UPDATE etnotermos SET doc = ?, updated_at = ? WHERE id = ?`).run(
+      JSON.stringify(concept),
+      concept.updatedAt,
+      id
+    );
+    syncConceptFts(db, concept);
+
+    return concept;
+  });
+
+  return tx();
 }
 
 /**
@@ -47,14 +59,14 @@ async function optimisticUpdate(col, id, version, update) {
 function findLabelInConcept(concept, labelId) {
   const id = labelId.toString();
   for (const arrayName of ['prefLabels', 'altLabels', 'hiddenLabels']) {
-    const label = concept[arrayName].find((l) => l._id.toString() === id);
+    const label = concept[arrayName].find((l) => l.id.toString() === id);
     if (label) return { label, arrayName };
   }
   return null;
 }
 
 /**
- * Return the MongoDB array field name for a given label type string.
+ * Return the SQLite-document array field name for a given label type string.
  * e.g. "pref" → "prefLabels"
  */
 function labelArrayName(type) {
@@ -86,45 +98,44 @@ function shortPrefLabel(concept) {
 }
 
 /**
- * Resolve an array of ObjectIds into summary objects { _id, prefLabel }.
+ * Resolve an array of ids into summary objects { id, prefLabels }.
  * Missing concepts are silently omitted.
  */
-async function resolveIds(col, ids) {
+function resolveIds(db, ids) {
   if (!ids || ids.length === 0) return [];
-  const docs = await col
-    .find(
-      { _id: { $in: ids.map((id) => (id instanceof ObjectId ? id : new ObjectId(id))) } },
-      { projection: { prefLabels: 1 } },
-    )
-    .toArray();
+  const placeholders = ids.map(() => '?').join(',');
+  const rows = db
+    .prepare(`SELECT doc FROM etnotermos WHERE id IN (${placeholders})`)
+    .all(...ids.map(String));
 
-  return docs.map((doc) => ({ _id: doc._id, prefLabels: doc.prefLabels ?? [] }));
+  return rows.map((row) => {
+    const doc = JSON.parse(row.doc);
+    return { id: doc.id, prefLabels: doc.prefLabels ?? [] };
+  });
 }
 
 /**
  * Collect all descendant concept ids for `concept` using BFS over the narrower
- * field. Returns a flat array of ObjectIds.
+ * field. Returns a flat array of string ids.
  */
-async function collectDescendants(col, concept) {
+function collectDescendants(db, concept) {
   const visited = new Set();
   const queue = [...(concept.narrower ?? [])];
 
   while (queue.length > 0) {
     const currentId = queue.shift();
-    const key = currentId.toString();
+    const key = String(currentId);
     if (visited.has(key)) continue;
     visited.add(key);
 
-    const child = await col.findOne(
-      { _id: currentId instanceof ObjectId ? currentId : new ObjectId(currentId) },
-      { projection: { narrower: 1 } },
-    );
-    if (child?.narrower?.length) {
-      queue.push(...child.narrower);
+    const row = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(key);
+    if (row) {
+      const child = JSON.parse(row.doc);
+      if (child.narrower?.length) queue.push(...child.narrower);
     }
   }
 
-  return [...visited].map((id) => new ObjectId(id));
+  return [...visited];
 }
 
 // ---------------------------------------------------------------------------
@@ -137,60 +148,89 @@ async function collectDescendants(col, concept) {
  * options:
  *   status       – filter by CONCEPT_STATUS value
  *   sourceField  – filter by entry in sourceFields array
- *   q            – full-text search across prefLabel/altLabel literalForms
+ *   q            – full-text search across prefLabel/altLabel literalForms (FTS5)
  *   page         – 1-based page number (default 1)
  *   limit        – page size (default 20)
  *   publicOnly   – when true, restrict to active concepts and strip non-public labels
  */
 export async function findMany(db, options = {}) {
-  const col = getConceptCollection(db);
   const { status, sourceField, q, page = 1, limit = 20, publicOnly = false } = options;
+  const offset = (page - 1) * limit;
 
-  const filter = {};
+  const statusFilter = publicOnly ? CONCEPT_STATUS.ACTIVE : status;
 
-  if (publicOnly) {
-    filter.status = CONCEPT_STATUS.ACTIVE;
-  } else if (status) {
-    filter.status = status;
+  const extraConditions = [];
+  const extraParams = [];
+  if (statusFilter) {
+    extraConditions.push(`json_extract(e.doc,'$.status') = ?`);
+    extraParams.push(statusFilter);
   }
-
   if (sourceField) {
-    filter.sourceFields = sourceField;
+    extraConditions.push(
+      `EXISTS (SELECT 1 FROM json_each(json_extract(e.doc,'$.sourceFields')) je WHERE je.value = ?)`
+    );
+    extraParams.push(sourceField);
   }
+  const extraWhere = extraConditions.length ? `AND ${extraConditions.join(' AND ')}` : '';
+
+  let rows, total;
 
   if (q) {
-    filter.$text = { $search: q };
-  }
-
-  const projection = {
-    prefLabels: 1,
-    altLabels: 1,
-    sourceFields: 1,
-    status: 1,
-    uri: 1,
-  };
-
-  const skip = (page - 1) * limit;
-
-  let raw, total;
-  try {
-    [raw, total] = await Promise.all([
-      col.find(filter, { projection }).skip(skip).limit(limit).toArray(),
-      col.countDocuments(filter),
-    ]);
-  } catch (err) {
-    if (q && /text index/i.test(err.message)) {
-      delete filter.$text;
-      filter['prefLabels.literalForm'] = { $regex: q, $options: 'i' };
-      [raw, total] = await Promise.all([
-        col.find(filter, { projection }).skip(skip).limit(limit).toArray(),
-        col.countDocuments(filter),
-      ]);
-    } else {
-      throw err;
+    try {
+      const ftsQuery = q.replace(/"/g, '""');
+      rows = db
+        .prepare(
+          `SELECT e.doc FROM etnotermos_fts f
+           JOIN etnotermos e ON e.id = f.id
+           WHERE etnotermos_fts MATCH ? ${extraWhere}
+           ORDER BY bm25(etnotermos_fts, 10.0, 5.0, 3.0, 2.0)
+           LIMIT ? OFFSET ?`
+        )
+        .all(`"${ftsQuery}"`, ...extraParams, limit, offset);
+      total = db
+        .prepare(
+          `SELECT COUNT(*) as total FROM etnotermos_fts f
+           JOIN etnotermos e ON e.id = f.id
+           WHERE etnotermos_fts MATCH ? ${extraWhere}`
+        )
+        .get(`"${ftsQuery}"`, ...extraParams).total;
+    } catch {
+      // Fallback: LIKE search over prefLabels literal forms when FTS5 query fails.
+      const likePattern = `%${q}%`;
+      rows = db
+        .prepare(
+          `SELECT e.doc FROM etnotermos e
+           WHERE EXISTS (SELECT 1 FROM json_each(json_extract(e.doc,'$.prefLabels')) je WHERE json_extract(je.value,'$.literalForm') LIKE ?)
+           ${extraWhere}
+           LIMIT ? OFFSET ?`
+        )
+        .all(likePattern, ...extraParams, limit, offset);
+      total = db
+        .prepare(
+          `SELECT COUNT(*) as total FROM etnotermos e
+           WHERE EXISTS (SELECT 1 FROM json_each(json_extract(e.doc,'$.prefLabels')) je WHERE json_extract(je.value,'$.literalForm') LIKE ?)
+           ${extraWhere}`
+        )
+        .get(likePattern, ...extraParams).total;
     }
+  } else {
+    const where = extraConditions.length ? `WHERE ${extraConditions.join(' AND ')}` : '';
+    rows = db
+      .prepare(`SELECT doc FROM etnotermos e ${where} LIMIT ? OFFSET ?`)
+      .all(...extraParams, limit, offset);
+    total = db.prepare(`SELECT COUNT(*) as total FROM etnotermos e ${where}`).get(...extraParams).total;
   }
 
+  const project = (doc) => ({
+    id: doc.id,
+    uri: doc.uri,
+    status: doc.status,
+    sourceFields: doc.sourceFields,
+    prefLabels: doc.prefLabels,
+    altLabels: doc.altLabels,
+  });
+
+  const raw = rows.map((r) => project(JSON.parse(r.doc)));
   const data = publicOnly ? raw.map((c) => stripNonPublicLabels({ ...c })) : raw;
 
   return { data, total, page, limit, pagination: { page, limit, total } };
@@ -205,17 +245,15 @@ export async function findMany(db, options = {}) {
  * Returns null when the concept does not exist.
  */
 export async function findById(db, id, options = {}) {
-  const col = getConceptCollection(db);
   const { publicOnly = false } = options;
 
-  const concept = await col.findOne({ _id: new ObjectId(id) });
-  if (!concept) return null;
+  const row = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(id);
+  if (!row) return null;
+  const concept = JSON.parse(row.doc);
 
-  const [broader, narrower, related] = await Promise.all([
-    resolveIds(col, concept.broader),
-    resolveIds(col, concept.narrower),
-    resolveIds(col, concept.related),
-  ]);
+  const broader = resolveIds(db, concept.broader);
+  const narrower = resolveIds(db, concept.narrower);
+  const related = resolveIds(db, concept.related);
 
   const result = { ...concept, broader, narrower, related };
 
@@ -228,32 +266,33 @@ export async function findById(db, id, options = {}) {
  * Writes one audit log entry per changed field.
  */
 export async function updateNotes(db, id, version, noteData, username) {
-  const col = getConceptCollection(db);
-  const concept = await col.findOne({ _id: new ObjectId(id) });
-  if (!concept) return null;
+  const row = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(id);
+  if (!row) return null;
+  const concept = JSON.parse(row.doc);
 
   const noteFields = ['definition', 'scopeNote', 'historyNote', 'example'];
-  const $set = {};
   const auditEntries = [];
 
-  for (const field of noteFields) {
-    if (noteData[field] === undefined) continue;
-    $set[field] = noteData[field];
-    auditEntries.push({
-      conceptId: concept._id,
-      conceptLiteralForm: shortPrefLabel(concept),
-      field,
-      previousValue: concept[field] ?? null,
-      newValue: noteData[field],
-      responsible: username,
-    });
-  }
+  const updated = optimisticUpdate(db, id, version, (c) => {
+    for (const field of noteFields) {
+      if (noteData[field] === undefined) continue;
+      auditEntries.push({
+        conceptId: c.id,
+        conceptLiteralForm: shortPrefLabel(c),
+        field,
+        previousValue: c[field] ?? null,
+        newValue: noteData[field],
+        responsible: username,
+      });
+      c[field] = noteData[field];
+    }
+  });
 
-  await optimisticUpdate(col, id, version, { $set });
+  if (!updated) return null;
 
   await Promise.all(auditEntries.map((entry) => AuditService.log(db, entry)));
 
-  return col.findOne({ _id: new ObjectId(id) });
+  return updated;
 }
 
 /**
@@ -262,9 +301,9 @@ export async function updateNotes(db, id, version, noteData, username) {
  * Throws 409 on concurrent modification.
  */
 export async function activate(db, id, version, username) {
-  const col = getConceptCollection(db);
-  const concept = await col.findOne({ _id: new ObjectId(id) });
-  if (!concept) return null;
+  const row = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(id);
+  if (!row) return null;
+  const concept = JSON.parse(row.doc);
 
   if (concept.status !== CONCEPT_STATUS.CANDIDATE) {
     const err = new Error('Conceito não está em status candidate');
@@ -272,10 +311,12 @@ export async function activate(db, id, version, username) {
     throw err;
   }
 
-  await optimisticUpdate(col, id, version, { $set: { status: CONCEPT_STATUS.ACTIVE } });
+  optimisticUpdate(db, id, version, (c) => {
+    c.status = CONCEPT_STATUS.ACTIVE;
+  });
 
   await AuditService.log(db, {
-    conceptId: concept._id,
+    conceptId: concept.id,
     conceptLiteralForm: shortPrefLabel(concept),
     field: 'status',
     previousValue: CONCEPT_STATUS.CANDIDATE,
@@ -298,35 +339,35 @@ export async function activate(db, id, version, username) {
 export async function deprecate(db, id, version, { replacedById, confirmedOrphans } = {}, username) {
   validateDeprecation(replacedById);
 
-  const col = getConceptCollection(db);
-  const concept = await col.findOne({ _id: new ObjectId(id) });
-  if (!concept) return null;
+  const row = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(id);
+  if (!row) return null;
+  const concept = JSON.parse(row.doc);
 
-  const activeChildren = await col
-    .find({
-      broader: new ObjectId(id),
-      status: CONCEPT_STATUS.ACTIVE,
-    })
-    .toArray();
+  const activeChildren = db
+    .prepare(
+      `SELECT doc FROM etnotermos e
+       WHERE EXISTS (SELECT 1 FROM json_each(json_extract(e.doc,'$.broader')) je WHERE je.value = ?)
+       AND json_extract(e.doc,'$.status') = ?`
+    )
+    .all(id, CONCEPT_STATUS.ACTIVE)
+    .map((r) => JSON.parse(r.doc));
 
   if (activeChildren.length > 0 && confirmedOrphans !== true) {
     return { orphans: activeChildren };
   }
 
-  const deprecatedDate = new Date();
-  const historyNote = `Substituído por ${replacedById} em ${deprecatedDate.toISOString()}. Curador: ${username}`;
+  const deprecatedDate = new Date().toISOString();
+  const historyNote = `Substituído por ${replacedById} em ${deprecatedDate}. Curador: ${username}`;
 
-  await optimisticUpdate(col, id, version, {
-    $set: {
-      status: CONCEPT_STATUS.DEPRECATED,
-      replacedBy: new ObjectId(replacedById),
-      deprecatedDate,
-      historyNote,
-    },
+  optimisticUpdate(db, id, version, (c) => {
+    c.status = CONCEPT_STATUS.DEPRECATED;
+    c.replacedBy = String(replacedById);
+    c.deprecatedDate = deprecatedDate;
+    c.historyNote = historyNote;
   });
 
   await AuditService.log(db, {
-    conceptId: concept._id,
+    conceptId: concept.id,
     conceptLiteralForm: shortPrefLabel(concept),
     field: 'status',
     previousValue: concept.status,
@@ -343,9 +384,9 @@ export async function deprecate(db, id, version, { replacedById, confirmedOrphan
  * Returns { ok: true, labelId } on success.
  */
 export async function addLabel(db, id, version, labelData, username) {
-  const col = getConceptCollection(db);
-  const concept = await col.findOne({ _id: new ObjectId(id) });
-  if (!concept) return null;
+  const row = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(id);
+  if (!row) return null;
+  const concept = JSON.parse(row.doc);
 
   validateLabelUniqueness(concept, labelData);
   validateSinglePrefLabelPerLanguage(concept, labelData);
@@ -353,10 +394,12 @@ export async function addLabel(db, id, version, labelData, username) {
   const newLabel = createLabel(labelData);
   const arrayName = labelArrayName(labelData.type);
 
-  await optimisticUpdate(col, id, version, { $push: { [arrayName]: newLabel } });
+  optimisticUpdate(db, id, version, (c) => {
+    c[arrayName].push(newLabel);
+  });
 
   await AuditService.log(db, {
-    conceptId: concept._id,
+    conceptId: concept.id,
     conceptLiteralForm: shortPrefLabel(concept),
     field: arrayName,
     previousValue: null,
@@ -364,7 +407,7 @@ export async function addLabel(db, id, version, labelData, username) {
     responsible: username,
   });
 
-  return { ok: true, labelId: newLabel._id, version: version + 1 };
+  return { ok: true, labelId: newLabel.id, version: version + 1 };
 }
 
 /**
@@ -373,9 +416,9 @@ export async function addLabel(db, id, version, labelData, username) {
  * Returns the updated label document.
  */
 export async function updateLabel(db, id, version, labelId, labelData, username) {
-  const col = getConceptCollection(db);
-  const concept = await col.findOne({ _id: new ObjectId(id) });
-  if (!concept) return null;
+  const row = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(id);
+  if (!row) return null;
+  const concept = JSON.parse(row.doc);
 
   const found = findLabelInConcept(concept, labelId);
   if (!found) return null;
@@ -393,38 +436,29 @@ export async function updateLabel(db, id, version, labelId, labelData, username)
     'holderPeople', 'collectorResearcher', 'priorInformedConsent', 'bibliographicSource',
   ];
 
-  const $set = {};
   const auditEntries = [];
 
-  for (const field of updatableFields) {
-    if (labelData[field] === undefined) continue;
-    $set[`${arrayName}.$.${field}`] = labelData[field];
-    auditEntries.push({
-      conceptId: concept._id,
-      conceptLiteralForm: shortPrefLabel(concept),
-      field: `${arrayName}.${field}`,
-      previousValue: existing[field] ?? null,
-      newValue: labelData[field],
-      responsible: username,
-    });
-  }
-
-  $set[`${arrayName}.$.updatedAt`] = new Date();
-
-  await col.updateOne(
-    { _id: new ObjectId(id), version, [`${arrayName}._id`]: new ObjectId(labelId) },
-    { $inc: { version: 1 }, $set: { ...($set), updatedAt: new Date() } },
-  ).then((result) => {
-    if (result.matchedCount === 0) {
-      const err = new Error('Conceito foi modificado por outro usuário. Recarregue antes de salvar.');
-      err.code = 409;
-      throw err;
+  const updated = optimisticUpdate(db, id, version, (c) => {
+    const label = c[arrayName].find((l) => l.id.toString() === labelId.toString());
+    for (const field of updatableFields) {
+      if (labelData[field] === undefined) continue;
+      auditEntries.push({
+        conceptId: c.id,
+        conceptLiteralForm: shortPrefLabel(c),
+        field: `${arrayName}.${field}`,
+        previousValue: label[field] ?? null,
+        newValue: labelData[field],
+        responsible: username,
+      });
+      label[field] = labelData[field];
     }
+    label.updatedAt = new Date().toISOString();
   });
+
+  if (!updated) return null;
 
   await Promise.all(auditEntries.map((entry) => AuditService.log(db, entry)));
 
-  const updated = await col.findOne({ _id: new ObjectId(id) });
   return findLabelInConcept(updated, labelId)?.label ?? null;
 }
 
@@ -433,9 +467,9 @@ export async function updateLabel(db, id, version, labelId, labelData, username)
  * Prevents removal of the sole prefLabel.
  */
 export async function removeLabel(db, id, version, labelId, username) {
-  const col = getConceptCollection(db);
-  const concept = await col.findOne({ _id: new ObjectId(id) });
-  if (!concept) return null;
+  const row = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(id);
+  if (!row) return null;
+  const concept = JSON.parse(row.doc);
 
   const found = findLabelInConcept(concept, labelId);
   if (!found) return null;
@@ -448,12 +482,12 @@ export async function removeLabel(db, id, version, labelId, username) {
     throw err;
   }
 
-  await optimisticUpdate(col, id, version, {
-    $pull: { [arrayName]: { _id: new ObjectId(labelId) } },
+  optimisticUpdate(db, id, version, (c) => {
+    c[arrayName] = c[arrayName].filter((l) => l.id.toString() !== labelId.toString());
   });
 
   await AuditService.log(db, {
-    conceptId: concept._id,
+    conceptId: concept.id,
     conceptLiteralForm: shortPrefLabel(concept),
     field: arrayName,
     previousValue: label.literalForm,
@@ -468,31 +502,23 @@ export async function removeLabel(db, id, version, labelId, username) {
  * Attach an audio file path to a specific label.
  */
 export async function saveAudio(db, id, version, labelId, audioPath, username) {
-  const col = getConceptCollection(db);
-  const concept = await col.findOne({ _id: new ObjectId(id) });
-  if (!concept) return null;
+  const row = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(id);
+  if (!row) return null;
+  const concept = JSON.parse(row.doc);
 
   const found = findLabelInConcept(concept, labelId);
   if (!found) return null;
 
   const { arrayName } = found;
 
-  await col.updateOne(
-    { _id: new ObjectId(id), version, [`${arrayName}._id`]: new ObjectId(labelId) },
-    {
-      $inc: { version: 1 },
-      $set: { [`${arrayName}.$.audioPath`]: audioPath, updatedAt: new Date() },
-    },
-  ).then((result) => {
-    if (result.matchedCount === 0) {
-      const err = new Error('Conceito foi modificado por outro usuário. Recarregue antes de salvar.');
-      err.code = 409;
-      throw err;
-    }
+  optimisticUpdate(db, id, version, (c) => {
+    const label = c[arrayName].find((l) => l.id.toString() === labelId.toString());
+    label.audioPath = audioPath;
+    label.updatedAt = new Date().toISOString();
   });
 
   await AuditService.log(db, {
-    conceptId: concept._id,
+    conceptId: concept.id,
     conceptLiteralForm: shortPrefLabel(concept),
     field: `${arrayName}.audioPath`,
     previousValue: found.label.audioPath ?? null,
@@ -515,64 +541,71 @@ export async function removeAudio(db, id, version, labelId, username) {
  * Throws 400 when the relation would create a hierarchical cycle.
  */
 export async function addBroader(db, id, version, targetId, username) {
-  const col = getConceptCollection(db);
+  const conceptRow = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(id);
+  const targetRow = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(targetId);
+  if (!conceptRow || !targetRow) return null;
 
-  const [concept, target] = await Promise.all([
-    col.findOne({ _id: new ObjectId(id) }),
-    col.findOne({ _id: new ObjectId(targetId) }),
-  ]);
-  if (!concept || !target) return null;
+  const concept = JSON.parse(conceptRow.doc);
+  const target = JSON.parse(targetRow.doc);
 
-  const idStr = id.toString();
-  const targetIdStr = targetId.toString();
-  if (
-    idStr === targetIdStr ||
-    (target.ancestors ?? []).some((a) => a.toString() === idStr)
-  ) {
+  const idStr = String(id);
+  const targetIdStr = String(targetId);
+  if (idStr === targetIdStr || (target.ancestors ?? []).some((a) => String(a) === idStr)) {
     const err = new Error('Relação criaria ciclo hierárquico.');
     err.code = 400;
     throw err;
   }
 
   // The new ancestors for `concept` are all of target's ancestors plus target itself.
-  const newAncestors = [...(target.ancestors ?? []), new ObjectId(targetId)];
+  const newAncestors = [...(target.ancestors ?? []), targetIdStr];
 
-  await optimisticUpdate(col, id, version, {
-    $push: { broader: new ObjectId(targetId) },
-    $set: { ancestors: newAncestors },
+  const updatedConcept = optimisticUpdate(db, id, version, (c) => {
+    c.broader.push(targetIdStr);
+    c.ancestors = newAncestors;
   });
 
   // Add concept as a narrower child of target (no version lock needed here).
-  await col.updateOne(
-    { _id: new ObjectId(targetId) },
-    { $addToSet: { narrower: new ObjectId(id) }, $set: { updatedAt: new Date() } },
-  );
+  db.transaction(() => {
+    const tRow = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(targetId);
+    const t = JSON.parse(tRow.doc);
+    if (!(t.narrower ?? []).includes(idStr)) {
+      t.narrower = [...(t.narrower ?? []), idStr];
+      t.updatedAt = new Date().toISOString();
+      db.prepare(`UPDATE etnotermos SET doc = ?, updated_at = ? WHERE id = ?`).run(
+        JSON.stringify(t),
+        t.updatedAt,
+        targetId
+      );
+    }
+  })();
 
-  // Cascade ancestor updates to all descendants via BFS bulk write.
-  const updatedConcept = await col.findOne({ _id: new ObjectId(id) });
-  const descendantIds = await collectDescendants(col, updatedConcept);
+  // Cascade ancestor updates to all descendants via BFS.
+  const descendantIds = collectDescendants(db, updatedConcept);
 
   if (descendantIds.length > 0) {
-    const bulkOps = descendantIds.map((descId) => ({
-      updateOne: {
-        filter: { _id: descId },
-        update: {
-          $set: {
-            ancestors: [...newAncestors, new ObjectId(id)],
-            updatedAt: new Date(),
-          },
-        },
-      },
-    }));
-    await col.bulkWrite(bulkOps);
+    const cascadeAncestors = [...newAncestors, idStr];
+    db.transaction(() => {
+      for (const descId of descendantIds) {
+        const dRow = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(descId);
+        if (!dRow) continue;
+        const d = JSON.parse(dRow.doc);
+        d.ancestors = cascadeAncestors;
+        d.updatedAt = new Date().toISOString();
+        db.prepare(`UPDATE etnotermos SET doc = ?, updated_at = ? WHERE id = ?`).run(
+          JSON.stringify(d),
+          d.updatedAt,
+          descId
+        );
+      }
+    })();
   }
 
   await AuditService.log(db, {
-    conceptId: concept._id,
+    conceptId: concept.id,
     conceptLiteralForm: shortPrefLabel(concept),
     field: 'broader',
     previousValue: null,
-    newValue: targetId.toString(),
+    newValue: targetIdStr,
     responsible: username,
   });
 
@@ -583,71 +616,71 @@ export async function addBroader(db, id, version, targetId, username) {
  * Remove a broader (parent) concept, recalculating ancestors and cascading.
  */
 export async function removeBroader(db, id, version, targetId, username) {
-  const col = getConceptCollection(db);
+  const conceptRow = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(id);
+  const targetRow = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(targetId);
+  if (!conceptRow || !targetRow) return null;
 
-  const [concept, target] = await Promise.all([
-    col.findOne({ _id: new ObjectId(id) }),
-    col.findOne({ _id: new ObjectId(targetId) }),
-  ]);
-  if (!concept || !target) return null;
+  const concept = JSON.parse(conceptRow.doc);
+  const targetIdStr = String(targetId);
 
   // Recalculate ancestors from the remaining broader parents after removal.
-  const remainingBroader = (concept.broader ?? []).filter(
-    (bid) => bid.toString() !== targetId.toString(),
-  );
+  const remainingBroader = (concept.broader ?? []).filter((bid) => String(bid) !== targetIdStr);
 
   let newAncestors = [];
   if (remainingBroader.length > 0) {
-    const parentDocs = await col
-      .find(
-        { _id: { $in: remainingBroader } },
-        { projection: { ancestors: 1 } },
-      )
-      .toArray();
+    const placeholders = remainingBroader.map(() => '?').join(',');
+    const parentDocs = db
+      .prepare(`SELECT doc FROM etnotermos WHERE id IN (${placeholders})`)
+      .all(...remainingBroader.map(String))
+      .map((r) => JSON.parse(r.doc));
 
-    const ancestorSets = parentDocs.map((p) =>
-      [...(p.ancestors ?? []).map((a) => a.toString()), p._id.toString()],
-    );
-
-    // Union of all ancestor paths from remaining parents.
-    const unionSet = new Set(ancestorSets.flat());
-    newAncestors = [...unionSet].map((sid) => new ObjectId(sid));
+    const ancestorSets = parentDocs.map((p) => [...(p.ancestors ?? []).map(String), String(p.id)]);
+    newAncestors = [...new Set(ancestorSets.flat())];
   }
 
-  await optimisticUpdate(col, id, version, {
-    $pull: { broader: new ObjectId(targetId) },
-    $set: { ancestors: newAncestors },
+  const updatedConcept = optimisticUpdate(db, id, version, (c) => {
+    c.broader = remainingBroader;
+    c.ancestors = newAncestors;
   });
 
-  await col.updateOne(
-    { _id: new ObjectId(targetId) },
-    { $pull: { narrower: new ObjectId(id) }, $set: { updatedAt: new Date() } },
-  );
+  db.transaction(() => {
+    const tRow = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(targetId);
+    const t = JSON.parse(tRow.doc);
+    t.narrower = (t.narrower ?? []).filter((n) => String(n) !== String(id));
+    t.updatedAt = new Date().toISOString();
+    db.prepare(`UPDATE etnotermos SET doc = ?, updated_at = ? WHERE id = ?`).run(
+      JSON.stringify(t),
+      t.updatedAt,
+      targetId
+    );
+  })();
 
   // Cascade updated ancestors to all descendants.
-  const updatedConcept = await col.findOne({ _id: new ObjectId(id) });
-  const descendantIds = await collectDescendants(col, updatedConcept);
+  const descendantIds = collectDescendants(db, updatedConcept);
 
   if (descendantIds.length > 0) {
-    const bulkOps = descendantIds.map((descId) => ({
-      updateOne: {
-        filter: { _id: descId },
-        update: {
-          $set: {
-            ancestors: [...newAncestors, new ObjectId(id)],
-            updatedAt: new Date(),
-          },
-        },
-      },
-    }));
-    await col.bulkWrite(bulkOps);
+    const cascadeAncestors = [...newAncestors, String(id)];
+    db.transaction(() => {
+      for (const descId of descendantIds) {
+        const dRow = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(descId);
+        if (!dRow) continue;
+        const d = JSON.parse(dRow.doc);
+        d.ancestors = cascadeAncestors;
+        d.updatedAt = new Date().toISOString();
+        db.prepare(`UPDATE etnotermos SET doc = ?, updated_at = ? WHERE id = ?`).run(
+          JSON.stringify(d),
+          d.updatedAt,
+          descId
+        );
+      }
+    })();
   }
 
   await AuditService.log(db, {
-    conceptId: concept._id,
+    conceptId: concept.id,
     conceptLiteralForm: shortPrefLabel(concept),
     field: 'broader',
-    previousValue: targetId.toString(),
+    previousValue: targetIdStr,
     newValue: null,
     responsible: username,
   });
@@ -660,29 +693,38 @@ export async function removeBroader(db, id, version, targetId, username) {
  * Both concepts receive each other's id in their related array.
  */
 export async function addRelated(db, id, version, targetId, username) {
-  const col = getConceptCollection(db);
+  const conceptRow = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(id);
+  const targetRow = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(targetId);
+  if (!conceptRow || !targetRow) return null;
+  const concept = JSON.parse(conceptRow.doc);
+  const targetIdStr = String(targetId);
 
-  const [concept, target] = await Promise.all([
-    col.findOne({ _id: new ObjectId(id) }),
-    col.findOne({ _id: new ObjectId(targetId) }),
-  ]);
-  if (!concept || !target) return null;
-
-  await optimisticUpdate(col, id, version, {
-    $addToSet: { related: new ObjectId(targetId) },
+  optimisticUpdate(db, id, version, (c) => {
+    if (!(c.related ?? []).includes(targetIdStr)) {
+      c.related = [...(c.related ?? []), targetIdStr];
+    }
   });
 
-  await col.updateOne(
-    { _id: new ObjectId(targetId) },
-    { $addToSet: { related: new ObjectId(id) }, $set: { updatedAt: new Date() } },
-  );
+  db.transaction(() => {
+    const tRow = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(targetId);
+    const t = JSON.parse(tRow.doc);
+    if (!(t.related ?? []).includes(String(id))) {
+      t.related = [...(t.related ?? []), String(id)];
+      t.updatedAt = new Date().toISOString();
+      db.prepare(`UPDATE etnotermos SET doc = ?, updated_at = ? WHERE id = ?`).run(
+        JSON.stringify(t),
+        t.updatedAt,
+        targetId
+      );
+    }
+  })();
 
   await AuditService.log(db, {
-    conceptId: concept._id,
+    conceptId: concept.id,
     conceptLiteralForm: shortPrefLabel(concept),
     field: 'related',
     previousValue: null,
-    newValue: targetId.toString(),
+    newValue: targetIdStr,
     responsible: username,
   });
 
@@ -693,28 +735,33 @@ export async function addRelated(db, id, version, targetId, username) {
  * Remove a symmetric associative relationship between two concepts.
  */
 export async function removeRelated(db, id, version, targetId, username) {
-  const col = getConceptCollection(db);
+  const conceptRow = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(id);
+  const targetRow = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(targetId);
+  if (!conceptRow || !targetRow) return null;
+  const concept = JSON.parse(conceptRow.doc);
+  const targetIdStr = String(targetId);
 
-  const [concept, target] = await Promise.all([
-    col.findOne({ _id: new ObjectId(id) }),
-    col.findOne({ _id: new ObjectId(targetId) }),
-  ]);
-  if (!concept || !target) return null;
-
-  await optimisticUpdate(col, id, version, {
-    $pull: { related: new ObjectId(targetId) },
+  optimisticUpdate(db, id, version, (c) => {
+    c.related = (c.related ?? []).filter((r) => String(r) !== targetIdStr);
   });
 
-  await col.updateOne(
-    { _id: new ObjectId(targetId) },
-    { $pull: { related: new ObjectId(id) }, $set: { updatedAt: new Date() } },
-  );
+  db.transaction(() => {
+    const tRow = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(targetId);
+    const t = JSON.parse(tRow.doc);
+    t.related = (t.related ?? []).filter((r) => String(r) !== String(id));
+    t.updatedAt = new Date().toISOString();
+    db.prepare(`UPDATE etnotermos SET doc = ?, updated_at = ? WHERE id = ?`).run(
+      JSON.stringify(t),
+      t.updatedAt,
+      targetId
+    );
+  })();
 
   await AuditService.log(db, {
-    conceptId: concept._id,
+    conceptId: concept.id,
     conceptLiteralForm: shortPrefLabel(concept),
     field: 'related',
-    previousValue: targetId.toString(),
+    previousValue: targetIdStr,
     newValue: null,
     responsible: username,
   });

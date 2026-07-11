@@ -1,5 +1,7 @@
 # Phase 1: Data Model
 
+> **Nota:** Este documento descreve uma arquitetura histórica/divergente (Mongoose/MongoDB, Z39.19) de um projeto anterior. A implementação atual do BioCultTermos segue a arquitetura v3.1 (SQLite + JSON1 via better-sqlite3), conforme ADR-005 da "Arquitetura-BioCultural". Mantido apenas como referência histórica.
+
 This document defines the data model for the BioCultTermos system based on the entities identified in `spec.md`. The schemas are described in a format that can be easily translated to Mongoose schemas for MongoDB.
 
 **Standards Compliance**: This data model follows ANSI/NISO Z39.19-2005 (R2010) guidelines for controlled vocabulary construction, including:

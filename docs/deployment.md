@@ -29,7 +29,7 @@ Gerar o `docker/.env`:
 node docker/create-admin-user.js
 ```
 
-O script pergunta usuário, senha e URI do MongoDB, e grava `docker/.env` automaticamente.
+O script pergunta usuário e senha do admin, e grava `docker/.env` automaticamente. O caminho do arquivo SQLite (`SQLITE_DB_PATH`) pode ser ajustado manualmente no arquivo gerado.
 
 Ou crie manualmente:
 
@@ -41,7 +41,7 @@ cp docker/.env.example docker/.env
 Exemplo de `docker/.env`:
 
 ```
-MONGODB_URI=mongodb://172.17.0.1:27017/etnodb
+SQLITE_DB_PATH=/data/unidade.sqlite
 ADMIN_USERNAME=curador1
 ADMIN_PASSWORD=senha_segura_aqui
 ACQUISITION_CRON_SCHEDULE=0 3 * * *
@@ -73,25 +73,21 @@ Esperar ver:
 ```
 BioCultTermos PUBLIC interface running on port 4000
 BioCultTermos ADMIN interface running on port 4001
-MongoDB connected
 ```
 
 ---
 
 ## Opção 2 — Direto no servidor (sem Docker)
 
-### 2.1 Instalar Node.js e MongoDB
+### 2.1 Instalar Node.js e dependências de build
 
 ```bash
 # Node.js 20 LTS
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt install -y nodejs
 
-# MongoDB 7.0
-wget -qO - https://www.mongodb.org/static/pgp/server-7.0.asc | sudo apt-key add -
-echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
-sudo apt update && sudo apt install -y mongodb-org
-sudo systemctl enable --now mongod
+# Toolchain de build para addons nativos (better-sqlite3)
+sudo apt install -y python3 build-essential
 ```
 
 ### 2.2 Instalar dependências e compilar CSS
@@ -108,7 +104,7 @@ cd frontend && npm install && npm run build:css && cd ..
 Criar `/opt/BioCultTermos/backend/.env`:
 
 ```
-MONGODB_URI=mongodb://localhost:27017/etnodb
+SQLITE_DB_PATH=/opt/BioCultTermos/data/unidade.sqlite
 ADMIN_USERNAME=curador1
 ADMIN_PASSWORD=senha_segura
 NODE_ENV=production
@@ -123,7 +119,7 @@ ADMIN_PORT=4001
 ```ini
 [Unit]
 Description=BioCultTermos Public Server (porta 4000)
-After=network.target mongod.service
+After=network.target
 
 [Service]
 Type=simple
@@ -142,7 +138,7 @@ WantedBy=multi-user.target
 ```ini
 [Unit]
 Description=BioCultTermos Admin Server (porta 4001)
-After=network.target mongod.service
+After=network.target
 
 [Service]
 Type=simple
@@ -247,24 +243,43 @@ sudo systemctl restart BioCultTermos-public BioCultTermos-admin
 
 ---
 
-## Backup do MongoDB
+## Backup do SQLite
+
+O banco é um único arquivo `.sqlite` por unidade federada (`SQLITE_DB_PATH`, ex.: `/data/unidade.sqlite`). Dois métodos:
+
+### Método 1 — Copiar o arquivo (app parado)
+
+Mais simples; parar os serviços evita copiar o arquivo em meio a uma escrita (WAL).
+
+```bash
+sudo systemctl stop BioCultTermos-public BioCultTermos-admin   # ou: docker-compose stop
+cp /data/unidade.sqlite /opt/backups/BioCultTermos/unidade-$(date +%F).sqlite
+sudo systemctl start BioCultTermos-public BioCultTermos-admin  # ou: docker-compose start
+```
+
+### Método 2 — `VACUUM INTO` (online, sem downtime)
+
+O SQLite gera uma cópia consistente sem parar a aplicação, mesmo com WAL ativo:
+
+```bash
+sqlite3 unidade.sqlite "VACUUM INTO '/backups/unidade-$(date +%F).sqlite'"
+```
 
 `/opt/scripts/backup-BioCultTermos.sh`:
 
 ```bash
 #!/bin/bash
+DB_PATH="${SQLITE_DB_PATH:-/data/unidade.sqlite}"
 BACKUP_DIR="/opt/backups/BioCultTermos"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-MONGODB_URI="${MONGODB_URI:-mongodb://localhost:27017}"
 
 mkdir -p $BACKUP_DIR
 
-mongodump --uri="$MONGODB_URI" --db=etnodb --out="$BACKUP_DIR/bkp_$TIMESTAMP"
-tar -czf "$BACKUP_DIR/bkp_$TIMESTAMP.tar.gz" -C "$BACKUP_DIR" "bkp_$TIMESTAMP"
-rm -rf "$BACKUP_DIR/bkp_$TIMESTAMP"
-find "$BACKUP_DIR" -name "bkp_*.tar.gz" -mtime +30 -delete
+sqlite3 "$DB_PATH" "VACUUM INTO '$BACKUP_DIR/unidade_$TIMESTAMP.sqlite'"
+gzip "$BACKUP_DIR/unidade_$TIMESTAMP.sqlite"
+find "$BACKUP_DIR" -name "unidade_*.sqlite.gz" -mtime +30 -delete
 
-echo "Backup: $BACKUP_DIR/bkp_$TIMESTAMP.tar.gz"
+echo "Backup: $BACKUP_DIR/unidade_$TIMESTAMP.sqlite.gz"
 ```
 
 ```bash
@@ -275,10 +290,12 @@ echo "0 2 * * * root /opt/scripts/backup-BioCultTermos.sh" | sudo tee /etc/cron.
 
 ### Restaurar
 
+Parar os serviços, substituir o arquivo pelo backup e reiniciar:
+
 ```bash
-cd /opt/backups/BioCultTermos
-tar -xzf bkp_YYYYMMDD_HHMMSS.tar.gz
-mongorestore --uri="mongodb://localhost:27017" --db=etnodb --drop bkp_YYYYMMDD_HHMMSS/etnodb
+sudo systemctl stop BioCultTermos-public BioCultTermos-admin   # ou: docker-compose stop
+gunzip -c /opt/backups/BioCultTermos/unidade_YYYYMMDD_HHMMSS.sqlite.gz > /data/unidade.sqlite
+sudo systemctl start BioCultTermos-public BioCultTermos-admin  # ou: docker-compose start
 ```
 
 ---

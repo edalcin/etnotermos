@@ -8,7 +8,7 @@
 ## Pré-requisitos
 
 - Node.js 20 LTS
-- MongoDB 7.0+ rodando localmente ou em rede (mesma instância do BioCultDB)
+- Python 3 + compilador C++ (pré-requisitos de build do addon nativo `better-sqlite3`/node-gyp)
 - Docker (opcional, para produção)
 - npm ≥ 10
 
@@ -19,8 +19,8 @@
 Criar `backend/.env` (nunca commitar):
 
 ```env
-# MongoDB
-MONGODB_URI=mongodb://localhost:27017/etnodb
+# SQLite
+SQLITE_DB_PATH=./data/unidade.sqlite
 
 # Servidor
 PUBLIC_PORT=4000
@@ -64,27 +64,14 @@ npm run build:css
 
 ## 3. Inicialização do Banco de Dados
 
-Criar coleções e índices:
-
-```bash
-cd backend
-node scripts/db-init.js
-```
-
-O script cria:
-- Coleção `etnotermos` com todos os índices
-- Coleção `etnotermos_acquisition_log`
-- Coleção `etnotermos_audit_log`
+Não é necessário nenhum passo manual: ao iniciar (`npm run dev:public` ou `dev:admin`), a aplicação abre/cria automaticamente o arquivo SQLite em `SQLITE_DB_PATH` (WAL habilitado) e garante o schema — tabelas `etnotermos`, `etnotermos_acquisition_log`, `etnotermos_audit_log` e o índice full-text `etnotermos_fts` (FTS5) — de forma idempotente (ver `backend/src/shared/database.js`).
 
 ---
 
 ## 4. Primeira Aquisição de Termos
 
 ```bash
-# Via CLI (importação inicial)
-node scripts/acquire.js
-
-# Ou após iniciar o servidor:
+# Após iniciar o servidor (ver passo 5):
 curl -X POST -u curador1:suasenha http://localhost:4001/acquisition/run
 ```
 
@@ -173,8 +160,9 @@ docker build -f docker/etnotermos.Dockerfile -t etnotermos:latest .
 docker run -d \
   -p 4000:4000 \
   -p 4001:4001 \
+  -v /mnt/data/unidade:/data \
   -v /mnt/data/audio:/data/audio \
-  -e MONGODB_URI=mongodb://mongo:27017/etnodb \
+  -e SQLITE_DB_PATH=/data/unidade.sqlite \
   -e ADMIN_USERS='[{"username":"curador1","passwordHash":"$2b$10$..."}]' \
   -e AUDIO_STORAGE_PATH=/data/audio \
   --name etnotermos \
@@ -185,10 +173,11 @@ docker run -d \
 
 ## Troubleshooting
 
-**MongoDB não conecta**:
+**Erro ao abrir o arquivo SQLite**:
 ```bash
-# Verificar URI e se MongoDB está rodando
-mongosh "$MONGODB_URI" --eval "db.adminCommand('ping')"
+# Verificar se SQLITE_DB_PATH aponta a um caminho válido e com permissão de escrita
+ls -la "$(dirname "$SQLITE_DB_PATH")"
+sqlite3 "$SQLITE_DB_PATH" "PRAGMA integrity_check;"
 ```
 
 **Conceitos não aparecem na interface pública**:
@@ -197,8 +186,8 @@ mongosh "$MONGODB_URI" --eval "db.adminCommand('ping')"
 
 **Conflito de versão (409) inesperado**:
 - Recarregar a página de edição antes de salvar
-- Verificar se há processos duplicados escrevendo na mesma coleção
+- Verificar se há processos duplicados escrevendo na mesma tabela
 
 **Áudio não aparece**:
 - Verificar se `AUDIO_STORAGE_PATH` está montado e tem permissão de leitura
-- Verificar se `audioPath` está salvo no documento do label
+- Verificar se `audioPath` está salvo no registro do label

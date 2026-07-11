@@ -32,7 +32,7 @@ O padrão **SKOS-XL** (W3C, 2009) é adotado por permitir que cada rótulo seja 
 
 ### User Story 1 — Aquisição com atribuição comunitária (Prioridade: P1)
 
-O sistema sincroniza automaticamente os valores distintos de campos controlados da coleção `etnodb` (banco `etnodb`), criando conceitos SKOS-XL com status **"candidate"** e preservando a referência à comunidade de origem de cada valor importado.
+O sistema sincroniza automaticamente os valores distintos de campos controlados da tabela `biocultdb_records` (arquivo SQLite compartilhado com o BioCultDB), criando conceitos SKOS-XL com status **"candidate"** e preservando a referência à comunidade de origem de cada valor importado.
 
 **Por que P1**: É a única porta de entrada de termos. Sem ela, o vocabulário está vazio.
 
@@ -44,9 +44,9 @@ O sistema sincroniza automaticamente os valores distintos de campos controlados 
 4. **Given** que a aquisição é executada, **When** conclui, **Then** um `AcquisitionLog` é gerado com: data/hora, campos processados, novos criados, já existentes, erros
 5. **Given** que um campo monitorado contém valores nulos, vazios ou somente espaços, **When** a aquisição é executada, **Then** esses valores são ignorados sem erro
 
-**Campos monitorados** (coleção `etnodb`, banco `etnodb`):
+**Campos monitorados** (tabela `biocultdb_records`, arquivo SQLite compartilhado com o BioCultDB):
 
-| Campo MongoDB | Grupo Semântico | Observação |
+| Campo SQLite | Grupo Semântico | Observação |
 |---------------|----------------|------------|
 | `comunidades.tipo` | Tipos de Comunidade Tradicional | Singular por comunidade |
 | `comunidades.plantas.nomeVernacular` | Nomes Vernaculares de Plantas | Array — cada elemento vira conceito |
@@ -105,7 +105,7 @@ Cada rótulo carrega proveniência rastreável: qual povo, qual pesquisador, qua
 - O que acontece quando o mesmo valor existe em dois campos distintos (ex: "artesanato" em `tipoUso` e em `atividadesEconomicas`)? Dois conceitos separados ou um conceito com dois `sourceField`?
 - Como tratar valores com acentuação inconsistente (ex: `"medicinal"` e `"medicínal"`)? A aquisição não pode detectar automaticamente.
 - Deprecar conceito com filhos "active": **permitido com aviso** — filhos tornam-se órfãos temporariamente; curador resolve re-vinculação manualmente depois. O sistema DEVE exibir a lista dos conceitos que ficarão órfãos antes de confirmar.
-- Falha na aquisição (MongoDB indisponível): erro gravado no `AcquisitionLog` + alerta visível no dashboard de curadoria persiste até próxima execução bem-sucedida
+- Falha na aquisição (arquivo SQLite indisponível ou bloqueado): erro gravado no `AcquisitionLog` + alerta visível no dashboard de curadoria persiste até próxima execução bem-sucedida
 - Dois rótulos com mesmo `literalForm` mas idiomas diferentes: **permitido** — unicidade definida pela combinação `(literalForm + idioma + tipo)`
 
 ---
@@ -116,13 +116,13 @@ Cada rótulo carrega proveniência rastreável: qual povo, qual pesquisador, qua
 
 **Contexto de Aquisição**
 
-- **FR-001**: O sistema DEVE ler os valores distintos dos quatro campos controlados da coleção `etnodb` e criar conceitos SKOS-XL para cada valor ainda não existente no vocabulário
+- **FR-001**: O sistema DEVE ler os valores distintos dos quatro campos controlados da tabela `biocultdb_records` e criar conceitos SKOS-XL para cada valor ainda não existente no vocabulário
 - **FR-002**: Todo conceito criado pela aquisição DEVE receber status "candidate"
 - **FR-003**: O sistema DEVE registrar em cada conceito criado: `sourceFields` (array com todos os campos de origem onde o valor aparece) e `sourceCommunities` (nomes das comunidades donde veio o valor, quando aplicável). Se o mesmo valor `literalForm` já existir no vocabulário (qualquer `sourceField`), o sistema DEVE apenas adicionar o novo `sourceField` ao array existente, sem criar conceito duplicado
 - **FR-004**: A normalização de capitalização DEVE converter valores para lowercase antes de deduplicar
 - **FR-005**: A aquisição DEVE ser disparável manualmente via interface de curadoria e, opcionalmente, em intervalos agendados
 - **FR-006**: O sistema DEVE ignorar valores nulos, vazios ou compostos exclusivamente de espaços
-- **FR-007**: O sistema DEVE gerar um `AcquisitionLog` por execução: data/hora, campos processados, novos criados, já existentes, erros. Em caso de falha (MongoDB indisponível ou erro inesperado), o sistema DEVE registrar o erro no log **e** exibir alerta visível no dashboard de curadoria que persiste até a próxima execução bem-sucedida
+- **FR-007**: O sistema DEVE gerar um `AcquisitionLog` por execução: data/hora, campos processados, novos criados, já existentes, erros. Em caso de falha (arquivo SQLite indisponível/bloqueado ou erro inesperado), o sistema DEVE registrar o erro no log **e** exibir alerta visível no dashboard de curadoria que persiste até a próxima execução bem-sucedida
 
 **Contexto de Apresentação**
 
@@ -166,7 +166,7 @@ Cada rótulo carrega proveniência rastreável: qual povo, qual pesquisador, qua
 
 **Geral / Dados**
 
-- **FR-030**: O vocabulário DEVE ser armazenado na coleção `etnotermos` dentro do banco de dados `etnodb`, compartilhado com o BioCultDB
+- **FR-030**: O vocabulário DEVE ser armazenado na tabela `etnotermos` dentro do arquivo SQLite compartilhado com o BioCultDB
 - **FR-031**: O sistema NÃO DEVE permitir criação manual de conceitos via interface — todos os conceitos originam da aquisição do BioCultDB
 - **FR-032**: A estrutura de dados DEVE ser compatível com exportação futura em JSON-LD / Turtle (SKOS-XL) sem migração de schema
 - **FR-033**: O sistema DEVE eliminar todos os arquivos e estruturas do código legado Z39.19 que não são necessários na nova arquitetura
@@ -175,7 +175,7 @@ Cada rótulo carrega proveniência rastreável: qual povo, qual pesquisador, qua
 
 ### Key Entities
 
-- **Concept** (`skos:Concept`): Unidade semântica central. Possui IRI único, status (candidate/active/deprecated), grupo semântico (`sourceField`), ancestrais hierárquicos (array de IRIs para $graphLookup), notas documentais e relações.
+- **Concept** (`skos:Concept`): Unidade semântica central. Possui IRI único, status (candidate/active/deprecated), grupo semântico (`sourceField`), ancestrais hierárquicos (array de IRIs para consulta recursiva via CTE), notas documentais e relações.
 
 - **Label** (`skosxl:Label`): Rótulo como recurso independente. Possui: `literalForm` (texto), idioma (ISO 639-3), tipo (pref/alt/hidden), povo de origem, região, `accessLevel` (public/restricted/sacred), fonte bibliográfica, organização validadora, data de validação, path de áudio de pronúncia, `skosxl:labelRelation`. **Unicidade**: combinação `(literalForm + idioma + tipo)` dentro do mesmo conceito — o mesmo texto em idiomas distintos é válido.
 
@@ -193,9 +193,9 @@ Cada rótulo carrega proveniência rastreável: qual povo, qual pesquisador, qua
 
 ## Assumptions
 
-- O MongoDB `etnodb` está em execução e acessível a ambas as aplicações na mesma rede
-- O BioCultTermos é somente leitor da coleção `etnodb`; não escreve de volta nela
-- A coleção `etnotermos` é criada e gerenciada exclusivamente pelo BioCultTermos
+- O arquivo SQLite compartilhado (volume Docker) está acessível a ambas as aplicações e contém a tabela `biocultdb_records` populada pelo BioCultDB
+- O BioCultTermos é somente leitor da tabela `biocultdb_records`; não escreve de volta nela
+- A tabela `etnotermos` é criada e gerenciada exclusivamente pelo BioCultTermos
 - A identidade visual segue o padrão do BioCultDB (tema "forest" do Tailwind CSS)
 - Todos os commits vão para o branch `main` (conforme diretriz global)
 - Registros de termos depreciados são preservados (nunca excluídos)
@@ -208,9 +208,9 @@ Cada rótulo carrega proveniência rastreável: qual povo, qual pesquisador, qua
 
 ## Dependencies
 
-- Instância MongoDB `etnodb` com coleção `etnodb` populada pelo BioCultDB
-- Acesso de leitura à coleção `etnodb` para aquisição
-- Acesso de leitura/escrita à coleção `etnotermos`
+- Arquivo SQLite compartilhado com a tabela `biocultdb_records` populada pelo BioCultDB
+- Acesso de leitura à tabela `biocultdb_records` para aquisição
+- Acesso de leitura/escrita à tabela `etnotermos`
 - Repositório BioCultDB em `../BioCultDB` como referência visual
 
 ---

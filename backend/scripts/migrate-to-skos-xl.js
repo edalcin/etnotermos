@@ -4,28 +4,24 @@
  * Old schema: { prefLabel: string, altLabels: string[], ... }
  * New schema: { prefLabels: [{literalForm, language, type, ...}], altLabels: [{...}], ... }
  *
+ * ADR-005 (Arquitetura-BioCultural): operates on the `etnotermos` table of the
+ * shared unit SQLite file (SQLITE_DB_PATH), not a MongoDB collection.
+ *
  * Run: node backend/scripts/migrate-to-skos-xl.js
  */
 
-import { MongoClient, ObjectId } from 'mongodb';
+import { randomUUID } from 'crypto';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import database from '../src/shared/database.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
-const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
-const DB_NAME   = process.env.MONGO_DB_NAME || 'etnodb';
-
-if (!MONGO_URI) {
-  console.error('ERROR: MONGODB_URI or MONGO_URI not set');
-  process.exit(1);
-}
-
-function makeLabel(literalForm, type = 'pref', createdAt = new Date()) {
+function makeLabel(literalForm, type = 'pref', createdAt = new Date().toISOString()) {
   return {
-    _id: new ObjectId(),
+    id: randomUUID(),
     literalForm: String(literalForm).trim(),
     language: 'pt',
     type,
@@ -49,155 +45,151 @@ function makeLabel(literalForm, type = 'pref', createdAt = new Date()) {
 function generateSlug(text) {
   return String(text)
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 }
 
-async function main() {
-  const client = new MongoClient(MONGO_URI);
-  await client.connect();
-  const db  = client.db(DB_NAME);
-  const col = db.collection('etnotermos');
+function main() {
+  const db = database.connect();
 
-  // Count documents needing migration (have old prefLabel string field)
-  const total = await col.countDocuments({ prefLabel: { $exists: true } });
-  console.log(`Documents to migrate: ${total}`);
+  // Documents needing migration have the OLD `prefLabel` string field.
+  const legacyRows = db
+    .prepare(`SELECT id, doc FROM etnotermos WHERE json_extract(doc,'$.prefLabel') IS NOT NULL`)
+    .all();
 
-  if (total === 0) {
+  console.log(`Documents to migrate: ${legacyRows.length}`);
+
+  if (legacyRows.length === 0) {
     console.log('Nothing to migrate.');
-    await dropAndCreateIndexes(col);
-    await client.close();
+    dropAndCreateIndexes(db);
+    database.disconnect();
     return;
   }
 
-  const cursor = col.find({ prefLabel: { $exists: true } });
   let migrated = 0;
-  let skipped  = 0;
+  let skipped = 0;
 
-  for await (const doc of cursor) {
-    const prefLabelStr = doc.prefLabel;
+  const migrate = db.transaction((rows) => {
+    for (const row of rows) {
+      const doc = JSON.parse(row.doc);
+      const prefLabelStr = doc.prefLabel;
 
-    if (!prefLabelStr || !String(prefLabelStr).trim()) {
-      // No usable prefLabel — skip (should not happen but be safe)
-      skipped++;
-      continue;
+      if (!prefLabelStr || !String(prefLabelStr).trim()) {
+        skipped++;
+        continue;
+      }
+
+      const createdAt = doc.createdAt ?? new Date().toISOString();
+      const prefLabels = [makeLabel(prefLabelStr, 'pref', createdAt)];
+
+      const altLabels = (Array.isArray(doc.altLabels) ? doc.altLabels : [])
+        .filter((l) => l && typeof l === 'string' && l.trim())
+        .map((l) => makeLabel(l, 'alt', createdAt));
+
+      const hiddenLabels = (Array.isArray(doc.hiddenLabels) ? doc.hiddenLabels : [])
+        .filter((l) => l && typeof l === 'string' && l.trim())
+        .map((l) => makeLabel(l, 'hidden', createdAt));
+
+      const uri = doc.uri || `etnotermos:${generateSlug(prefLabelStr)}`;
+
+      const strOrNull = (v) => (v && String(v).trim() ? String(v).trim() : null);
+
+      const migratedDoc = {
+        id: doc.id,
+        uri,
+        status: doc.status ?? 'candidate',
+        prefLabels,
+        altLabels,
+        hiddenLabels,
+        sourceFields: doc.sourceFields ?? [],
+        sourceCommunities: doc.sourceCommunities ?? [],
+        definition: strOrNull(doc.definition),
+        scopeNote: strOrNull(doc.scopeNote),
+        historyNote: strOrNull(doc.historyNote),
+        example: strOrNull(doc.example),
+        broader: doc.broader ?? [],
+        narrower: doc.narrower ?? [],
+        related: doc.related ?? [],
+        ancestors: doc.ancestors ?? [],
+        replacedBy: doc.replacedBy ?? null,
+        deprecatedDate: doc.deprecatedDate ?? null,
+        version: doc.version ?? 1,
+        createdAt,
+        updatedAt: new Date().toISOString(),
+        // Legacy fields (prefLabel, qualifier, termType, useFor, useTerm,
+        // deprecationNote, facets, sourceIds, language, _textSearchLanguage)
+        // are intentionally dropped by omission — `doc` is fully replaced.
+      };
+
+      db.prepare(`UPDATE etnotermos SET doc = ?, updated_at = ? WHERE id = ?`).run(
+        JSON.stringify(migratedDoc),
+        migratedDoc.updatedAt,
+        row.id
+      );
+
+      migrated++;
+      if (migrated % 50 === 0) {
+        console.log(`  Migrated ${migrated}/${legacyRows.length}...`);
+      }
     }
+  });
 
-    const createdAt = doc.createdAt ?? new Date();
-    const prefLabels = [makeLabel(prefLabelStr, 'pref', createdAt)];
-
-    const altLabels = (Array.isArray(doc.altLabels) ? doc.altLabels : [])
-      .filter((l) => l && typeof l === 'string' && l.trim())
-      .map((l) => makeLabel(l, 'alt', createdAt));
-
-    const hiddenLabels = (Array.isArray(doc.hiddenLabels) ? doc.hiddenLabels : [])
-      .filter((l) => l && typeof l === 'string' && l.trim())
-      .map((l) => makeLabel(l, 'hidden', createdAt));
-
-    const uri = doc.uri || `etnotermos:${generateSlug(prefLabelStr)}`;
-
-    // Map old note fields — convert empty strings to null
-    const strOrNull = (v) => (v && String(v).trim() ? String(v).trim() : null);
-
-    await col.updateOne(
-      { _id: doc._id },
-      {
-        $set: {
-          uri,
-          prefLabels,
-          altLabels,
-          hiddenLabels,
-          sourceFields:      doc.sourceFields      ?? [],
-          sourceCommunities: doc.sourceCommunities  ?? [],
-          definition:  strOrNull(doc.definition),
-          scopeNote:   strOrNull(doc.scopeNote),
-          historyNote: strOrNull(doc.historyNote),
-          example:     strOrNull(doc.example),
-          broader:   doc.broader   ?? [],
-          narrower:  doc.narrower  ?? [],
-          related:   doc.related   ?? [],
-          ancestors: doc.ancestors ?? [],
-          replacedBy:    doc.replacedBy    ?? null,
-          deprecatedDate: doc.deprecatedDate ?? null,
-        },
-        $unset: {
-          prefLabel:           '',
-          qualifier:           '',
-          termType:            '',
-          useFor:              '',
-          useTerm:             '',
-          deprecationNote:     '',
-          facets:              '',
-          sourceIds:           '',
-          language:            '',
-          _textSearchLanguage: '',
-          // collectionIds kept as-is (could map to SKOS ConceptScheme later)
-        },
-      },
-    );
-
-    migrated++;
-    if (migrated % 50 === 0) {
-      console.log(`  Migrated ${migrated}/${total}...`);
-    }
-  }
+  migrate(legacyRows);
 
   console.log(`Migration complete: ${migrated} migrated, ${skipped} skipped.`);
 
-  await dropAndCreateIndexes(col);
-  await client.close();
+  dropAndCreateIndexes(db);
+  database.disconnect();
 }
 
-async function dropAndCreateIndexes(col) {
+/**
+ * Rebuild generated-column indexes and the FTS5 virtual table from scratch
+ * (SQLite/JSON1 equivalent of the old Mongo index rebuild).
+ */
+function dropAndCreateIndexes(db) {
   console.log('\nRebuilding indexes...');
 
-  // Drop all non-_id indexes to start clean
-  const indexes = await col.indexes();
-  for (const idx of indexes) {
-    if (idx.name === '_id_') continue;
-    try {
-      await col.dropIndex(idx.name);
-      console.log(`  Dropped: ${idx.name}`);
-    } catch (e) {
-      console.warn(`  Could not drop ${idx.name}: ${e.message}`);
-    }
-  }
+  db.exec(`DROP INDEX IF EXISTS idx_etnotermos_status;`);
+  db.exec(`DROP TABLE IF EXISTS etnotermos_fts;`);
+  console.log('  Dropped: idx_etnotermos_status, etnotermos_fts');
 
-  // Status index (common filter)
-  await col.createIndex({ status: 1 }, { name: 'status_1' });
-  console.log('  Created: status_1');
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_etnotermos_status ON etnotermos(status);`);
+  console.log('  Created: idx_etnotermos_status');
 
-  // sourceFields index
-  await col.createIndex({ sourceFields: 1 }, { name: 'sourceFields_1' });
-  console.log('  Created: sourceFields_1');
+  db.exec(`
+    CREATE VIRTUAL TABLE IF NOT EXISTS etnotermos_fts USING fts5(
+      id UNINDEXED,
+      prefLabels,
+      altLabels,
+      definition,
+      scopeNote,
+      tokenize='unicode61 remove_diacritics 2'
+    );
+  `);
+  console.log('  Created: etnotermos_fts (FTS5, weights 10/5/3/2 applied at query time via bm25())');
 
-  // Text search on labels and notes
-  await col.createIndex(
-    {
-      'prefLabels.literalForm': 'text',
-      'altLabels.literalForm':  'text',
-      definition: 'text',
-      scopeNote:  'text',
-    },
-    {
-      name: 'etnotermos_text_search',
-      default_language: 'portuguese',
-      weights: {
-        'prefLabels.literalForm': 10,
-        'altLabels.literalForm':   5,
-        definition: 3,
-        scopeNote:  2,
-      },
-    },
+  const rows = db.prepare(`SELECT doc FROM etnotermos`).all();
+  const labelText = (labels) => (labels ?? []).map((l) => l.literalForm).join(' ');
+  const insertFts = db.prepare(
+    `INSERT INTO etnotermos_fts (id, prefLabels, altLabels, definition, scopeNote) VALUES (?, ?, ?, ?, ?)`
   );
-  console.log('  Created: etnotermos_text_search');
+  const reindex = db.transaction((docs) => {
+    for (const r of docs) {
+      const c = JSON.parse(r.doc);
+      insertFts.run(c.id, labelText(c.prefLabels), labelText(c.altLabels), c.definition ?? '', c.scopeNote ?? '');
+    }
+  });
+  reindex(rows);
+  console.log(`  Reindexed ${rows.length} concepts into FTS5.`);
 
   console.log('Indexes rebuilt.');
 }
 
-main().catch((err) => {
+try {
+  main();
+} catch (err) {
   console.error('Migration failed:', err);
   process.exit(1);
-});
+}

@@ -1,5 +1,6 @@
-import { ObjectId } from 'mongodb';
+import { randomUUID } from 'crypto';
 import { connect, disconnect, clearCollections, getDb } from '../helpers/db.js';
+import { createConcept, insertConcept } from '../../src/models/Concept.js';
 
 let AcquisitionService;
 let serviceImportFailed = false;
@@ -30,7 +31,6 @@ maybeDescribe('US1: Automatic term acquisition from BioCultDB', () => {
 
   function makeEtnodbDoc(overrides = {}) {
     return {
-      _id: new ObjectId(),
       comunidades: [
         {
           nome: 'Guarani Mbya',
@@ -43,44 +43,71 @@ maybeDescribe('US1: Automatic term acquisition from BioCultDB', () => {
     };
   }
 
+  // Inserts a `biocultdb_records` row (same SQLite file, unit-shared table —
+  // ADR-005) that AcquisitionService.run() reads via json_each.
+  function insertBiocultdbRecord(doc) {
+    const id = doc.id ?? randomUUID();
+    const now = new Date().toISOString();
+    db.prepare(
+      `INSERT INTO biocultdb_records (id, doc, created_at, updated_at) VALUES (?, ?, ?, ?)`
+    ).run(id, JSON.stringify({ id, ...doc }), now, now);
+    return id;
+  }
+
+  function allConcepts() {
+    return db.prepare(`SELECT doc FROM etnotermos`).all().map((row) => JSON.parse(row.doc));
+  }
+
+  function conceptsWithSourceField(field) {
+    return allConcepts().filter((c) => c.sourceFields.includes(field));
+  }
+
+  function conceptsWithPrefLabel(literalForm) {
+    return allConcepts().filter((c) => c.prefLabels.some((l) => l.literalForm === literalForm));
+  }
+
+  function countConcepts() {
+    return db.prepare(`SELECT COUNT(*) as n FROM etnotermos`).get().n;
+  }
+
+  function findAcquisitionLog(status) {
+    return (
+      db
+        .prepare(`SELECT doc FROM etnotermos_acquisition_log`)
+        .all()
+        .map((row) => JSON.parse(row.doc))
+        .find((log) => log.status === status) ?? null
+    );
+  }
+
   test('run() creates candidate concepts from comunidades.tipo', async () => {
-    await db.collection('etnodb').insertOne(makeEtnodbDoc());
+    insertBiocultdbRecord(makeEtnodbDoc());
 
     await AcquisitionService.run(db);
 
-    const concepts = await db.collection('etnotermos').find({ sourceFields: 'comunidades.tipo' }).toArray();
+    const concepts = conceptsWithSourceField('comunidades.tipo');
     expect(concepts.length).toBeGreaterThanOrEqual(1);
-    const indigena = concepts.find((c) =>
-      c.prefLabels.some((l) => l.literalForm === 'indígena')
-    );
+    const indigena = concepts.find((c) => c.prefLabels.some((l) => l.literalForm === 'indígena'));
     expect(indigena).toBeDefined();
   });
 
   test('run() creates candidate concepts from comunidades.plantas.nomeVernacular', async () => {
-    await db.collection('etnodb').insertOne(makeEtnodbDoc());
+    insertBiocultdbRecord(makeEtnodbDoc());
 
     await AcquisitionService.run(db);
 
-    const concepts = await db
-      .collection('etnotermos')
-      .find({ sourceFields: 'comunidades.plantas.nomeVernacular' })
-      .toArray();
+    const concepts = conceptsWithSourceField('comunidades.plantas.nomeVernacular');
     expect(concepts.length).toBeGreaterThanOrEqual(1);
-    const ervamate = concepts.find((c) =>
-      c.prefLabels.some((l) => l.literalForm === 'erva-mate')
-    );
+    const ervamate = concepts.find((c) => c.prefLabels.some((l) => l.literalForm === 'erva-mate'));
     expect(ervamate).toBeDefined();
   });
 
   test('run() creates candidate concepts from comunidades.plantas.tipoUso', async () => {
-    await db.collection('etnodb').insertOne(makeEtnodbDoc());
+    insertBiocultdbRecord(makeEtnodbDoc());
 
     await AcquisitionService.run(db);
 
-    const concepts = await db
-      .collection('etnotermos')
-      .find({ sourceFields: 'comunidades.plantas.tipoUso' })
-      .toArray();
+    const concepts = conceptsWithSourceField('comunidades.plantas.tipoUso');
     expect(concepts.length).toBeGreaterThanOrEqual(1);
 
     const labels = concepts.flatMap((c) => c.prefLabels.map((l) => l.literalForm));
@@ -89,14 +116,11 @@ maybeDescribe('US1: Automatic term acquisition from BioCultDB', () => {
   });
 
   test('run() creates candidate concepts from comunidades.atividadesEconomicas', async () => {
-    await db.collection('etnodb').insertOne(makeEtnodbDoc());
+    insertBiocultdbRecord(makeEtnodbDoc());
 
     await AcquisitionService.run(db);
 
-    const concepts = await db
-      .collection('etnotermos')
-      .find({ sourceFields: 'comunidades.atividadesEconomicas' })
-      .toArray();
+    const concepts = conceptsWithSourceField('comunidades.atividadesEconomicas');
     expect(concepts.length).toBeGreaterThanOrEqual(1);
 
     const labels = concepts.flatMap((c) => c.prefLabels.map((l) => l.literalForm));
@@ -105,8 +129,7 @@ maybeDescribe('US1: Automatic term acquisition from BioCultDB', () => {
   });
 
   test('cross-field deduplication: same literalForm in two fields produces one concept with both sourceFields', async () => {
-    await db.collection('etnodb').insertOne({
-      _id: new ObjectId(),
+    insertBiocultdbRecord({
       comunidades: [
         {
           nome: 'Krenak',
@@ -119,10 +142,7 @@ maybeDescribe('US1: Automatic term acquisition from BioCultDB', () => {
 
     await AcquisitionService.run(db);
 
-    const concepts = await db
-      .collection('etnotermos')
-      .find({ 'prefLabels.literalForm': 'medicinal' })
-      .toArray();
+    const concepts = conceptsWithPrefLabel('medicinal');
 
     expect(concepts).toHaveLength(1);
     expect(concepts[0].sourceFields).toContain('comunidades.tipo');
@@ -130,55 +150,27 @@ maybeDescribe('US1: Automatic term acquisition from BioCultDB', () => {
   });
 
   test('idempotency: running run() twice does not create duplicate concepts', async () => {
-    await db.collection('etnodb').insertOne(makeEtnodbDoc());
+    insertBiocultdbRecord(makeEtnodbDoc());
 
     await AcquisitionService.run(db);
-    const countAfterFirst = await db.collection('etnotermos').countDocuments();
+    const countAfterFirst = countConcepts();
 
     await AcquisitionService.run(db);
-    const countAfterSecond = await db.collection('etnotermos').countDocuments();
+    const countAfterSecond = countConcepts();
 
     expect(countAfterSecond).toBe(countAfterFirst);
   });
 
   test('normalization: "ERVA-MATE " normalizes to "erva-mate" and matches existing concept', async () => {
-    await db.collection('etnotermos').insertOne({
-      _id: new ObjectId(),
-      uri: 'etnotermos:erva-mate',
+    const existing = createConcept({
       status: 'candidate',
       sourceFields: ['comunidades.plantas.nomeVernacular'],
       sourceCommunities: [],
-      prefLabels: [
-        {
-          _id: new ObjectId(),
-          literalForm: 'erva-mate',
-          language: 'pt',
-          type: 'pref',
-          accessLevel: 'public',
-          labelRelations: [],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ],
-      altLabels: [],
-      hiddenLabels: [],
-      definition: null,
-      scopeNote: null,
-      historyNote: null,
-      example: null,
-      broader: [],
-      narrower: [],
-      related: [],
-      ancestors: [],
-      replacedBy: null,
-      deprecatedDate: null,
-      version: 1,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      prefLabels: [{ literalForm: 'erva-mate', language: 'pt', type: 'pref', accessLevel: 'public' }],
     });
+    insertConcept(db, existing);
 
-    await db.collection('etnodb').insertOne({
-      _id: new ObjectId(),
+    insertBiocultdbRecord({
       comunidades: [
         {
           nome: 'Guarani',
@@ -191,16 +183,12 @@ maybeDescribe('US1: Automatic term acquisition from BioCultDB', () => {
 
     await AcquisitionService.run(db);
 
-    const concepts = await db
-      .collection('etnotermos')
-      .find({ 'prefLabels.literalForm': 'erva-mate' })
-      .toArray();
+    const concepts = conceptsWithPrefLabel('erva-mate');
     expect(concepts).toHaveLength(1);
   });
 
   test('empty/null values are ignored and do not create concepts', async () => {
-    await db.collection('etnodb').insertOne({
-      _id: new ObjectId(),
+    insertBiocultdbRecord({
       comunidades: [
         {
           nome: 'Comunidade X',
@@ -213,18 +201,15 @@ maybeDescribe('US1: Automatic term acquisition from BioCultDB', () => {
 
     await AcquisitionService.run(db);
 
-    const count = await db.collection('etnotermos').countDocuments();
-    expect(count).toBe(0);
+    expect(countConcepts()).toBe(0);
   });
 
   test('run() creates an AcquisitionLog with status "success", conceptsCreated, conceptsExisting, durationMs', async () => {
-    await db.collection('etnodb').insertOne(makeEtnodbDoc());
+    insertBiocultdbRecord(makeEtnodbDoc());
 
     await AcquisitionService.run(db);
 
-    const log = await db
-      .collection('etnotermos_acquisition_log')
-      .findOne({ status: 'success' });
+    const log = findAcquisitionLog('success');
 
     expect(log).not.toBeNull();
     expect(typeof log.conceptsCreated).toBe('number');
@@ -234,39 +219,33 @@ maybeDescribe('US1: Automatic term acquisition from BioCultDB', () => {
   });
 
   test('failure scenario: corrupt etnodb → AcquisitionLog has status "failure" and hasUnresolved:true', async () => {
-    await db.collection('etnodb').insertOne({
-      _id: new ObjectId(),
-      comunidades: 'NOT_AN_ARRAY',
-    });
+    insertBiocultdbRecord({ comunidades: 'NOT_AN_ARRAY' });
 
     await AcquisitionService.run(db);
 
-    const log = await db
-      .collection('etnotermos_acquisition_log')
-      .findOne({ status: 'failure' });
+    const log = findAcquisitionLog('failure');
 
     expect(log).not.toBeNull();
     expect(log.hasUnresolved).toBe(true);
   });
 
   test('sourceCommunities is populated from comunidades.nome values', async () => {
-    await db.collection('etnodb').insertOne(makeEtnodbDoc());
+    insertBiocultdbRecord(makeEtnodbDoc());
 
     await AcquisitionService.run(db);
 
-    const concepts = await db.collection('etnotermos').find({}).toArray();
-    const withCommunity = concepts.filter(
+    const withCommunity = allConcepts().filter(
       (c) => Array.isArray(c.sourceCommunities) && c.sourceCommunities.includes('Guarani Mbya')
     );
     expect(withCommunity.length).toBeGreaterThanOrEqual(1);
   });
 
   test('all created concepts have status "candidate", prefLabel with language "pt" and accessLevel "public"', async () => {
-    await db.collection('etnodb').insertOne(makeEtnodbDoc());
+    insertBiocultdbRecord(makeEtnodbDoc());
 
     await AcquisitionService.run(db);
 
-    const concepts = await db.collection('etnotermos').find({}).toArray();
+    const concepts = allConcepts();
     expect(concepts.length).toBeGreaterThan(0);
 
     for (const concept of concepts) {

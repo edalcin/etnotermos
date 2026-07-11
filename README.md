@@ -79,25 +79,25 @@ ex:label_jurema_pt skosxl:labelRelation ex:label_jurema_kariri .
 
 ---
 
-## Por que MongoDB
+## Por que SQLite+JSON
 
-O MongoDB é a escolha técnica mais adequada para a natureza plural e dinâmica deste domínio:
+O SQLite com JSON1 é a escolha técnica mais adequada para a natureza plural e dinâmica deste domínio, com a vantagem adicional de ser um arquivo único, portável e sem servidor — reforçando a soberania de cada instância:
 
 ### Pluralismo taxonômico
 
-Em vez de tabelas rígidas, um único documento pode conter simultaneamente a classificação ocidental e múltiplas etnotaxonomias, sem que um esquema interfira no outro.
+Em vez de tabelas rígidas, um único documento JSON (coluna `doc`) pode conter simultaneamente a classificação ocidental e múltiplas etnotaxonomias, sem que um esquema interfira no outro.
 
 ### Modelagem dinâmica de línguas indígenas
 
-O modelo de documentos BSON/JSON permite que atributos variem entre registros. Línguas com arquivos de áudio, notas rituais ou variações ortográficas coexistem com registros mais simples — sem penalidade de esquema.
+O modelo de documento JSON (JSON1) permite que atributos variem entre registros. Línguas com arquivos de áudio, notas rituais ou variações ortográficas coexistem com registros mais simples — sem penalidade de esquema.
 
 ### Compatibilidade com JSON-LD
 
-O MongoDB armazena documentos JSON nativamente, permitindo guardar e consultar estruturas JSON-LD diretamente — facilitando a interoperabilidade com padrões de Web Semântica.
+O SQLite armazena o documento inteiro como texto JSON na coluna `doc`, permitindo guardar e consultar estruturas JSON-LD diretamente (`json_extract`, `json_each`) — facilitando a interoperabilidade com padrões de Web Semântica.
 
 ### Hierarquias com Array of Ancestors
 
-Para representar hierarquias de etnotaxonomias, o padrão *Array of Ancestors* armazena toda a cadeia de ancestrais no documento. Isso permite descobrir a linha hierárquica completa de um conceito com uma única consulta, sem recursividade custosa em tempo de execução.
+Para representar hierarquias de etnotaxonomias, o padrão *Array of Ancestors* armazena toda a cadeia de ancestrais no documento. Isso permite descobrir a linha hierárquica completa de um conceito com uma única consulta (`json_each(doc, '$.ancestors')`), sem recursividade custosa em tempo de execução.
 
 ```json
 {
@@ -108,9 +108,9 @@ Para representar hierarquias de etnotaxonomias, o padrão *Array of Ancestors* a
 }
 ```
 
-### $graphLookup para travessias complexas
+### FTS5 e json_each para travessias complexas
 
-O operador `$graphLookup` do MongoDB permite navegação recursiva em grafos de relacionamentos — útil para consultas como *"todos os conceitos relacionados ao uso medicinal que possuem rótulo em língua indígena"*.
+O SQLite compila com o módulo **FTS5**, usado para busca textual ponderada (`bm25()`) sobre `prefLabels`/`altLabels`/`definition`/`scopeNote` — a alternativa nativa do SQLite para busca full-text ponderada. Travessias em grafos de relacionamentos — útil para consultas como *"todos os conceitos relacionados ao uso medicinal que possuem rótulo em língua indígena"* — são feitas com `json_each` sobre os arrays `related`/`broader`/`narrower` em CTEs, sem necessidade de um operador proprietário de travessia de grafos.
 
 ---
 
@@ -120,9 +120,9 @@ O BioCultTermos e o [BioCultDB](https://github.com/edalcin/BioCultDB) compartilh
 
 | Aspecto | Detalhe |
 |---|---|
-| **Database** | MongoDB `etnodb` (instância compartilhada) |
-| **Coleção etnotermos** | `etnotermos` (separada de `etnodb`) |
-| **Coleção fonte** | `etnodb` (lida pelo contexto de Aquisição) |
+| **Database** | SQLite `unidade.sqlite` (arquivo compartilhado, WAL) |
+| **Tabela etnotermos** | `etnotermos` (separada de `biocultdb_records`) |
+| **Tabela fonte** | `biocultdb_records` (lida pelo contexto de Aquisição) |
 | **Campos gerenciados** | `comunidades.tipo`, `comunidades.plantas.nomeVernacular`, `comunidades.plantas.tipoUso`, `comunidades.atividadesEconomicas` |
 | **Identidade visual** | Tema `forest` (Tailwind CSS) — mesmas cores, fontes, componentes |
 
@@ -140,17 +140,17 @@ graph TD
     U2["✏️ Curador\n(autenticado)"]
     ET["BioCultTermos v2.0\n[Sistema]\nAquisição · Apresentação · Curadoria\nde vocabulário controlado SKOS-XL"]
     EDB["BioCultDB\n[Sistema externo]\nBase de dados etnobotânicos\nportão 3001–3003"]
-    MDB[("MongoDB\n[Banco de Dados]\netnodb")]
+    SDB[("SQLite+JSON\n[Banco de Dados]\nunidade.sqlite")]
 
     U1 -->|"Consulta termos\n(porta 4000)"| ET
     U2 -->|"Cura e valida termos\n(porta 4001)"| ET
-    ET -->|"Lê vocabulário bruto\n(coleção etnodb)"| MDB
-    ET -->|"Persiste conceitos SKOS-XL\n(coleção etnotermos)"| MDB
-    EDB -->|"Escreve registros\n(coleção etnodb)"| MDB
+    ET -->|"Lê vocabulário bruto\n(tabela biocultdb_records)"| SDB
+    ET -->|"Persiste conceitos SKOS-XL\n(tabela etnotermos)"| SDB
+    EDB -->|"Escreve registros\n(tabela biocultdb_records)"| SDB
 
     style ET fill:#16a34a,color:#fff
     style EDB fill:#0369a1,color:#fff
-    style MDB fill:#4d7c0f,color:#fff
+    style SDB fill:#4d7c0f,color:#fff
 ```
 
 ### Nível 2 — Containers
@@ -164,23 +164,23 @@ graph TD
     end
 
     subgraph Shared["Banco Compartilhado"]
-        MDB[("MongoDB etnodb\n[Banco de Dados]\ncoleções: etnotermos\netnotermos_acquisition_log\netnotermos_audit_log")]
+        SDB[("SQLite unidade.sqlite\n[Banco de Dados]\ntabelas: etnotermos\netnotermos_acquisition_log\netnotermos_audit_log")]
     end
 
     subgraph BioCultDB["BioCultDB (externo)"]
         EDBAPP["Aplicação BioCultDB\nPortas 3001–3003"]
-        EDBCOL[("coleção etnodb")]
+        EDBTBL[("tabela biocultdb_records")]
     end
 
-    PUB -->|"findMany, findById\n(somente active)"| MDB
-    ADM -->|"CRUD completo + audit"| MDB
-    ADM -->|"Aquisição periódica\n(cron + on-demand)"| EDBCOL
-    EDBAPP --> EDBCOL
+    PUB -->|"findMany, findById\n(somente active)"| SDB
+    ADM -->|"CRUD completo + audit"| SDB
+    ADM -->|"Aquisição periódica\n(cron + on-demand)"| EDBTBL
+    EDBAPP --> EDBTBL
 
     style PUB fill:#dcfce7,color:#166534
     style ADM fill:#fef9c3,color:#854d0e
-    style MDB fill:#4d7c0f,color:#fff
-    style EDBCOL fill:#1d4ed8,color:#fff
+    style SDB fill:#4d7c0f,color:#fff
+    style EDBTBL fill:#1d4ed8,color:#fff
 ```
 
 ### Nível 3 — Componentes
@@ -192,15 +192,15 @@ graph LR
     CRON["Cron Scheduler\n[node-cron]\nexecução periódica"]
     ROUTE["POST /acquisition/run\n[Express Route]"]
     SVC["AcquisitionService\n[Serviço]\nnormalização + dedup"]
-    ETNCOL[("coleção etnodb\n(fonte)")]
-    TERMCOL[("coleção etnotermos\n(destino)")]
-    LOGCOL[("etnotermos_acquisition_log")]
+    ETNTBL[("tabela biocultdb_records\n(fonte)")]
+    TERMTBL[("tabela etnotermos\n(destino)")]
+    LOGTBL[("etnotermos_acquisition_log")]
 
     CRON --> SVC
     ROUTE --> SVC
-    SVC -->|"$toLower + trim"| ETNCOL
-    SVC -->|"upsert por literalForm"| TERMCOL
-    SVC -->|"log success/failure"| LOGCOL
+    SVC -->|"lower() + trim"| ETNTBL
+    SVC -->|"upsert por literalForm"| TERMTBL
+    SVC -->|"log success/failure"| LOGTBL
 ```
 
 #### Contexto de Apresentação (porta 4000)
@@ -210,7 +210,7 @@ graph LR
     REQ["GET /\nGET /:id\n[Express Routes]"]
     CS["ConceptService\n[Serviço]\nfindMany, findById"]
     SS["SearchService\n[Serviço]\nbusca por texto"]
-    COL[("coleção etnotermos\n(somente active)")]
+    COL[("tabela etnotermos\n(somente active)")]
     FILTER["Filtro accessLevel\n(omite sacred/restricted)"]
 
     REQ --> CS
@@ -229,7 +229,7 @@ graph LR
     AS["AuditService\n[Serviço]\nregistro por campo"]
     ACQS["AcquisitionService\n[Serviço]\nrun + status"]
     VALID["SKOS-XL Validation\n[Lib]\nuniqueness, cycle, prefLabel"]
-    COL[("coleção etnotermos")]
+    COL[("tabela etnotermos")]
     AUDIT[("etnotermos_audit_log")]
 
     ROUTES --> CS
@@ -247,21 +247,21 @@ graph LR
 
 ```json
 {
-  "_id": "ObjectId",
+  "id": "<uuid>",
   "uri": "etnotermos:tipo-comunidade/indigena",
   "status": "candidate | active | deprecated",
   "sourceFields": ["comunidades.tipo"],
   "prefLabels": [
     {
-      "_id": "ObjectId",
+      "id": "<uuid>",
       "literalForm": "indígena",
       "language": "pt",
       "type": "pref",
       "accessLevel": "public | restricted | sacred",
       "audioPath": null,
       "labelRelations": [],
-      "createdAt": "ISODate",
-      "updatedAt": "ISODate"
+      "createdAt": "2026-07-11T00:00:00Z",
+      "updatedAt": "2026-07-11T00:00:00Z"
     }
   ],
   "altLabels": [],
@@ -269,14 +269,14 @@ graph LR
   "definition": "",
   "scopeNote": "",
   "historyNote": "",
-  "broader": ["ObjectId"],
-  "narrower": ["ObjectId"],
-  "related": ["ObjectId"],
-  "ancestors": ["ObjectId"],
+  "broader": ["<uuid>"],
+  "narrower": ["<uuid>"],
+  "related": ["<uuid>"],
+  "ancestors": ["<uuid>"],
   "replacedBy": null,
   "version": 1,
-  "createdAt": "ISODate",
-  "updatedAt": "ISODate"
+  "createdAt": "2026-07-11T00:00:00Z",
+  "updatedAt": "2026-07-11T00:00:00Z"
 }
 ```
 
@@ -300,12 +300,12 @@ graph LR
 
 ## Stack Tecnológica
 
-- **Backend**: Node.js 20 LTS + Express.js + MongoDB Driver 6.x
+- **Backend**: Node.js 20 LTS + Express.js + better-sqlite3
 - **Frontend**: HTMX 2.x + Alpine.js 3.x + Tailwind CSS 3.x (tema `forest`, idêntico ao BioCultDB)
 - **Template Engine**: EJS (server-side rendering)
-- **Banco de Dados**: MongoDB 7.0+, database `etnodb`
+- **Banco de Dados**: SQLite (JSON1 + FTS5), arquivo `unidade.sqlite` (compartilhado com o BioCultDB da unidade)
 - **Visualização**: Cytoscape.js (grafos de relacionamentos)
-- **Testes**: Jest + Supertest + mongodb-memory-server
+- **Testes**: Jest + Supertest + SQLite `:memory:`
 - **Deploy**: Docker (Alpine Linux)
 
 ---
@@ -351,7 +351,7 @@ Ou use o script interativo: `node docker/create-admin-user.js`
 ### Docker
 
 ```bash
-# Configurar (interativo — pede usuário, senha e URI do MongoDB)
+# Configurar (interativo — pede usuário e senha; caminho do arquivo SQLite via SQLITE_DB_PATH)
 node docker/create-admin-user.js
 
 # Iniciar
@@ -399,15 +399,15 @@ Na arquitetura federada v3.0, **cada membro opera sua própria instância sobera
 ```mermaid
 graph TD
     subgraph I1["Iniciativa de Fontes Secundárias"]
-        ET1(BioCultTermos\nConceptScheme: I1) <--> MDB1[(MongoDB I1)]
+        ET1(BioCultTermos\nConceptScheme: I1) <--> SDB1[(SQLite I1)]
     end
 
     subgraph C2["Comunidade Tradicional #2"]
-        ET2(BioCultTermos\nConceptScheme: C2) <--> MDB2[(MongoDB C2)]
+        ET2(BioCultTermos\nConceptScheme: C2) <--> SDB2[(SQLite C2)]
     end
 
     subgraph C3["Comunidade Tradicional #N"]
-        ET3(BioCultTermos\nConceptScheme: CN) <--> MDB3[(MongoDB CN)]
+        ET3(BioCultTermos\nConceptScheme: CN) <--> SDB3[(SQLite CN)]
     end
 
     subgraph PL["Pluriverso"]

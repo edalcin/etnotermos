@@ -1,6 +1,8 @@
 
 # Implementation Plan: Ethnobotanical Terms Database and Management System
 
+> **Nota:** Este documento descreve uma arquitetura histórica/divergente (Mongoose/MongoDB, Z39.19) de um projeto anterior. A implementação atual do BioCultTermos segue a arquitetura v3.1 (SQLite + JSON1 via better-sqlite3), conforme ADR-005 da "Arquitetura-BioCultural". Mantido apenas como referência histórica.
+
 **Branch**: `main` | **Date**: 2026-01-05 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/main/spec.md`
 

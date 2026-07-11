@@ -3,7 +3,7 @@
 **Feature**: 001-quero-refatorar-toda  
 **Input**: `specs/001-quero-refatorar-toda/`  
 **Date**: 2026-06-06  
-**Stack**: Node.js 20 LTS, Express.js, MongoDB Driver 6.x, HTMX 2.x, Alpine.js 3.x, Tailwind CSS 3.x, EJS 3.x, multer, node-cron, bcrypt, Jest 29, Supertest, mongodb-memory-server
+**Stack**: Node.js 20 LTS, Express.js, better-sqlite3, HTMX 2.x, Alpine.js 3.x, Tailwind CSS 3.x, EJS 3.x, multer, node-cron, bcrypt, Jest 29, Supertest, SQLite `:memory:` (testes)
 
 ---
 
@@ -11,23 +11,23 @@
 
 - [X] T001 Criar estrutura de diretórios e `backend/package.json` com todas as dependências declaradas em Technical Context
   - Criar: `backend/src/contexts/public/routes/`, `backend/src/contexts/public/views/`, `backend/src/contexts/public/`, `backend/src/contexts/admin/routes/`, `backend/src/contexts/admin/views/concepts/`, `backend/src/contexts/admin/views/acquisition/`, `backend/src/models/`, `backend/src/services/`, `backend/src/lib/skosxl/`, `backend/src/lib/auth/`, `backend/src/lib/scheduler/`, `backend/src/shared/`, `backend/src/config/`, `backend/tests/contract/`, `backend/tests/integration/`, `backend/tests/unit/`, `scripts/`, `frontend/src/styles/`, `docker/`
-  - `backend/package.json`: `express`, `mongodb`, `ejs`, `multer`, `node-cron`, `bcrypt`, `htmx.org`, `alpinejs`; devDeps: `jest`, `supertest`, `mongodb-memory-server`, `tailwindcss`, `nodemon`
+  - `backend/package.json`: `express`, `better-sqlite3`, `ejs`, `multer`, `node-cron`, `bcrypt`, `htmx.org`, `alpinejs`; devDeps: `jest`, `supertest`, `tailwindcss`, `nodemon`
   - `backend/package.json` scripts: `dev:public`, `dev:admin`, `test`, `test:unit`, `test:integration`, `test:contract`
   - `frontend/package.json`: `tailwindcss`; scripts: `build:css`, `watch:css`
 
 - [X] T002 Implementar `backend/src/config/index.js` — gerenciamento de variáveis de ambiente
-  - Exportar: `MONGODB_URI` (obrigatório), `PUBLIC_PORT` (default 4000), `ADMIN_PORT` (default 4001), `ADMIN_USERS` (JSON.parse, obrigatório), `AUDIO_STORAGE_PATH` (obrigatório), `ACQUISITION_CRON_SCHEDULE` (default `0 3 * * *`), `LOG_LEVEL` (default `info`), `NODE_ENV`
+  - Exportar: `SQLITE_DB_PATH` (obrigatório), `PUBLIC_PORT` (default 4000), `ADMIN_PORT` (default 4001), `ADMIN_USERS` (JSON.parse, obrigatório), `AUDIO_STORAGE_PATH` (obrigatório), `ACQUISITION_CRON_SCHEDULE` (default `0 3 * * *`), `LOG_LEVEL` (default `info`), `NODE_ENV`
   - Falhar com erro claro se variável obrigatória ausente
   - Criar `.env.example` (nunca `.env` real — nunca commitar credenciais)
 
-- [X] T003 Implementar `backend/src/shared/database.js` — conexão MongoDB compartilhada
-  - Exportar `connect()` e `getDb()` usando MongoDB Driver 6.x
-  - Conectar ao banco `etnodb` (database name extraído de `MONGODB_URI`)
+- [X] T003 Implementar `backend/src/shared/database.js` — conexão SQLite compartilhada
+  - Exportar `connect()` e `getDb()` usando `better-sqlite3`, com WAL habilitado
+  - Conectar ao arquivo SQLite indicado por `SQLITE_DB_PATH` (mesmo arquivo compartilhado com o BioCultDB, ADR-005)
   - Singleton: reutilizar conexão existente se já conectado
   - Depende de: T002
 
-- [X] T004 Configurar Jest + mongodb-memory-server em `backend/jest.config.js` e `backend/tests/helpers/db.js`
-  - `jest.config.js`: `testEnvironment: node`, timeout 30s, `globalSetup`/`globalTeardown` para mongodb-memory-server
+- [X] T004 Configurar Jest + SQLite `:memory:` em `backend/jest.config.js` e `backend/tests/helpers/db.js`
+  - `jest.config.js`: `testEnvironment: node`, timeout 30s, `globalSetup`/`globalTeardown` para banco SQLite `:memory:`
   - `tests/helpers/db.js`: exportar `connect()`, `disconnect()`, `clearCollections()` para uso em testes
   - `tests/helpers/app-public.js` e `tests/helpers/app-admin.js`: exportar instâncias Express configuradas para Supertest (sem iniciar servidor real)
 
@@ -38,12 +38,12 @@
 
 - [X] T006 [P] Criar `docker/etnotermos.Dockerfile` e `docker/docker-compose.yml`
   - `Dockerfile`: Node.js 20 Alpine; multi-stage (build Tailwind → prod); expor portas 4000 e 4001; `CMD` inicia ambos os servidores
-  - `docker-compose.yml`: serviço `etnotermos`; variáveis de ambiente via `.env`; volume para `AUDIO_STORAGE_PATH`; sem serviço MongoDB próprio (usa instância compartilhada do BioCultDB)
+  - `docker-compose.yml`: serviço `etnotermos`; variáveis de ambiente via `.env`; volume para `AUDIO_STORAGE_PATH`; sem serviço de banco próprio (usa arquivo SQLite compartilhado do BioCultDB via volume)
 
-- [X] T007 Criar `scripts/db-init.js` — criação de índices MongoDB
-  - Criar coleções `etnotermos`, `etnotermos_acquisition_log`, `etnotermos_audit_log`
-  - Criar todos os índices especificados em `data-model.md`: `text_labels`, `idx_status`, `idx_sourceFields`, `idx_broader`, `idx_narrower`, `idx_ancestors`, `idx_version`, `idx_replacedBy`, índices das coleções de log
-  - Script idempotente: `createIndex` com `{ background: true }` não falha se índice já existe
+- [X] T007 Criar `scripts/db-init.js` — criação de índices SQLite
+  - Criar tabelas `etnotermos`, `etnotermos_acquisition_log`, `etnotermos_audit_log`
+  - Criar todos os índices especificados em `data-model.md`: `text_labels` (FTS5), `idx_status`, `idx_sourceFields`, `idx_broader`, `idx_narrower`, `idx_ancestors`, `idx_version`, `idx_replacedBy`, índices das tabelas de log
+  - Script idempotente: `CREATE INDEX IF NOT EXISTS` não falha se índice já existe
   - Depende de: T003
 
 ---
@@ -59,7 +59,7 @@
     - `GET /concepts` → 200 com `data[]`, `total`, `page`; sem conceitos `status:"candidate"` ou labels `accessLevel:"sacred"`
     - `GET /concepts/:id` → 200 JSON shape completo; 404 para inexistente; 410 para deprecated com `replacedBy`
     - `GET /audio/:filename` → 200 stream; 404 arquivo inexistente; 400 para path traversal (`../`)
-    - `GET /health` → 200 `{ status:"ok", mongodb:"connected" }`
+    - `GET /health` → 200 `{ status:"ok", sqlite:"connected" }`
   - Todos os testes devem FALHAR inicialmente (servidor não implementado)
   - Depende de: T004
 
@@ -134,18 +134,18 @@
 
 - [X] T015 [P] Implementar `backend/src/models/Concept.js` — schema SKOS-XL
   - Exportar `LabelRelationSchema`, `LabelSchema`, `ConceptSchema` (conforme `data-model.md`)
-  - Exportar funções helper: `createConcept(data)`, `getConceptCollection(db)` (retorna Collection MongoDB)
+  - Exportar funções helper: `createConcept(data)`, `getConceptTable()` (retorna nome da tabela SQLite)
   - Validações inline: `status` enum, `accessLevel` enum, unicidade `(literalForm+language+type)` verificada no service
   - Campo `version` inicializado em `1` na criação
   - Depende de: T003
 
 - [X] T016 [P] Implementar `backend/src/models/AcquisitionLog.js`
-  - Exportar `AcquisitionLogSchema` e `getAcquisitionLogCollection(db)`
+  - Exportar `AcquisitionLogSchema` e `getAcquisitionLogTable()`
   - Campos conforme `data-model.md`: `executedAt`, `status`, `errorMessage`, `fieldsProcessed`, `conceptsCreated`, `conceptsExisting`, `errors[]`, `hasUnresolved`, `durationMs`
   - Depende de: T003
 
 - [X] T017 [P] Implementar `backend/src/models/AuditEntry.js`
-  - Exportar `AuditEntrySchema` e `getAuditEntryCollection(db)`
+  - Exportar `AuditEntrySchema` e `getAuditEntryTable()`
   - Campos: `conceptId`, `conceptLiteralForm`, `field`, `previousValue`, `newValue`, `responsible`, `timestamp`
   - Imutável: sem funções de update/delete
   - Depende de: T003
@@ -233,7 +233,7 @@
   - `GET /` → renderizar `index.ejs` com grupos semânticos (distinct sourceFields de conceitos active) e total de conceitos
   - `GET /concepts` → chamar `ConceptService.findMany({ status:"active", publicOnly:true, ... })` com paginação; suporte a HTMX partial swap (header `HX-Request`)
   - `GET /concepts/:id` → chamar `ConceptService.findById(id, { publicOnly:true })`; 404/410 conforme contrato
-  - `GET /health` → verificar conexão MongoDB; 200/503
+  - `GET /health` → verificar conexão SQLite; 200/503
   - Depende de: T025
 
 - [X] T027 Implementar `backend/src/contexts/public/routes/audio.js` — servir arquivos de áudio
@@ -331,13 +331,13 @@
 ## Phase 3.10: Polish
 
 - [X] T037 [P] Testes unitários `ConceptService` em `backend/tests/unit/concept-service.test.js`
-  - Testar cada método com mongodb-memory-server
-  - Focar em: optimistic locking (matchedCount check), cascade ancestors, reciprocidade broader/narrower, filtragem accessLevel, AuditEntry criado por alteração
+  - Testar cada método com SQLite `:memory:`
+  - Focar em: optimistic locking (verificação de version em transação), cascade ancestors, reciprocidade broader/narrower, filtragem accessLevel, AuditEntry criado por alteração
   - Depende de: T021
 
 - [X] T038 [P] Testes unitários `AcquisitionService` em `backend/tests/unit/acquisition-service.test.js`
   - Testar: deduplicação cross-field, normalização toLower/trim, idempotência, criação de AcquisitionLog de falha
-  - Mock da coleção `etnodb` com dados fixture representativos dos 4 campos monitorados
+  - Mock da tabela `biocultdb_records` com dados fixture representativos dos 4 campos monitorados
   - Depende de: T023
 
 - [X] T039 [P] Testes unitários `skosxl/validation.js` em `backend/tests/unit/skosxl-validation.test.js`

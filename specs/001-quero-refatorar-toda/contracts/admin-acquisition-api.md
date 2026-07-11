@@ -71,7 +71,7 @@
 {
   "data": [
     {
-      "_id": "string",
+      "id": "string",
       "executedAt": "ISO date",
       "status": "success",
       "conceptsCreated": 5,
@@ -113,7 +113,7 @@
 {
   "data": [
     {
-      "_id": "string",
+      "id": "string",
       "conceptId": "string",
       "conceptLiteralForm": "string",
       "field": "status",
@@ -132,21 +132,28 @@
 
 ## Comportamento da Aquisição — Algoritmo Detalhado
 
+**Fonte dos dados**: tabela `biocultdb_records` no MESMO arquivo SQLite compartilhado com o BioCultDB (ADR-005 da Arquitetura-BioCultural).
+
 ```
 Para cada campo monitorado em MONITORED_FIELDS:
-  1. Executar aggregate no etnodb para obter valores distintos + comunidades associadas
-  2. Normalizar: toLower() + trim() + remover nulos/vazios/somente espaços
+  1. Ler todos os registros de biocultdb_records (SELECT id, doc) e, em memória,
+     extrair valores distintos + comunidades associadas por campo monitorado
+  2. Normalizar: toLowerCase() + trim() + remover nulos/vazios/somente espaços
   3. Para cada valor normalizado:
-     a. Buscar em etnotermos por: prefLabels.literalForm = valor (case-insensitive)
+     a. Buscar em etnotermos: EXISTS registro cujo doc.prefLabels contenha um
+        objeto com literalForm = valor e type = "pref" (via json_each/json_extract;
+        comparação exata pós-normalização lowercase)
      b. Se NÃO existe:
         - Criar Concept com status="candidate"
         - prefLabel: { literalForm: valor, language: "pt", type: "pref", accessLevel: "public" }
         - sourceFields: [campo]
         - sourceCommunities: [comunidades encontradas]
+        - INSERT INTO etnotermos (id, doc, created_at, updated_at)
      c. Se JÁ existe:
-        - Se campo não está em concept.sourceFields → $addToSet sourceFields
-        - Se comunidades novas → $addToSet sourceCommunities
+        - Se campo não está em doc.sourceFields → adiciona ao array (sem duplicar)
+        - Se comunidades novas → adiciona a sourceCommunities (sem duplicar)
         - Não alterar status, labels ou version
+        - UPDATE etnotermos SET doc = ?, updated_at = ? WHERE id = ?
 4. Registrar AcquisitionLog com resultado
 5. Se qualquer exception → status="failure", errorMessage=stack, hasUnresolved=true
 ```
@@ -158,6 +165,6 @@ Para cada campo monitorado em MONITORED_FIELDS:
 | Variável | Descrição | Default |
 |----------|-----------|---------|
 | `ACQUISITION_CRON_SCHEDULE` | Expressão cron para agendamento | `0 3 * * *` (todo dia às 03:00) |
-| `MONGODB_URI` | URI de conexão MongoDB | — (obrigatório) |
+| `SQLITE_DB_PATH` | Caminho do arquivo `.sqlite` compartilhado (mesmo arquivo do BioCultDB, ADR-005) | — (obrigatório) |
 | `AUDIO_STORAGE_PATH` | Diretório base para arquivos de áudio | — (obrigatório se upload usado) |
 | `ADMIN_USERS` | JSON array de credenciais `[{username, passwordHash}]` | — (obrigatório) |

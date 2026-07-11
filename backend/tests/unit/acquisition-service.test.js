@@ -1,10 +1,9 @@
-import { ObjectId } from 'mongodb';
+import { randomUUID } from 'crypto';
 import { connect, disconnect, clearCollections, getDb } from '../helpers/db.js';
 import * as AcquisitionService from '../../src/services/AcquisitionService.js';
 
 function makeEtnodbDoc(overrides = {}) {
   return {
-    _id: new ObjectId(),
     comunidades: [
       {
         nome: 'Guarani Mbya',
@@ -15,6 +14,52 @@ function makeEtnodbDoc(overrides = {}) {
     ],
     ...overrides,
   };
+}
+
+function insertBiocultdbRecord(db, doc) {
+  const now = new Date().toISOString();
+  db.prepare(
+    'INSERT INTO biocultdb_records (id, doc, created_at, updated_at) VALUES (?, ?, ?, ?)'
+  ).run(randomUUID(), JSON.stringify(doc), now, now);
+}
+
+function findConceptByPrefLabel(db, literalForm) {
+  const row = db
+    .prepare(
+      `SELECT doc FROM etnotermos WHERE EXISTS (
+         SELECT 1 FROM json_each(json_extract(doc,'$.prefLabels')) je
+         WHERE json_extract(je.value,'$.literalForm') = ?
+       )`
+    )
+    .get(literalForm);
+  return row ? JSON.parse(row.doc) : null;
+}
+
+function findConceptsByPrefLabel(db, literalForm) {
+  return db
+    .prepare(
+      `SELECT doc FROM etnotermos WHERE EXISTS (
+         SELECT 1 FROM json_each(json_extract(doc,'$.prefLabels')) je
+         WHERE json_extract(je.value,'$.literalForm') = ?
+       )`
+    )
+    .all(literalForm)
+    .map((r) => JSON.parse(r.doc));
+}
+
+function countEtnotermos(db) {
+  return db.prepare('SELECT COUNT(*) as n FROM etnotermos').get().n;
+}
+
+function countAcquisitionLogs(db) {
+  return db.prepare('SELECT COUNT(*) as n FROM etnotermos_acquisition_log').get().n;
+}
+
+function findAcquisitionLogByStatus(db, status) {
+  const row = db
+    .prepare(`SELECT doc FROM etnotermos_acquisition_log WHERE json_extract(doc,'$.status') = ?`)
+    .get(status);
+  return row ? JSON.parse(row.doc) : null;
 }
 
 describe('AcquisitionService — unit tests', () => {
@@ -39,22 +84,18 @@ describe('AcquisitionService — unit tests', () => {
 
   describe('normalization', () => {
     test('toLower + trim applied to all field values', async () => {
-      await db.collection('etnodb').insertOne({
-        _id: new ObjectId(),
+      insertBiocultdbRecord(db, {
         comunidades: [{ nome: 'X', tipo: '  ARTESANATO  ', plantas: [], atividadesEconomicas: [] }],
       });
 
       await AcquisitionService.run(db);
 
-      const concept = await db
-        .collection('etnotermos')
-        .findOne({ 'prefLabels.literalForm': 'artesanato' });
+      const concept = findConceptByPrefLabel(db, 'artesanato');
       expect(concept).not.toBeNull();
     });
 
     test('null and empty values are ignored', async () => {
-      await db.collection('etnodb').insertOne({
-        _id: new ObjectId(),
+      insertBiocultdbRecord(db, {
         comunidades: [
           {
             nome: 'Y',
@@ -67,8 +108,7 @@ describe('AcquisitionService — unit tests', () => {
 
       await AcquisitionService.run(db);
 
-      const count = await db.collection('etnotermos').countDocuments();
-      expect(count).toBe(0);
+      expect(countEtnotermos(db)).toBe(0);
     });
   });
 
@@ -78,8 +118,7 @@ describe('AcquisitionService — unit tests', () => {
 
   describe('cross-field deduplication', () => {
     test('same literalForm from two fields → single concept with both sourceFields', async () => {
-      await db.collection('etnodb').insertOne({
-        _id: new ObjectId(),
+      insertBiocultdbRecord(db, {
         comunidades: [
           {
             nome: 'Krenak',
@@ -92,10 +131,7 @@ describe('AcquisitionService — unit tests', () => {
 
       await AcquisitionService.run(db);
 
-      const concepts = await db
-        .collection('etnotermos')
-        .find({ 'prefLabels.literalForm': 'medicinal' })
-        .toArray();
+      const concepts = findConceptsByPrefLabel(db, 'medicinal');
 
       expect(concepts).toHaveLength(1);
       expect(concepts[0].sourceFields).toContain('comunidades.tipo');
@@ -109,20 +145,19 @@ describe('AcquisitionService — unit tests', () => {
 
   describe('idempotency', () => {
     test('running twice does not create duplicate concepts', async () => {
-      await db.collection('etnodb').insertOne(makeEtnodbDoc());
+      insertBiocultdbRecord(db, makeEtnodbDoc());
 
       await AcquisitionService.run(db);
-      const countAfterFirst = await db.collection('etnotermos').countDocuments();
+      const countAfterFirst = countEtnotermos(db);
 
       await AcquisitionService.run(db);
-      const countAfterSecond = await db.collection('etnotermos').countDocuments();
+      const countAfterSecond = countEtnotermos(db);
 
       expect(countAfterSecond).toBe(countAfterFirst);
     });
 
     test('second run adds new sourceField to existing concept', async () => {
-      await db.collection('etnodb').insertOne({
-        _id: new ObjectId(),
+      insertBiocultdbRecord(db, {
         comunidades: [
           {
             nome: 'Guarani',
@@ -135,8 +170,7 @@ describe('AcquisitionService — unit tests', () => {
 
       await AcquisitionService.run(db);
 
-      await db.collection('etnodb').insertOne({
-        _id: new ObjectId(),
+      insertBiocultdbRecord(db, {
         comunidades: [
           {
             nome: 'Krenak',
@@ -149,9 +183,7 @@ describe('AcquisitionService — unit tests', () => {
 
       await AcquisitionService.run(db);
 
-      const concept = await db
-        .collection('etnotermos')
-        .findOne({ 'prefLabels.literalForm': 'medicinal' });
+      const concept = findConceptByPrefLabel(db, 'medicinal');
 
       expect(concept).not.toBeNull();
       expect(concept.sourceFields).toContain('comunidades.tipo');
@@ -165,16 +197,13 @@ describe('AcquisitionService — unit tests', () => {
 
   describe('failure logging', () => {
     test('corrupt comunidades field → AcquisitionLog with status:failure and hasUnresolved:true', async () => {
-      await db.collection('etnodb').insertOne({
-        _id: new ObjectId(),
+      insertBiocultdbRecord(db, {
         comunidades: 'NOT_AN_ARRAY',
       });
 
       await AcquisitionService.run(db);
 
-      const log = await db
-        .collection('etnotermos_acquisition_log')
-        .findOne({ status: 'failure' });
+      const log = findAcquisitionLogByStatus(db, 'failure');
 
       expect(log).not.toBeNull();
       expect(log.hasUnresolved).toBe(true);
@@ -188,13 +217,11 @@ describe('AcquisitionService — unit tests', () => {
 
   describe('success logging', () => {
     test('successful run with data creates AcquisitionLog', async () => {
-      await db.collection('etnodb').insertOne(makeEtnodbDoc());
+      insertBiocultdbRecord(db, makeEtnodbDoc());
 
       await AcquisitionService.run(db);
 
-      const log = await db
-        .collection('etnotermos_acquisition_log')
-        .findOne({ status: 'success' });
+      const log = findAcquisitionLogByStatus(db, 'success');
 
       expect(log).not.toBeNull();
       expect(typeof log.conceptsCreated).toBe('number');
@@ -204,8 +231,7 @@ describe('AcquisitionService — unit tests', () => {
     test('no-op run (empty source) does not write a log', async () => {
       await AcquisitionService.run(db);
 
-      const count = await db.collection('etnotermos_acquisition_log').countDocuments();
-      expect(count).toBe(0);
+      expect(countAcquisitionLogs(db)).toBe(0);
     });
   });
 
@@ -220,7 +246,7 @@ describe('AcquisitionService — unit tests', () => {
     });
 
     test('returns most recent log when logs exist', async () => {
-      await db.collection('etnodb').insertOne(makeEtnodbDoc());
+      insertBiocultdbRecord(db, makeEtnodbDoc());
       await AcquisitionService.run(db);
 
       const result = await AcquisitionService.getLastRunStatus(db);
