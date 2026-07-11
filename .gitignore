@@ -48,9 +48,11 @@ tmp/
 temp/
 *.tmp
 
-# MongoDB data (if running locally)
+# SQLite local database (ADR-005 — shared unit file, never committed)
 data/
-mongodb-data/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
 
 # Docker volumes (local development)
 docker-volumes/

@@ -67,9 +67,10 @@ export async function connect() {
 }
 
 function ensureGeneratedColumn(table, name, expression) {
-  const columns = db.prepare(`PRAGMA table_info(${table})`).all();
-  if (!columns.some((c) => c.name === name)) {
+  try {
     db.exec(`ALTER TABLE ${table} ADD COLUMN ${name} GENERATED ALWAYS AS (${expression}) VIRTUAL;`);
+  } catch (error) {
+    if (!/duplicate column name/i.test(error.message)) throw error;
   }
 }
 
