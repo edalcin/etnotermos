@@ -84,10 +84,11 @@
       <div class="bg-white rounded-lg shadow-sm p-6">
         <h2 class="text-xl font-semibold text-forest-700 mb-3">Integração com BioCultDB</h2>
         <p class="text-gray-700 leading-relaxed">
-          O BioCultTermos compartilha o banco de dados MongoDB com o BioCultDB, operando sobre
-          a coleção <code class="bg-gray-100 px-1 rounded text-sm">etnotermos</code> dentro do
-          banco <code class="bg-gray-100 px-1 rounded text-sm">etnodb</code>. A aquisição
-          automática de termos varre o banco BioCultDB periodicamente e cria conceitos candidatos
+          O BioCultTermos compartilha o arquivo SQLite com o BioCultDB (Arquitetura-BioCultural
+          v3.1, ADR-005), operando sobre a tabela
+          <code class="bg-gray-100 px-1 rounded text-sm">etnotermos</code> dentro do mesmo
+          arquivo <code class="bg-gray-100 px-1 rounded text-sm">unidade.sqlite</code>. A aquisição
+          automática de termos varre a tabela do BioCultDB periodicamente e cria conceitos candidatos
         </p>
       </div>
 
