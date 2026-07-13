@@ -64,3 +64,41 @@
   </table>
 </div>
 <% } %>
+
+<% if (typeof pagination !== 'undefined' && pagination.total > pagination.limit) {
+     const totalPages = Math.max(1, Math.ceil(pagination.total / pagination.limit));
+     const rangeStart = (pagination.page - 1) * pagination.limit + 1;
+     const rangeEnd = Math.min(pagination.page * pagination.limit, pagination.total);
+     const includeFilters = "[name='status'],[name='sourceField'],[name='q']";
+%>
+<div class="mt-4 flex flex-wrap items-center justify-between gap-3 bg-white rounded-lg shadow-sm px-4 py-3">
+  <p class="text-sm text-gray-600">
+    Mostrando <%= rangeStart %>–<%= rangeEnd %> de <%= pagination.total %> termos
+  </p>
+  <div class="flex items-center gap-2">
+    <button
+      type="button"
+      <% if (pagination.page <= 1) { %>disabled<% } %>
+      hx-get="/concepts?page=<%= pagination.page - 1 %>"
+      hx-target="#concept-list"
+      hx-swap="innerHTML"
+      hx-include="<%= includeFilters %>"
+      class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50
+             disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white">
+      ← Anterior
+    </button>
+    <span class="px-2 text-sm text-gray-600">Página <%= pagination.page %> de <%= totalPages %></span>
+    <button
+      type="button"
+      <% if (pagination.page >= totalPages) { %>disabled<% } %>
+      hx-get="/concepts?page=<%= pagination.page + 1 %>"
+      hx-target="#concept-list"
+      hx-swap="innerHTML"
+      hx-include="<%= includeFilters %>"
+      class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-50
+             disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white">
+      Próxima →
+    </button>
+  </div>
+</div>
+<% } %>

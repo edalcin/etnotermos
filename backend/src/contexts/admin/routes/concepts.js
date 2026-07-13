@@ -16,7 +16,7 @@ router.get('/', async (req, res, next) => {
     });
 
     if (req.get('HX-Request')) {
-      return res.render('concepts/list', { ...result, q, sourceField, status, user: req.user, currentPage: 'terms' });
+      return res.render('partials/concept-rows', { concepts: result.data, pagination: result.pagination });
     }
 
     if (req.get('Accept') === 'application/json') {

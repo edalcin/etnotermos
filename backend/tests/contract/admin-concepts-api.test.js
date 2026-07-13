@@ -199,6 +199,71 @@ describe('Admin Concepts/Labels API', () => {
         .set('Authorization', validAuth);
       expect(res.status).toBe(200);
     });
+
+    it('HX-Request returns only the rows partial, not the full document', async () => {
+      requireApp();
+      insertConceptRow(buildConcept());
+      const res = await request(app)
+        .get('/concepts')
+        .set('Authorization', validAuth)
+        .set('HX-Request', 'true');
+      expect(res.status).toBe(200);
+      expect(res.text).not.toMatch(/<!DOCTYPE html>/i);
+      expect(res.text).not.toMatch(/<html/i);
+      expect(res.text).not.toContain('id="concept-list"');
+      expect(res.text).toContain('<table');
+    });
+
+    it('renders pagination controls when total exceeds the page size', async () => {
+      requireApp();
+      insertConceptRows(Array.from({ length: 25 }, () => buildConcept()));
+      const res = await request(app)
+        .get('/concepts?limit=20')
+        .set('Authorization', validAuth);
+      expect(res.status).toBe(200);
+      expect(res.text).toMatch(/Mostrando 1–20 de 25 termos/);
+      expect(res.text).toMatch(/P[aá]gina 1 de 2/);
+      expect(res.text).toContain('Próxima');
+    });
+
+    it('does not render pagination controls when everything fits on one page', async () => {
+      requireApp();
+      insertConceptRow(buildConcept());
+      const res = await request(app)
+        .get('/concepts')
+        .set('Authorization', validAuth);
+      expect(res.status).toBe(200);
+      expect(res.text).not.toMatch(/Mostrando \d/);
+    });
+
+    it('second page shows the remaining items and an enabled "Anterior" control', async () => {
+      requireApp();
+      insertConceptRows(Array.from({ length: 25 }, () => buildConcept()));
+      const res = await request(app)
+        .get('/concepts?page=2&limit=20')
+        .set('Authorization', validAuth);
+      expect(res.status).toBe(200);
+      expect(res.text).toMatch(/Mostrando 21–25 de 25 termos/);
+    });
+
+    it('the semantic field filter includes nomeCientifico as an option', async () => {
+      requireApp();
+      const res = await request(app)
+        .get('/concepts')
+        .set('Authorization', validAuth);
+      expect(res.status).toBe(200);
+      expect(res.text).toContain('comunidades.plantas.nomeCientifico');
+    });
+
+    it('the status filter reflects the active ?status= selection', async () => {
+      requireApp();
+      insertConceptRow(buildConcept({ status: 'candidate' }));
+      const res = await request(app)
+        .get('/concepts?status=candidate')
+        .set('Authorization', validAuth);
+      expect(res.status).toBe(200);
+      expect(res.text).toMatch(/<option value="candidate" selected>/);
+    });
   });
 
   // ---------------------------------------------------------------------------

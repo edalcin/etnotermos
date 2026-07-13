@@ -45,13 +45,13 @@
           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
                  focus:outline-none focus:border-forest-600">
           <option value="">Todos</option>
-          <option value="candidate" <%= (typeof filters !== 'undefined' && filters.status === 'candidate') ? 'selected' : '' %>>
+          <option value="candidate" <%= status === 'candidate' ? 'selected' : '' %>>
             Candidato
           </option>
-          <option value="active" <%= (typeof filters !== 'undefined' && filters.status === 'active') ? 'selected' : '' %>>
+          <option value="active" <%= status === 'active' ? 'selected' : '' %>>
             Ativo
           </option>
-          <option value="deprecated" <%= (typeof filters !== 'undefined' && filters.status === 'deprecated') ? 'selected' : '' %>>
+          <option value="deprecated" <%= status === 'deprecated' ? 'selected' : '' %>>
             Depreciado
           </option>
         </select>
@@ -68,10 +68,11 @@
           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
                  focus:outline-none focus:border-forest-600">
           <option value="">Todos</option>
-          <option value="comunidades.tipo">Tipos de Comunidades</option>
-          <option value="comunidades.plantas.nomeVernacular">Nomes Vernaculares de Plantas</option>
-          <option value="comunidades.plantas.tipoUso">Tipos de Uso de Plantas</option>
-          <option value="comunidades.atividadesEconomicas">Atividades Econômicas</option>
+          <option value="comunidades.tipo" <%= sourceField === 'comunidades.tipo' ? 'selected' : '' %>>Tipos de Comunidades</option>
+          <option value="comunidades.plantas.nomeCientifico" <%= sourceField === 'comunidades.plantas.nomeCientifico' ? 'selected' : '' %>>Nomes Científicos de Plantas</option>
+          <option value="comunidades.plantas.nomeVernacular" <%= sourceField === 'comunidades.plantas.nomeVernacular' ? 'selected' : '' %>>Nomes Vernaculares de Plantas</option>
+          <option value="comunidades.plantas.tipoUso" <%= sourceField === 'comunidades.plantas.tipoUso' ? 'selected' : '' %>>Tipos de Uso de Plantas</option>
+          <option value="comunidades.atividadesEconomicas" <%= sourceField === 'comunidades.atividadesEconomicas' ? 'selected' : '' %>>Atividades Econômicas</option>
         </select>
       </div>
 
@@ -81,7 +82,7 @@
           type="search"
           name="q"
           placeholder="Nome do termo..."
-          value="<%= (typeof filters !== 'undefined' && filters.q) ? filters.q : '' %>"
+          value="<%= q || '' %>"
           hx-get="/concepts"
           hx-target="#concept-list"
           hx-trigger="keyup changed delay:300ms, search"
@@ -94,7 +95,7 @@
 
     <!-- Concept list (HTMX target) -->
     <div id="concept-list">
-      <%- include('../partials/concept-rows', { concepts: data }) %>
+      <%- include('../partials/concept-rows', { concepts: data, pagination }) %>
     </div>
 
   </main>
