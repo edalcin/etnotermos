@@ -625,6 +625,93 @@ describe('Admin Concepts/Labels API', () => {
   });
 
   // ---------------------------------------------------------------------------
+  // POST /concepts/:id/labels/:labelId/promote — Atomic pref swap
+  // ---------------------------------------------------------------------------
+
+  describe('POST /concepts/:id/labels/:labelId/promote', () => {
+    it('returns 200 and swaps which label is pref for that language', async () => {
+      requireApp();
+      const altId = randomUUID();
+      const concept = buildConcept({
+        prefLabels: [
+          {
+            id: randomUUID(),
+            literalForm: 'alimentação',
+            language: 'pt',
+            type: 'pref',
+            accessLevel: 'public',
+            labelRelations: [],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        ],
+        altLabels: [
+          {
+            id: altId,
+            literalForm: 'alimentar',
+            language: 'pt',
+            type: 'alt',
+            accessLevel: 'public',
+            labelRelations: [],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        ],
+      });
+      insertConceptRow(concept);
+
+      const res = await request(app)
+        .post(`/concepts/${concept.id}/labels/${altId}/promote`)
+        .set('Authorization', validAuth)
+        .send({ version: 1 });
+
+      expect(res.status).toBe(200);
+    });
+
+    it('returns 400 when the label is already pref', async () => {
+      requireApp();
+      const concept = buildConcept();
+      insertConceptRow(concept);
+      const prefId = concept.prefLabels[0].id;
+
+      const res = await request(app)
+        .post(`/concepts/${concept.id}/labels/${prefId}/promote`)
+        .set('Authorization', validAuth)
+        .send({ version: 1 });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('returns 409 on version conflict', async () => {
+      requireApp();
+      const altId = randomUUID();
+      const concept = buildConcept({
+        version: 4,
+        altLabels: [
+          {
+            id: altId,
+            literalForm: 'alternativa',
+            language: 'pt',
+            type: 'alt',
+            accessLevel: 'public',
+            labelRelations: [],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        ],
+      });
+      insertConceptRow(concept);
+
+      const res = await request(app)
+        .post(`/concepts/${concept.id}/labels/${altId}/promote`)
+        .set('Authorization', validAuth)
+        .send({ version: 1 }); // stale
+
+      expect(res.status).toBe(409);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // DELETE /concepts/:id/labels/:labelId — Remove a label
   // ---------------------------------------------------------------------------
 

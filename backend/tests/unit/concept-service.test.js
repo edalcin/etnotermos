@@ -43,6 +43,20 @@ function makeConcept(overrides = {}) {
   };
 }
 
+function makeLabel(overrides = {}) {
+  return {
+    id: randomUUID(),
+    literalForm: 'termo',
+    language: 'pt',
+    type: 'alt',
+    accessLevel: 'public',
+    labelRelations: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    ...overrides,
+  };
+}
+
 describe('ConceptService — unit tests', () => {
   let db;
 
@@ -291,6 +305,84 @@ describe('ConceptService — unit tests', () => {
       await expect(
         ConceptService.addRelated(db, a.id, a.version, b.id, 'user1')
       ).resolves.toMatchObject({ ok: true });
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // promoteLabel — atomic pref swap within a language
+  // ---------------------------------------------------------------------------
+
+  describe('promoteLabel', () => {
+    test('promotes an alt label to pref and demotes the previous pref to alt', async () => {
+      const altId = randomUUID();
+      const concept = makeConcept({
+        prefLabels: [makeLabel({ literalForm: 'alimentação', language: 'pt', type: 'pref' })],
+        altLabels: [makeLabel({ id: altId, literalForm: 'alimentar', language: 'pt', type: 'alt' })],
+      });
+      insertConceptRow(concept);
+
+      await ConceptService.promoteLabel(db, concept.id, concept.version, altId, 'user1');
+
+      const saved = findConceptRow(concept.id);
+      expect(saved.prefLabels.map((l) => l.literalForm)).toEqual(['alimentar']);
+      expect(saved.altLabels.map((l) => l.literalForm)).toEqual(['alimentação']);
+      expect(saved.prefLabels[0].id).toBe(altId);
+    });
+
+    test('promotes a hidden label without touching a pref in a different language', async () => {
+      const hiddenId = randomUUID();
+      const concept = makeConcept({
+        prefLabels: [makeLabel({ literalForm: 'guarita', language: 'pt', type: 'pref' })],
+        hiddenLabels: [makeLabel({ id: hiddenId, literalForm: 'watch-post', language: 'en', type: 'hidden' })],
+      });
+      insertConceptRow(concept);
+
+      await ConceptService.promoteLabel(db, concept.id, concept.version, hiddenId, 'user1');
+
+      const saved = findConceptRow(concept.id);
+      expect(saved.prefLabels.map((l) => l.literalForm).sort()).toEqual(['guarita', 'watch-post']);
+      expect(saved.hiddenLabels).toHaveLength(0);
+    });
+
+    test('rejects promoting a label that is already pref', async () => {
+      const concept = makeConcept();
+      insertConceptRow(concept);
+      const prefId = concept.prefLabels[0].id;
+
+      await expect(
+        ConceptService.promoteLabel(db, concept.id, concept.version, prefId, 'user1')
+      ).rejects.toMatchObject({ code: 400 });
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // updateLabel — type change relocates the label between arrays
+  // ---------------------------------------------------------------------------
+
+  describe('updateLabel — type change', () => {
+    test('moves the label into the target array when type changes', async () => {
+      const altId = randomUUID();
+      const concept = makeConcept({
+        altLabels: [makeLabel({ id: altId, literalForm: 'variante', type: 'alt' })],
+      });
+      insertConceptRow(concept);
+
+      await ConceptService.updateLabel(db, concept.id, concept.version, altId, { type: 'hidden' }, 'user1');
+
+      const saved = findConceptRow(concept.id);
+      expect(saved.altLabels).toHaveLength(0);
+      expect(saved.hiddenLabels.map((l) => l.id)).toContain(altId);
+      expect(saved.hiddenLabels.find((l) => l.id === altId).type).toBe('hidden');
+    });
+
+    test('rejects changing the type of the sole prefLabel', async () => {
+      const concept = makeConcept();
+      insertConceptRow(concept);
+      const prefId = concept.prefLabels[0].id;
+
+      await expect(
+        ConceptService.updateLabel(db, concept.id, concept.version, prefId, { type: 'alt' }, 'user1')
+      ).rejects.toMatchObject({ code: 400 });
     });
   });
 

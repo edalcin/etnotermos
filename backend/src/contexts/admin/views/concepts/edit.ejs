@@ -265,6 +265,21 @@
           </form>
           <% } %>
 
+          <!-- Promote to preferred (swaps pref within this language) -->
+          <% if (label.typeDisplay !== 'pref') { %>
+          <button
+            hx-post="/concepts/<%= concept.id %>/labels/<%= label.id %>/promote"
+            hx-vals='{"version": <%= concept.version %>}'
+            hx-confirm="Tornar &quot;<%= label.literalForm %>&quot; o rótulo preferencial (<%= label.language %>)? O rótulo preferencial atual desse idioma vira alternativo automaticamente."
+            hx-target="#save-status"
+            hx-on::after-request="if(event.detail.successful) window.location.reload()"
+            class="self-start px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs hover:bg-amber-200
+                   transition-colors whitespace-nowrap"
+            title="Tornar preferencial">
+            ★ Tornar Preferencial
+          </button>
+          <% } %>
+
           <!-- Delete label -->
           <button
             hx-delete="/concepts/<%= concept.id %>/labels/<%= label.id %>"

@@ -77,6 +77,29 @@ router.put('/concepts/:id/labels/:labelId', async (req, res, next) => {
     if (!result) return res.status(404).json({ error: 'Conceito ou etiqueta não encontrado' });
     res.json(result);
   } catch (err) {
+    if (err.code === 400) return res.status(400).json({ error: err.message });
+    if (err.code === 409) return res.status(409).json({ error: err.message });
+    next(err);
+  }
+});
+
+router.post('/concepts/:id/labels/:labelId/promote', async (req, res, next) => {
+  try {
+    const db = req.app.locals.db;
+    const version = await resolveVersion(db, req.params.id, req.body?.version, req.headers.version);
+    if (version === null) return res.status(404).json({ error: 'Conceito não encontrado' });
+
+    const result = await ConceptService.promoteLabel(
+      db,
+      req.params.id,
+      version,
+      req.params.labelId,
+      req.user.username
+    );
+    if (!result) return res.status(404).json({ error: 'Conceito ou etiqueta não encontrado' });
+    res.json(result);
+  } catch (err) {
+    if (err.code === 400) return res.status(400).json({ error: err.message });
     if (err.code === 409) return res.status(409).json({ error: err.message });
     next(err);
   }

@@ -8,6 +8,7 @@ import {
   validateLabelUniqueness,
   validateSinglePrefLabelPerLanguage,
   validateDeprecation,
+  validateLabelType,
   validateSynonymNotReciprocal,
   validateRelatedExcludesSynonym,
 } from '../lib/skosxl/validation.js';
@@ -434,6 +435,24 @@ export async function updateLabel(db, id, version, labelId, labelData, username)
     validateSinglePrefLabelPerLanguage(concept, { ...existing, ...labelData }, labelId);
   }
 
+  // Changing `type` must relocate the label to the matching array
+  // (prefLabels/altLabels/hiddenLabels) — the array a label lives in is
+  // what the UI and every other invariant (uniqueness, single-pref-per-
+  // language, "can't delete the sole prefLabel") actually key off, not a
+  // standalone field. A plain field write here would silently desync them.
+  const typeChanged = labelData.type !== undefined && labelData.type !== existing.type;
+  if (typeChanged) {
+    validateLabelType(labelData.type);
+    if (existing.type === 'pref' && concept.prefLabels.length === 1) {
+      const err = new Error(
+        'Não é possível mudar o tipo do único prefLabel deste conceito. Promova outro rótulo a preferencial (isso demove este automaticamente) antes de alterá-lo.'
+      );
+      err.code = 400;
+      throw err;
+    }
+  }
+  const newArrayName = typeChanged ? labelArrayName(labelData.type) : arrayName;
+
   const updatableFields = [
     'literalForm', 'language', 'type', 'accessLevel', 'sourcePeople',
     'sourceRegion', 'source', 'validatingOrg', 'validationDate',
@@ -443,7 +462,8 @@ export async function updateLabel(db, id, version, labelId, labelData, username)
   const auditEntries = [];
 
   const updated = optimisticUpdate(db, id, version, (c) => {
-    const label = c[arrayName].find((l) => l.id.toString() === labelId.toString());
+    const idx = c[arrayName].findIndex((l) => l.id.toString() === labelId.toString());
+    const label = c[arrayName][idx];
     for (const field of updatableFields) {
       if (labelData[field] === undefined) continue;
       auditEntries.push({
@@ -457,6 +477,10 @@ export async function updateLabel(db, id, version, labelId, labelData, username)
       label[field] = labelData[field];
     }
     label.updatedAt = new Date().toISOString();
+    if (typeChanged) {
+      c[arrayName].splice(idx, 1);
+      c[newArrayName].push(label);
+    }
   });
 
   if (!updated) return null;
@@ -464,6 +488,71 @@ export async function updateLabel(db, id, version, labelId, labelData, username)
   await Promise.all(auditEntries.map((entry) => AuditService.log(db, entry)));
 
   return findLabelInConcept(updated, labelId)?.label ?? null;
+}
+
+/**
+ * Promote a label to `pref` for its language, atomically demoting the
+ * concept's current prefLabel for that same language (if any) to `alt`.
+ * This is the only safe way to swap which label is "the" preferred term —
+ * calling updateLabel(type:'pref') on the target alone would collide with
+ * the single-prefLabel-per-language invariant against the label it's meant
+ * to replace. Throws 400 when the label is already pref.
+ */
+export async function promoteLabel(db, id, version, labelId, username) {
+  const row = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(id);
+  if (!row) return null;
+  const concept = JSON.parse(row.doc);
+
+  const found = findLabelInConcept(concept, labelId);
+  if (!found) return null;
+  const { label: target, arrayName: fromArrayName } = found;
+
+  if (target.type === 'pref') {
+    const err = new Error('Este rótulo já é preferencial.');
+    err.code = 400;
+    throw err;
+  }
+
+  const auditEntries = [];
+
+  const updated = optimisticUpdate(db, id, version, (c) => {
+    const demoteIdx = c.prefLabels.findIndex((l) => l.language === target.language);
+    if (demoteIdx !== -1) {
+      const [demoted] = c.prefLabels.splice(demoteIdx, 1);
+      demoted.type = 'alt';
+      demoted.updatedAt = new Date().toISOString();
+      c.altLabels.push(demoted);
+      auditEntries.push({
+        conceptId: c.id,
+        conceptLiteralForm: shortPrefLabel(c) ?? demoted.literalForm,
+        field: 'prefLabels.type',
+        previousValue: `${demoted.literalForm} (pref)`,
+        newValue: `${demoted.literalForm} (alt)`,
+        responsible: username,
+      });
+    }
+
+    const promoteArray = c[fromArrayName];
+    const promoteIdx = promoteArray.findIndex((l) => l.id.toString() === labelId.toString());
+    const [promoted] = promoteArray.splice(promoteIdx, 1);
+    promoted.type = 'pref';
+    promoted.updatedAt = new Date().toISOString();
+    c.prefLabels.push(promoted);
+    auditEntries.push({
+      conceptId: c.id,
+      conceptLiteralForm: shortPrefLabel(c),
+      field: `${fromArrayName}.type`,
+      previousValue: `${promoted.literalForm} (${fromArrayName === 'hiddenLabels' ? 'hidden' : 'alt'})`,
+      newValue: `${promoted.literalForm} (pref)`,
+      responsible: username,
+    });
+  });
+
+  if (!updated) return null;
+
+  await Promise.all(auditEntries.map((entry) => AuditService.log(db, entry)));
+
+  return { ok: true, version: version + 1 };
 }
 
 /**
@@ -927,4 +1016,4 @@ export async function updateLabelAccessLevel(db, id, version, labelId, accessLev
   return updateLabel(db, id, version, labelId, { accessLevel }, username);
 }
 
-export default { findMany, findById, updateNotes, activate, deprecate, addLabel, updateLabel, updateLabelAccessLevel, removeLabel, saveAudio, removeAudio, addBroader, removeBroader, addRelated, removeRelated, addSynonym, removeSynonym, removeSynonymFor };
+export default { findMany, findById, updateNotes, activate, deprecate, addLabel, updateLabel, promoteLabel, updateLabelAccessLevel, removeLabel, saveAudio, removeAudio, addBroader, removeBroader, addRelated, removeRelated, addSynonym, removeSynonym, removeSynonymFor };
