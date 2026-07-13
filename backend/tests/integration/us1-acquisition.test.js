@@ -187,7 +187,7 @@ maybeDescribe('US1: Automatic term acquisition from BioCultDB', () => {
     expect(concepts).toHaveLength(1);
   });
 
-  test('empty/null values are ignored and do not create concepts', async () => {
+  test('empty/null values are ignored and do not create concepts sourced from that community', async () => {
     insertBiocultdbRecord({
       comunidades: [
         {
@@ -201,7 +201,14 @@ maybeDescribe('US1: Automatic term acquisition from BioCultDB', () => {
 
     await AcquisitionService.run(db);
 
-    expect(countConcepts()).toBe(0);
+    const fromCommunityX = db
+      .prepare(
+        `SELECT COUNT(*) as n FROM etnotermos WHERE EXISTS (
+           SELECT 1 FROM json_each(json_extract(doc,'$.sourceCommunities')) je WHERE je.value = 'Comunidade X'
+         )`
+      )
+      .get().n;
+    expect(fromCommunityX).toBe(0);
   });
 
   test('run() creates an AcquisitionLog with status "success", conceptsCreated, conceptsExisting, durationMs', async () => {

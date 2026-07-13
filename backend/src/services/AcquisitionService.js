@@ -5,9 +5,11 @@ import {
   insertAcquisitionLog,
   findLastAcquisitionLog,
 } from '../models/AcquisitionLog.js';
+import { REFERENCE_TERMS } from '../data/referenceTerms.js';
 
 const MONITORED_FIELDS = [
   'comunidades.tipo',
+  'comunidades.plantas.nomeCientifico',
   'comunidades.plantas.nomeVernacular',
   'comunidades.plantas.tipoUso',
   'comunidades.atividadesEconomicas',
@@ -74,6 +76,11 @@ function collectFieldValues(db) {
           communityName
         );
         collect(grouped.get('comunidades.plantas.tipoUso'), toArray(planta?.tipoUso), communityName);
+        collect(
+          grouped.get('comunidades.plantas.nomeCientifico'),
+          toArray(planta?.nomeCientifico),
+          communityName
+        );
       }
     }
   }
@@ -143,8 +150,10 @@ function upsertConcept(db, field, normalizedValue, comunidades) {
 
 /**
  * Runs a full acquisition cycle from BioCultDB → etnotermos (same SQLite file).
- * Walks all monitored fields, discovers distinct values,
- * and upserts each as a candidate concept.
+ * Walks all monitored fields, discovers distinct values, and upserts each as a
+ * candidate concept — then does the same for every static REFERENCE_TERMS list
+ * (domain vocabulary independent of what has been typed into biocultdb_records
+ * yet), so curators see the full domain vocabulary, not only observed values.
  * Always persists an AcquisitionLog document, even on failure.
  */
 export async function run(db) {
@@ -178,6 +187,28 @@ export async function run(db) {
       }
 
       fieldsProcessed.push({ field, created: fieldCreated, existing: fieldExisting });
+    }
+
+    for (const [field, terms] of Object.entries(REFERENCE_TERMS)) {
+      let entry = fieldsProcessed.find((f) => f.field === field);
+      if (!entry) {
+        entry = { field, created: 0, existing: 0 };
+        fieldsProcessed.push(entry);
+      }
+
+      for (const raw of terms) {
+        const normalizedValue = raw.trim().toLowerCase();
+        if (!normalizedValue) continue;
+
+        const outcome = upsertConcept(db, field, normalizedValue, []);
+        if (outcome === 'created') {
+          entry.created++;
+          conceptsCreated++;
+        } else {
+          entry.existing++;
+          conceptsExisting++;
+        }
+      }
     }
 
     db.prepare(

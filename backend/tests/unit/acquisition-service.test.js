@@ -94,7 +94,7 @@ describe('AcquisitionService — unit tests', () => {
       expect(concept).not.toBeNull();
     });
 
-    test('null and empty values are ignored', async () => {
+    test('null and empty values are ignored (no concept sourced from that community)', async () => {
       insertBiocultdbRecord(db, {
         comunidades: [
           {
@@ -108,7 +108,14 @@ describe('AcquisitionService — unit tests', () => {
 
       await AcquisitionService.run(db);
 
-      expect(countEtnotermos(db)).toBe(0);
+      const fromCommunityY = db
+        .prepare(
+          `SELECT COUNT(*) as n FROM etnotermos WHERE EXISTS (
+             SELECT 1 FROM json_each(json_extract(doc,'$.sourceCommunities')) je WHERE je.value = 'Y'
+           )`
+        )
+        .get().n;
+      expect(fromCommunityY).toBe(0);
     });
   });
 
@@ -136,6 +143,77 @@ describe('AcquisitionService — unit tests', () => {
       expect(concepts).toHaveLength(1);
       expect(concepts[0].sourceFields).toContain('comunidades.tipo');
       expect(concepts[0].sourceFields).toContain('comunidades.plantas.tipoUso');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Scientific name extraction
+  // ---------------------------------------------------------------------------
+
+  describe('nomeCientifico extraction', () => {
+    test('scientific names are extracted as candidate concepts', async () => {
+      insertBiocultdbRecord(db, {
+        comunidades: [
+          {
+            nome: 'Guarani',
+            tipo: 'Indígena',
+            plantas: [{ nomeCientifico: 'Foeniculum vulgare', nomeVernacular: 'erva-doce', tipoUso: [] }],
+            atividadesEconomicas: [],
+          },
+        ],
+      });
+
+      await AcquisitionService.run(db);
+
+      const concept = findConceptByPrefLabel(db, 'foeniculum vulgare');
+      expect(concept).not.toBeNull();
+      expect(concept.sourceFields).toContain('comunidades.plantas.nomeCientifico');
+      expect(concept.status).toBe('candidate');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Static reference vocabulary seeding
+  // ---------------------------------------------------------------------------
+
+  describe('reference term seeding', () => {
+    test('a known docs/tipoUso.txt term is created even with no matching biocultdb_records', async () => {
+      await AcquisitionService.run(db);
+
+      const concept = findConceptByPrefLabel(db, 'cicatrizante');
+      expect(concept).not.toBeNull();
+      expect(concept.sourceFields).toContain('comunidades.plantas.tipoUso');
+      expect(concept.status).toBe('candidate');
+      expect(concept.sourceCommunities).toEqual([]);
+    });
+
+    test('a reference term already mined from live data merges instead of duplicating', async () => {
+      insertBiocultdbRecord(db, {
+        comunidades: [
+          {
+            nome: 'Krenak',
+            tipo: 'Indígena',
+            plantas: [{ nomeVernacular: 'cipó', tipoUso: ['cicatrizante'] }],
+            atividadesEconomicas: [],
+          },
+        ],
+      });
+
+      await AcquisitionService.run(db);
+
+      const concepts = findConceptsByPrefLabel(db, 'cicatrizante');
+      expect(concepts).toHaveLength(1);
+      expect(concepts[0].sourceCommunities).toContain('Krenak');
+    });
+
+    test('running twice does not duplicate reference-seeded concepts', async () => {
+      await AcquisitionService.run(db);
+      const countAfterFirst = countEtnotermos(db);
+
+      await AcquisitionService.run(db);
+      const countAfterSecond = countEtnotermos(db);
+
+      expect(countAfterSecond).toBe(countAfterFirst);
     });
   });
 
@@ -228,10 +306,11 @@ describe('AcquisitionService — unit tests', () => {
       expect(typeof log.durationMs).toBe('number');
     });
 
-    test('no-op run (empty source) does not write a log', async () => {
-      await AcquisitionService.run(db);
+    test('run with no biocultdb_records still seeds the static reference vocabulary', async () => {
+      const log = await AcquisitionService.run(db);
 
-      expect(countAcquisitionLogs(db)).toBe(0);
+      expect(countAcquisitionLogs(db)).toBe(1);
+      expect(log.conceptsCreated).toBeGreaterThan(0);
     });
   });
 

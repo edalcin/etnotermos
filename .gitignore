@@ -49,7 +49,7 @@ temp/
 *.tmp
 
 # SQLite local database (ADR-005 — shared unit file, never committed)
-data/
+/data/
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
