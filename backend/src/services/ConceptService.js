@@ -8,6 +8,8 @@ import {
   validateLabelUniqueness,
   validateSinglePrefLabelPerLanguage,
   validateDeprecation,
+  validateSynonymNotReciprocal,
+  validateRelatedExcludesSynonym,
 } from '../lib/skosxl/validation.js';
 import * as AuditService from './AuditService.js';
 
@@ -254,8 +256,10 @@ export async function findById(db, id, options = {}) {
   const broader = resolveIds(db, concept.broader);
   const narrower = resolveIds(db, concept.narrower);
   const related = resolveIds(db, concept.related);
+  const synonym = resolveIds(db, concept.synonym);
+  const synonymFor = resolveIds(db, concept.synonymFor);
 
-  const result = { ...concept, broader, narrower, related };
+  const result = { ...concept, broader, narrower, related, synonym, synonymFor };
 
   return publicOnly ? stripNonPublicLabels(result) : result;
 }
@@ -699,6 +703,13 @@ export async function addRelated(db, id, version, targetId, username) {
   const concept = JSON.parse(conceptRow.doc);
   const targetIdStr = String(targetId);
 
+  try {
+    validateRelatedExcludesSynonym(concept, targetIdStr);
+  } catch (err) {
+    err.code = 400;
+    throw err;
+  }
+
   optimisticUpdate(db, id, version, (c) => {
     if (!(c.related ?? []).includes(targetIdStr)) {
       c.related = [...(c.related ?? []), targetIdStr];
@@ -770,6 +781,145 @@ export async function removeRelated(db, id, version, targetId, username) {
 }
 
 /**
+ * Add a directed `synonym` relationship: `id` (the synonym / non-preferred
+ * form) points to `targetId` (the accepted / preferred concept). Mirrors
+ * broader/narrower's asymmetric pattern — `id` gets `synonym` pushed under
+ * optimistic lock; `targetId` gets the reciprocal `synonymFor` entry written
+ * without its own version check (same as addBroader's narrower write).
+ * Throws 400 when the pair would be self-referential or reciprocal (two
+ * concepts each claiming to be the accepted term for the other).
+ */
+export async function addSynonym(db, id, version, targetId, username) {
+  const conceptRow = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(id);
+  const targetRow = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(targetId);
+  if (!conceptRow || !targetRow) return null;
+
+  const concept = JSON.parse(conceptRow.doc);
+  const targetIdStr = String(targetId);
+
+  if (!validateSynonymNotReciprocal(concept, targetIdStr)) {
+    const err = new Error(
+      'Relação de sinônimo inválida: os dois conceitos não podem ser sinônimo um do outro (autorreferência ou par recíproco).'
+    );
+    err.code = 400;
+    throw err;
+  }
+
+  optimisticUpdate(db, id, version, (c) => {
+    if (!(c.synonym ?? []).includes(targetIdStr)) {
+      c.synonym = [...(c.synonym ?? []), targetIdStr];
+    }
+  });
+
+  db.transaction(() => {
+    const tRow = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(targetId);
+    const t = JSON.parse(tRow.doc);
+    if (!(t.synonymFor ?? []).includes(String(id))) {
+      t.synonymFor = [...(t.synonymFor ?? []), String(id)];
+      t.updatedAt = new Date().toISOString();
+      db.prepare(`UPDATE etnotermos SET doc = ?, updated_at = ? WHERE id = ?`).run(
+        JSON.stringify(t),
+        t.updatedAt,
+        targetId
+      );
+    }
+  })();
+
+  await AuditService.log(db, {
+    conceptId: concept.id,
+    conceptLiteralForm: shortPrefLabel(concept),
+    field: 'synonym',
+    previousValue: null,
+    newValue: targetIdStr,
+    responsible: username,
+  });
+
+  return { ok: true, version: version + 1 };
+}
+
+/**
+ * Remove a `synonym` relationship from the synonym side: `id` stops being a
+ * synonym of `targetId`. Mirrors removeRelated.
+ */
+export async function removeSynonym(db, id, version, targetId, username) {
+  const conceptRow = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(id);
+  const targetRow = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(targetId);
+  if (!conceptRow || !targetRow) return null;
+  const concept = JSON.parse(conceptRow.doc);
+  const targetIdStr = String(targetId);
+
+  optimisticUpdate(db, id, version, (c) => {
+    c.synonym = (c.synonym ?? []).filter((r) => String(r) !== targetIdStr);
+  });
+
+  db.transaction(() => {
+    const tRow = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(targetId);
+    const t = JSON.parse(tRow.doc);
+    t.synonymFor = (t.synonymFor ?? []).filter((r) => String(r) !== String(id));
+    t.updatedAt = new Date().toISOString();
+    db.prepare(`UPDATE etnotermos SET doc = ?, updated_at = ? WHERE id = ?`).run(
+      JSON.stringify(t),
+      t.updatedAt,
+      targetId
+    );
+  })();
+
+  await AuditService.log(db, {
+    conceptId: concept.id,
+    conceptLiteralForm: shortPrefLabel(concept),
+    field: 'synonym',
+    previousValue: targetIdStr,
+    newValue: null,
+    responsible: username,
+  });
+
+  return { ok: true };
+}
+
+/**
+ * Remove a `synonym` relationship from the accepted side: `id` (accepted)
+ * stops being the accepted term for `targetId` (its synonym). Same pairing
+ * as removeSynonym, entered from the other concept's edit page — `id`'s own
+ * `synonymFor` array is version-locked; `targetId`'s `synonym` array is
+ * updated without a version check, matching the reciprocal-write pattern
+ * used throughout (addBroader's narrower write, addRelated's mirror write).
+ */
+export async function removeSynonymFor(db, id, version, targetId, username) {
+  const conceptRow = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(id);
+  const targetRow = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(targetId);
+  if (!conceptRow || !targetRow) return null;
+  const concept = JSON.parse(conceptRow.doc);
+  const targetIdStr = String(targetId);
+
+  optimisticUpdate(db, id, version, (c) => {
+    c.synonymFor = (c.synonymFor ?? []).filter((r) => String(r) !== targetIdStr);
+  });
+
+  db.transaction(() => {
+    const tRow = db.prepare(`SELECT doc FROM etnotermos WHERE id = ?`).get(targetId);
+    const t = JSON.parse(tRow.doc);
+    t.synonym = (t.synonym ?? []).filter((r) => String(r) !== String(id));
+    t.updatedAt = new Date().toISOString();
+    db.prepare(`UPDATE etnotermos SET doc = ?, updated_at = ? WHERE id = ?`).run(
+      JSON.stringify(t),
+      t.updatedAt,
+      targetId
+    );
+  })();
+
+  await AuditService.log(db, {
+    conceptId: concept.id,
+    conceptLiteralForm: shortPrefLabel(concept),
+    field: 'synonymFor',
+    previousValue: targetIdStr,
+    newValue: null,
+    responsible: username,
+  });
+
+  return { ok: true };
+}
+
+/**
  * Update only the accessLevel field of a specific label.
  * Convenience wrapper over updateLabel for CARE governance changes.
  */
@@ -777,4 +927,4 @@ export async function updateLabelAccessLevel(db, id, version, labelId, accessLev
   return updateLabel(db, id, version, labelId, { accessLevel }, username);
 }
 
-export default { findMany, findById, updateNotes, activate, deprecate, addLabel, updateLabel, updateLabelAccessLevel, removeLabel, saveAudio, removeAudio, addBroader, removeBroader, addRelated, removeRelated };
+export default { findMany, findById, updateNotes, activate, deprecate, addLabel, updateLabel, updateLabelAccessLevel, removeLabel, saveAudio, removeAudio, addBroader, removeBroader, addRelated, removeRelated, addSynonym, removeSynonym, removeSynonymFor };

@@ -31,6 +31,8 @@ function makeConcept(overrides = {}) {
     broader: [],
     narrower: [],
     related: [],
+    synonym: [],
+    synonymFor: [],
     ancestors: [],
     replacedBy: null,
     deprecatedDate: null,
@@ -190,6 +192,105 @@ describe('ConceptService — unit tests', () => {
 
       expect(savedA.related.map(String)).toContain(b.id);
       expect(savedB.related.map(String)).toContain(a.id);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // addSynonym / removeSynonym / removeSynonymFor — directed accepted/synonym pair
+  // ---------------------------------------------------------------------------
+
+  describe('addSynonym', () => {
+    test('sets synonym link and creates synonymFor reciprocal', async () => {
+      const synonym = makeConcept();
+      const accepted = makeConcept();
+      insertConceptRow(synonym);
+      insertConceptRow(accepted);
+
+      await ConceptService.addSynonym(db, synonym.id, synonym.version, accepted.id, 'user1');
+
+      const savedSynonym = findConceptRow(synonym.id);
+      const savedAccepted = findConceptRow(accepted.id);
+
+      expect(savedSynonym.synonym.map(String)).toContain(accepted.id);
+      expect(savedAccepted.synonymFor.map(String)).toContain(synonym.id);
+    });
+
+    test('rejects self-reference with code 400', async () => {
+      const a = makeConcept();
+      insertConceptRow(a);
+
+      await expect(
+        ConceptService.addSynonym(db, a.id, a.version, a.id, 'user1')
+      ).rejects.toMatchObject({ code: 400 });
+    });
+
+    test('rejects reciprocal pair with code 400', async () => {
+      const b = makeConcept();
+      const a = makeConcept({ synonymFor: [b.id] });
+      insertConceptRow(a);
+      insertConceptRow({ ...b, synonym: [a.id] });
+
+      await expect(
+        ConceptService.addSynonym(db, a.id, a.version, b.id, 'user1')
+      ).rejects.toMatchObject({ code: 400 });
+    });
+  });
+
+  describe('removeSynonym', () => {
+    test('removes the pairing from both sides', async () => {
+      const synonym = makeConcept();
+      const accepted = makeConcept({ synonymFor: [synonym.id] });
+      insertConceptRow(accepted);
+      insertConceptRow({ ...synonym, synonym: [accepted.id] });
+
+      await ConceptService.removeSynonym(db, synonym.id, synonym.version, accepted.id, 'user1');
+
+      const savedSynonym = findConceptRow(synonym.id);
+      const savedAccepted = findConceptRow(accepted.id);
+
+      expect(savedSynonym.synonym.map(String)).not.toContain(accepted.id);
+      expect(savedAccepted.synonymFor.map(String)).not.toContain(synonym.id);
+    });
+  });
+
+  describe('removeSynonymFor', () => {
+    test('removes the pairing from the accepted side', async () => {
+      const synonym = makeConcept();
+      const accepted = makeConcept({ synonymFor: [synonym.id] });
+      insertConceptRow(accepted);
+      insertConceptRow({ ...synonym, synonym: [accepted.id] });
+
+      await ConceptService.removeSynonymFor(db, accepted.id, accepted.version, synonym.id, 'user1');
+
+      const savedAccepted = findConceptRow(accepted.id);
+      const savedSynonym = findConceptRow(synonym.id);
+
+      expect(savedAccepted.synonymFor.map(String)).not.toContain(synonym.id);
+      expect(savedSynonym.synonym.map(String)).not.toContain(accepted.id);
+    });
+  });
+
+  describe('addRelated — blocked by existing synonym pairing', () => {
+    test('rejects with code 400 when a synonym relation already links the pair', async () => {
+      const accepted = makeConcept();
+      const synonym = makeConcept({ synonym: [accepted.id] });
+      insertConceptRow(accepted);
+      insertConceptRow(synonym);
+
+      await expect(
+        ConceptService.addRelated(db, synonym.id, synonym.version, accepted.id, 'user1')
+      ).rejects.toMatchObject({ code: 400 });
+    });
+
+    test('allows related between concepts with no synonym pairing', async () => {
+      const a = makeConcept();
+      const b = makeConcept();
+      insertConceptRow(a);
+      insertConceptRow(b);
+
+      await expect(
+        ConceptService.addRelated(db, a.id, a.version, b.id, 'user1')
+      ).resolves.toMatchObject({ ok: true });
     });
   });
 

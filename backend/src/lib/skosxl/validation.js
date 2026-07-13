@@ -56,6 +56,48 @@ export function validateNoCycle(concept, targetId) {
 }
 
 /**
+ * Validate that adding a `synonym` relation (this concept -> targetId, meaning
+ * "this concept is a synonym of the accepted/preferred targetId") won't create
+ * a self-reference or a direct reciprocal pair (targetId already treats this
+ * concept as ITS synonym, or this concept already treats targetId as ITS
+ * synonym) — two concepts can't each claim to be the accepted term for the
+ * other. Returns true if safe, false otherwise.
+ */
+export function validateSynonymNotReciprocal(concept, targetId) {
+  const targetStr = targetId.toString();
+
+  if (concept.id?.toString() === targetStr) {
+    return false;
+  }
+
+  const synonym = concept.synonym ?? [];
+  const synonymFor = concept.synonymFor ?? [];
+  return !synonym.some((id) => id.toString() === targetStr)
+    && !synonymFor.some((id) => id.toString() === targetStr);
+}
+
+/**
+ * Validate that adding a `related` (associative, skos:related) relation
+ * between this concept and targetId does not duplicate an existing
+ * synonym/accepted pairing. Rule: two concepts already linked by `synonym`
+ * (one is the accepted/preferred term, the other a synonym of it) cannot
+ * ALSO be linked by the generic, peer-level `related` relation — that would
+ * misrepresent an accepted/synonym pair as two independent, equal concepts.
+ * Throws Error when the pairing already exists in either direction.
+ */
+export function validateRelatedExcludesSynonym(concept, targetId) {
+  const targetStr = targetId.toString();
+  const synonym = concept.synonym ?? [];
+  const synonymFor = concept.synonymFor ?? [];
+
+  if (synonym.some((id) => id.toString() === targetStr) || synonymFor.some((id) => id.toString() === targetStr)) {
+    throw new Error(
+      'Estes dois conceitos já têm uma relação de sinônimo/aceito entre si. Remova essa relação antes de marcá-los como apenas "relacionados", ou mantenha só a relação de sinônimo.',
+    );
+  }
+}
+
+/**
  * Validate max 1 prefLabel per language in a concept.
  * Throws Error when a prefLabel for the same language already exists.
  */

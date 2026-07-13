@@ -140,6 +140,8 @@ export function createConcept(data) {
     broader: toIds(data.broader),
     narrower: toIds(data.narrower),
     related: toIds(data.related),
+    synonym: toIds(data.synonym),
+    synonymFor: toIds(data.synonymFor),
     ancestors: toIds(data.ancestors),
     replacedBy: data.replacedBy ? String(data.replacedBy) : null,
     deprecatedDate: data.deprecatedDate ?? null,

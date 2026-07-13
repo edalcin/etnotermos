@@ -1,0 +1,42 @@
+<%
+/**
+ * Generic didactic help modal, triggered by a "?" button next to a section
+ * heading. Requires the enclosing element to have an Alpine `helpOpen` flag
+ * in its x-data (e.g. `x-data="{ helpOpen: false }"`, or merged into an
+ * existing x-data object on that same element).
+ *
+ * Locals:
+ *   key   — content partial name under partials/help/<key>.ejs
+ *   title — modal heading text
+ */
+%>
+<button type="button" @click="helpOpen = true"
+        class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-gray-200 text-gray-600
+               text-xs font-bold hover:bg-forest-100 hover:text-forest-700 transition-colors shrink-0"
+        title="Ajuda: <%= title %>">
+  ?
+</button>
+
+<div x-show="helpOpen" x-cloak
+     class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+     @keydown.escape.window="helpOpen = false">
+  <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto" @click.stop>
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 sticky top-0 bg-white">
+      <h3 class="text-lg font-semibold text-gray-800"><%= title %></h3>
+      <button type="button" @click="helpOpen = false" class="text-gray-400 hover:text-gray-600" title="Fechar">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="px-6 py-4 text-sm text-gray-700 space-y-4">
+      <%- include('help/' + key) %>
+    </div>
+    <div class="px-6 py-3 border-t border-gray-200 text-right">
+      <button type="button" @click="helpOpen = false"
+              class="px-4 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition-colors">
+        Entendi
+      </button>
+    </div>
+  </div>
+</div>

@@ -65,8 +65,11 @@
       <input type="hidden" name="version" value="<%= concept.version %>">
 
       <!-- Notes section -->
-      <div class="bg-white rounded-lg shadow-md p-6">
-        <h2 class="text-lg font-semibold text-gray-800 mb-4">Definição e Notas</h2>
+      <div class="bg-white rounded-lg shadow-md p-6" x-data="{ helpOpen: false }">
+        <div class="flex items-center gap-2 mb-4">
+          <h2 class="text-lg font-semibold text-gray-800">Definição e Notas</h2>
+          <%- include('../partials/help-modal', { key: 'notes', title: 'Definições e Notas' }) %>
+        </div>
         <div class="space-y-4">
 
           <div>
@@ -118,8 +121,11 @@
 
     <!-- Status action buttons -->
     <% if (concept.status === 'candidate') { %>
-    <div class="bg-white rounded-lg shadow-md p-6 mt-6">
-      <h2 class="text-lg font-semibold text-gray-800 mb-3">Ações de Status</h2>
+    <div class="bg-white rounded-lg shadow-md p-6 mt-6" x-data="{ helpOpen: false }">
+      <div class="flex items-center gap-2 mb-3">
+        <h2 class="text-lg font-semibold text-gray-800">Ações de Status</h2>
+        <%- include('../partials/help-modal', { key: 'status', title: 'Ações de Status' }) %>
+      </div>
       <button
         hx-post="/concepts/<%= concept.id %>/activate"
         hx-vals='{"version": <%= concept.version %>}'
@@ -134,8 +140,11 @@
     <% } %>
 
     <% if (concept.status === 'active') { %>
-    <div class="bg-white rounded-lg shadow-md p-6 mt-6" x-data="{ open: false }">
-      <h2 class="text-lg font-semibold text-gray-800 mb-3">Ações de Status</h2>
+    <div class="bg-white rounded-lg shadow-md p-6 mt-6" x-data="{ open: false, helpOpen: false }">
+      <div class="flex items-center gap-2 mb-3">
+        <h2 class="text-lg font-semibold text-gray-800">Ações de Status</h2>
+        <%- include('../partials/help-modal', { key: 'status', title: 'Ações de Status' }) %>
+      </div>
       <button @click="open = true"
               class="px-5 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600
                      transition-colors font-medium">
@@ -181,8 +190,11 @@
     <% } %>
 
     <!-- Labels section -->
-    <div class="bg-white rounded-lg shadow-md p-6 mt-6">
-      <h2 class="text-lg font-semibold text-gray-800 mb-4">Rótulos (SKOS-XL)</h2>
+    <div class="bg-white rounded-lg shadow-md p-6 mt-6" x-data="{ helpOpen: false }">
+      <div class="flex items-center gap-2 mb-4">
+        <h2 class="text-lg font-semibold text-gray-800">Rótulos (SKOS-XL)</h2>
+        <%- include('../partials/help-modal', { key: 'labels', title: 'Rótulos (SKOS-XL)' }) %>
+      </div>
 
       <%
         const ACCESS_BADGE = {
@@ -353,22 +365,24 @@
     </div>
 
     <!-- Relations section -->
-    <div class="bg-white rounded-lg shadow-md p-6 mt-6">
-      <h2 class="text-lg font-semibold text-gray-800 mb-4">Relações Semânticas</h2>
-
-      <div id="cycle-error" class="hidden bg-red-50 border-l-4 border-red-500 p-3 mb-4 rounded-r-lg text-red-800 text-sm">
-        Operação criaria um ciclo hierárquico. Escolha um conceito diferente.
+    <div class="bg-white rounded-lg shadow-md p-6 mt-6" x-data="{ helpOpen: false }">
+      <div class="flex items-center gap-2 mb-4">
+        <h2 class="text-lg font-semibold text-gray-800">Relações Semânticas</h2>
+        <%- include('../partials/help-modal', { key: 'relations', title: 'Relações Semânticas' }) %>
       </div>
+
+      <div id="rel-error" class="hidden bg-red-50 border-l-4 border-red-500 p-3 mb-4 rounded-r-lg text-red-800 text-sm"></div>
 
       <% relSections.forEach(rel => { %>
       <div class="mb-5">
         <h3 class="text-sm font-semibold text-gray-600 mb-2"><%= rel.label %></h3>
         <%- include('../partials/relation-pills', { concept, rel }) %>
+        <% if (rel.addable !== false) { %>
         <form
           hx-post="/concepts/<%= concept.id %>/<%= rel.endpoint %>"
           hx-target="#rel-<%= rel.key %>"
           hx-swap="outerHTML"
-          hx-on::response-error="if(event.detail.xhr.status===400) document.getElementById('cycle-error').classList.remove('hidden')"
+          hx-on::response-error="if(event.detail.xhr.status===400){ try { document.getElementById('rel-error').textContent = JSON.parse(event.detail.xhr.responseText).error; } catch(e) { document.getElementById('rel-error').textContent = 'Operação inválida.'; } document.getElementById('rel-error').classList.remove('hidden'); }"
           hx-on::before-request="if(event.detail.elt===this && !this.querySelector('[name=targetId]').value){event.preventDefault();this.querySelector('[name=q]').focus();}"
           hx-on::after-request="if(event.detail.elt===this && event.detail.successful) this.reset()"
           x-data="{ open: false }"
@@ -398,6 +412,9 @@
             Adicionar
           </button>
         </form>
+        <% } else { %>
+        <p class="text-xs text-gray-400 italic">Derivado automaticamente — edite a relação a partir do conceito sinônimo.</p>
+        <% } %>
       </div>
       <% }) %>
 

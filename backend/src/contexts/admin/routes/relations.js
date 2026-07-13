@@ -128,6 +128,7 @@ router.post('/concepts/:id/related', async (req, res, next) => {
     if (!result) return res.status(404).json({ error: 'Conceito não encontrado' });
     await renderRelationResponse(req, res, db, req.params.id, 'related');
   } catch (err) {
+    if (err.code === 400) return res.status(400).json({ error: err.message });
     if (err.code === 409) return res.status(409).json({ error: err.message });
     next(err);
   }
@@ -148,6 +149,65 @@ router.delete('/concepts/:id/related/:targetId', async (req, res, next) => {
     );
     if (!result) return res.status(404).json({ error: 'Conceito não encontrado' });
     await renderRelationResponse(req, res, db, req.params.id, 'related');
+  } catch (err) {
+    if (err.code === 409) return res.status(409).json({ error: err.message });
+    next(err);
+  }
+});
+
+router.post('/concepts/:id/synonym', async (req, res, next) => {
+  try {
+    const db = req.app.locals.db;
+    const version = await resolveVersion(db, req.params.id, req.body.version);
+    if (version === null) return res.status(404).json({ error: 'Conceito não encontrado' });
+
+    const { targetId } = req.body;
+    const result = await ConceptService.addSynonym(db, req.params.id, version, targetId, req.user.username);
+    if (!result) return res.status(404).json({ error: 'Conceito não encontrado' });
+    await renderRelationResponse(req, res, db, req.params.id, 'synonym');
+  } catch (err) {
+    if (err.code === 400) return res.status(400).json({ error: err.message });
+    if (err.code === 409) return res.status(409).json({ error: err.message });
+    next(err);
+  }
+});
+
+router.delete('/concepts/:id/synonym/:targetId', async (req, res, next) => {
+  try {
+    const db = req.app.locals.db;
+    const version = await resolveVersion(db, req.params.id, req.body?.version);
+    if (version === null) return res.status(404).json({ error: 'Conceito não encontrado' });
+
+    const result = await ConceptService.removeSynonym(
+      db,
+      req.params.id,
+      version,
+      req.params.targetId,
+      req.user.username
+    );
+    if (!result) return res.status(404).json({ error: 'Conceito não encontrado' });
+    await renderRelationResponse(req, res, db, req.params.id, 'synonym');
+  } catch (err) {
+    if (err.code === 409) return res.status(409).json({ error: err.message });
+    next(err);
+  }
+});
+
+router.delete('/concepts/:id/synonymFor/:targetId', async (req, res, next) => {
+  try {
+    const db = req.app.locals.db;
+    const version = await resolveVersion(db, req.params.id, req.body?.version);
+    if (version === null) return res.status(404).json({ error: 'Conceito não encontrado' });
+
+    const result = await ConceptService.removeSynonymFor(
+      db,
+      req.params.id,
+      version,
+      req.params.targetId,
+      req.user.username
+    );
+    if (!result) return res.status(404).json({ error: 'Conceito não encontrado' });
+    await renderRelationResponse(req, res, db, req.params.id, 'synonymFor');
   } catch (err) {
     if (err.code === 409) return res.status(409).json({ error: err.message });
     next(err);

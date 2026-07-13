@@ -1,0 +1,48 @@
+<p>O ciclo de vida de um conceito tem três estados:</p>
+
+<div class="flex items-center gap-2 flex-wrap text-xs font-medium">
+  <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full">Candidato</span>
+  <span class="text-gray-400">→</span>
+  <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full">Ativo</span>
+  <span class="text-gray-400">→</span>
+  <span class="px-2 py-1 bg-gray-200 text-gray-600 rounded-full">Depreciado</span>
+</div>
+
+<div>
+  <h4 class="font-semibold text-gray-800 mb-1">Candidato</h4>
+  <p>Estado inicial de todo conceito recém-adquirido do BioCultDB. Ainda não foi revisado
+  por um curador e <strong>não aparece</strong> na consulta pública.</p>
+</div>
+
+<div>
+  <h4 class="font-semibold text-gray-800 mb-1">Ativar Conceito</h4>
+  <p>Use quando você já revisou os rótulos, definição e relações e o conceito está pronto
+  para ser consultado publicamente (respeitando o nível de acesso de cada rótulo).</p>
+</div>
+
+<div>
+  <h4 class="font-semibold text-gray-800 mb-1">Deprecar Conceito</h4>
+  <p>
+    Use quando um conceito não deve mais ser usado — porque foi duplicado, corrigido, ou
+    substituído por outro. É <strong>obrigatório</strong> indicar "Substituído por": o
+    conceito que os usuários devem consultar no lugar deste.
+  </p>
+  <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-2">
+    <p class="font-medium text-amber-800 mb-1">Dica — sinônimo virou depreciação:</p>
+    <p>
+      Se você percebeu que este conceito é, na verdade, apenas um sinônimo de outro já
+      existente, o fluxo correto normalmente é: (1) marcar a relação
+      <span class="font-medium">Sinônimo de (aceito)</span> apontando para o conceito
+      correto (veja a ajuda de "Relações Semânticas"), e só então (2) considerar depreciar
+      este, usando o mesmo conceito aceito como "Substituído por" — assim o histórico e a
+      proveniência dos dois ficam preservados.
+    </p>
+  </div>
+</div>
+
+<div class="bg-gray-50 border border-gray-200 rounded-lg p-3 text-gray-600">
+  Todo salvamento usa <strong>controle otimista de concorrência</strong> (campo
+  <code class="bg-white px-1 rounded text-xs">version</code>): se outra pessoa editou o
+  conceito antes de você salvar, o sistema recusa a gravação (erro 409) e pede para
+  recarregar a página, evitando sobrescrever o trabalho alheio sem perceber.
+</div>

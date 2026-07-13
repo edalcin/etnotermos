@@ -1,0 +1,61 @@
+<p>
+  No SKOS-XL, cada nome de um conceito (um rótulo) é um objeto com metadados próprios —
+  não é só um texto solto. Isso permite registrar de qual povo vem o nome, se pode ser
+  divulgado publicamente, se tem áudio, etc. — coisa que um sistema de "sinônimos simples"
+  não consegue.
+</p>
+
+<div>
+  <h4 class="font-semibold text-gray-800 mb-1">Tipo do rótulo</h4>
+  <ul class="list-disc pl-5 space-y-1">
+    <li><span class="font-medium">Preferencial (pref)</span> — o nome principal deste conceito, em um idioma. Só pode existir <strong>um</strong> por idioma. É o que aparece em destaque nas listagens.</li>
+    <li><span class="font-medium">Alternativo (alt)</span> — outro nome válido e visível para o mesmo conceito (variação regional, tradução, nome popular).</li>
+    <li><span class="font-medium">Oculto (hidden)</span> — grafia errada ou forma obsoleta que <em>não</em> deve aparecer para o público, mas ajuda a busca a encontrar o conceito mesmo assim.</li>
+  </ul>
+</div>
+
+<div class="bg-forest-50 border border-forest-200 rounded-lg p-3">
+  <p class="font-medium text-forest-800 mb-1">Exemplo — um conceito, vários rótulos:</p>
+  <ul class="space-y-0.5 text-forest-900">
+    <li>• <code class="bg-white px-1 rounded">"Ayahuasca"</code> — pref, pt, público</li>
+    <li>• <code class="bg-white px-1 rounded">"Nixi Pae"</code> — alt, hux (Huni Kuĩ), restrito</li>
+    <li>• <code class="bg-white px-1 rounded">"Daime"</code> — alt, pt, público</li>
+    <li>• <code class="bg-white px-1 rounded">"aiauasca"</code> — oculto (grafia incorreta, só pra busca)</li>
+  </ul>
+</div>
+
+<div>
+  <h4 class="font-semibold text-gray-800 mb-1">Nível de acesso (accessLevel) — Princípios CARE</h4>
+  <p class="mb-1">Cada rótulo tem seu próprio nível de acesso — a comunidade decide o que pode ser divulgado:</p>
+  <ul class="list-disc pl-5 space-y-1">
+    <li><span class="px-1.5 py-0.5 bg-green-100 text-green-800 rounded text-xs font-medium">public</span> — aberto, aparece na consulta pública (porta 4000).</li>
+    <li><span class="px-1.5 py-0.5 bg-yellow-100 text-yellow-800 rounded text-xs font-medium">restricted</span> — só pesquisadores autorizados veem (fica oculto na consulta pública).</li>
+    <li><span class="px-1.5 py-0.5 bg-red-100 text-red-800 rounded text-xs font-medium">sacred</span> — só a comunidade detentora vê. Nome ritual, cerimonial ou sagrado nunca deve ficar público.</li>
+  </ul>
+</div>
+
+<div>
+  <h4 class="font-semibold text-gray-800 mb-1">Campos de proveniência e governança</h4>
+  <ul class="list-disc pl-5 space-y-1">
+    <li><code class="bg-gray-100 px-1 rounded text-xs">sourcePeople</code> — de qual povo/comunidade vem este nome. Ex: <em>"Guarani"</em>, <em>"Huni Kuĩ (Kaxinawá)"</em>.</li>
+    <li><code class="bg-gray-100 px-1 rounded text-xs">sourceRegion</code> — região geográfica de origem. Ex: <em>"Alto Juruá, Acre"</em>.</li>
+    <li><code class="bg-gray-100 px-1 rounded text-xs">holderPeople</code> — povo detentor do conhecimento (CARE — pode ser diferente de quem forneceu o dado).</li>
+    <li><code class="bg-gray-100 px-1 rounded text-xs">collectorResearcher</code> — pesquisador(a) que coletou/registrou o termo.</li>
+    <li><code class="bg-gray-100 px-1 rounded text-xs">priorInformedConsent</code> — marca se o consentimento prévio e informado (Protocolo de Nagoya) foi registrado para este rótulo.</li>
+    <li><code class="bg-gray-100 px-1 rounded text-xs">bibliographicSource</code> / <code class="bg-gray-100 px-1 rounded text-xs">validatingOrg</code> / <code class="bg-gray-100 px-1 rounded text-xs">validationDate</code> — de onde veio e quem validou o termo.</li>
+    <li><code class="bg-gray-100 px-1 rounded text-xs">audioPath</code> — gravação de áudio com a pronúncia correta, quando disponível.</li>
+  </ul>
+</div>
+
+<div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
+  <p class="font-medium text-amber-800 mb-1">Nomes científicos também são rótulos:</p>
+  <p>
+    Um conceito de nome científico normalmente tem <strong>um único</strong> prefLabel
+    (ex: <code class="bg-white px-1 rounded">"Panthera onca"</code>). Se existe uma variação
+    ortográfica do mesmo nome (erro de digitação, formatação de autoria), use um rótulo
+    <strong>alt</strong> ou <strong>oculto</strong> dentro deste mesmo conceito — não crie um
+    conceito novo. Já um nome científico taxonomicamente diferente (sinônimo nomenclatural,
+    outro gênero) é um <strong>conceito separado</strong>, ligado pela relação
+    <span class="font-medium">Sinônimo</span> — veja a ajuda de "Relações Semânticas".
+  </p>
+</div>

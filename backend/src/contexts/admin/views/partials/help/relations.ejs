@@ -1,0 +1,85 @@
+<p>
+  As relações conectam este conceito a <strong>outros conceitos</strong> (diferente dos
+  rótulos, que são só nomes deste mesmo conceito). Existem quatro tipos:
+</p>
+
+<div>
+  <h4 class="font-semibold text-gray-800 mb-1">
+    <span class="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-xs mr-1">BT</span>
+    Mais amplo / <span class="px-1.5 py-0.5 bg-purple-50 text-purple-700 rounded text-xs mx-1">NT</span> Mais específico
+  </h4>
+  <p>Hierarquia: um conceito é um caso específico de outro, mais geral.</p>
+  <p class="text-gray-500 italic mt-1">Ex: "Dor de cabeça" → mais amplo → "Medicinal". "Medicinal" ganha automaticamente "Dor de cabeça" como mais específico.</p>
+</div>
+
+<div>
+  <h4 class="font-semibold text-gray-800 mb-1">
+    <span class="px-1.5 py-0.5 bg-forest-50 text-forest-700 rounded text-xs mr-1">RT</span>
+    Relacionado
+  </h4>
+  <p>Associação entre dois conceitos <strong>distintos e igualmente válidos</strong> — nenhum dos dois é "mais correto" que o outro, só estão conectados por contexto.</p>
+  <p class="text-gray-500 italic mt-1">Ex: "Alimentar" relacionado a "Culinária" — são conceitos diferentes, ambos corretos, que fazem sentido consultar juntos.</p>
+</div>
+
+<div class="bg-amber-50 border border-amber-200 rounded-lg p-3">
+  <h4 class="font-semibold text-amber-800 mb-1">Sinônimo de (aceito) — novo</h4>
+  <p>
+    Use quando dois conceitos <strong>significam a mesma coisa</strong>, mas um deles é o
+    nome correto/aceito e o outro é uma forma não-preferida (nome desatualizado, sinônimo
+    taxonômico, termo substituído). Aponta do sinônimo para o aceito.
+  </p>
+  <p class="text-amber-900 italic mt-1">
+    Ex: <code class="bg-white px-1 rounded">Felis onca</code> —sinônimo de→
+    <code class="bg-white px-1 rounded">Panthera onca</code> (nome científico aceito).
+  </p>
+  <p class="text-amber-900 italic mt-1">
+    Ex: <code class="bg-white px-1 rounded">alimentícia</code> —sinônimo de→
+    <code class="bg-white px-1 rounded">alimentar</code>, se "alimentar" foi escolhido
+    como o termo de uso preferido para essa categoria.
+  </p>
+  <p class="mt-2">
+    O conceito aceito mostra a lista de seus sinônimos em "Sinônimos deste conceito"
+    (somente leitura — para desfazer, remova a relação em qualquer uma das duas pontas).
+  </p>
+</div>
+
+<div class="bg-red-50 border border-red-200 rounded-lg p-3">
+  <h4 class="font-semibold text-red-800 mb-1">Regra: sinônimo e relacionado não convivem</h4>
+  <p>
+    Dois conceitos já ligados por <strong>Sinônimo</strong> não podem <em>também</em> ser
+    ligados por <strong>Relacionado</strong> entre si — o sistema bloqueia essa combinação.
+    Motivo: "Relacionado" (RT) diz "somos dois conceitos igualmente válidos"; "Sinônimo" diz
+    o oposto, "um de nós é o termo preferido, o outro não". As duas relações juntas seriam
+    contraditórias sobre o mesmo par de conceitos.
+  </p>
+</div>
+
+<div>
+  <h4 class="font-semibold text-gray-800 mb-1">Como escolher a relação certa</h4>
+  <table class="w-full text-xs border border-gray-200 rounded overflow-hidden">
+    <thead class="bg-gray-100 text-gray-700">
+      <tr>
+        <th class="text-left px-2 py-1 border-b border-gray-200">Situação</th>
+        <th class="text-left px-2 py-1 border-b border-gray-200">Relação</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="border-b border-gray-100">
+        <td class="px-2 py-1">Mesmo nome, só grafia/formatação diferente</td>
+        <td class="px-2 py-1">Nenhuma — use um rótulo <em>alt</em>/<em>oculto</em> no mesmo conceito</td>
+      </tr>
+      <tr class="border-b border-gray-100">
+        <td class="px-2 py-1">Mesmo significado, dois conceitos já existentes, um é o termo preferido</td>
+        <td class="px-2 py-1 font-medium text-amber-700">Sinônimo de (aceito)</td>
+      </tr>
+      <tr class="border-b border-gray-100">
+        <td class="px-2 py-1">Um conceito é caso específico do outro</td>
+        <td class="px-2 py-1 font-medium text-purple-700">Mais específico / Mais amplo</td>
+      </tr>
+      <tr>
+        <td class="px-2 py-1">Conceitos diferentes, só associados por contexto</td>
+        <td class="px-2 py-1 font-medium text-forest-700">Relacionado</td>
+      </tr>
+    </tbody>
+  </table>
+</div>

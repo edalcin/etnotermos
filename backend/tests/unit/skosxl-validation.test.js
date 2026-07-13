@@ -6,6 +6,8 @@ import {
   validateDeprecation,
   validateLabelType,
   validateAccessLevel,
+  validateSynonymNotReciprocal,
+  validateRelatedExcludesSynonym,
 } from '../../src/lib/skosxl/validation.js';
 
 function makeLabel(overrides = {}) {
@@ -208,5 +210,61 @@ describe('validateAccessLevel', () => {
 
   test('throws for invalid access level', () => {
     expect(() => validateAccessLevel('invalid')).toThrow();
+  });
+});
+
+describe('validateSynonymNotReciprocal', () => {
+  test('returns true when concepts have no synonym relation yet', () => {
+    const concept = makeConcept({ synonym: [], synonymFor: [] });
+    expect(validateSynonymNotReciprocal(concept, randomUUID())).toBe(true);
+  });
+
+  test('returns false for self-reference', () => {
+    const concept = makeConcept({ synonym: [], synonymFor: [] });
+    expect(validateSynonymNotReciprocal(concept, concept.id)).toBe(false);
+  });
+
+  test('returns false when target is already this concept\'s synonym (would reverse the pair)', () => {
+    const targetId = randomUUID();
+    const concept = makeConcept({ synonym: [targetId], synonymFor: [] });
+    expect(validateSynonymNotReciprocal(concept, targetId)).toBe(false);
+  });
+
+  test('returns false when target already accepted this concept as its synonym (mutual claim)', () => {
+    const targetId = randomUUID();
+    const concept = makeConcept({ synonym: [], synonymFor: [targetId] });
+    expect(validateSynonymNotReciprocal(concept, targetId)).toBe(false);
+  });
+
+  test('handles string ID for target', () => {
+    const targetId = randomUUID();
+    const concept = makeConcept({ synonym: [targetId], synonymFor: [] });
+    expect(validateSynonymNotReciprocal(concept, targetId.toString())).toBe(false);
+  });
+});
+
+describe('validateRelatedExcludesSynonym', () => {
+  test('passes when no synonym/synonymFor pairing exists with target', () => {
+    const concept = makeConcept({ synonym: [], synonymFor: [] });
+    expect(() => validateRelatedExcludesSynonym(concept, randomUUID())).not.toThrow();
+  });
+
+  test('throws when target is already this concept\'s synonym', () => {
+    const targetId = randomUUID();
+    const concept = makeConcept({ synonym: [targetId], synonymFor: [] });
+    expect(() => validateRelatedExcludesSynonym(concept, targetId)).toThrow();
+  });
+
+  test('throws when target is already accepted for this concept (synonymFor)', () => {
+    const targetId = randomUUID();
+    const concept = makeConcept({ synonym: [], synonymFor: [targetId] });
+    expect(() => validateRelatedExcludesSynonym(concept, targetId)).toThrow();
+  });
+
+  test('does not block related between two concepts with unrelated synonym pairs', () => {
+    const targetId = randomUUID();
+    const otherId = randomUUID();
+    const concept = makeConcept({ synonym: [otherId], synonymFor: [] });
+    expect(() => validateRelatedExcludesSynonym(concept, targetId)).not.toThrow();
   });
 });

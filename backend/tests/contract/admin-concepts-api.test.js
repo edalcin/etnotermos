@@ -41,6 +41,8 @@ function buildConcept(overrides = {}) {
     broader: [],
     narrower: [],
     related: [],
+    synonym: [],
+    synonymFor: [],
     ancestors: [],
     replacedBy: null,
     deprecatedDate: null,
@@ -871,6 +873,122 @@ describe('Admin Concepts/Labels API', () => {
         .set('Authorization', validAuth);
 
       expect(res.status).toBe(200);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // POST /concepts/:id/synonym — Add a synonym→accepted relationship
+  // ---------------------------------------------------------------------------
+
+  describe('POST /concepts/:id/synonym', () => {
+    it('returns 200 and links synonym to the accepted concept', async () => {
+      requireApp();
+      const synonym = buildConcept({ uri: 'etnotermos:felis-onca' });
+      const accepted = buildConcept({ uri: 'etnotermos:panthera-onca' });
+      insertConceptRows([synonym, accepted]);
+
+      const res = await request(app)
+        .post(`/concepts/${synonym.id}/synonym`)
+        .set('Authorization', validAuth)
+        .send({ targetId: accepted.id.toString(), version: 1 });
+
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toMatch(/html/);
+      expect(res.text).toContain('id="rel-synonym"');
+      expect(res.text).toContain(accepted.prefLabels[0].literalForm);
+      expect(res.text).toContain(`hx-delete="/concepts/${synonym.id}/synonym/${accepted.id}"`);
+    });
+
+    it('returns 400 when the target already treats this concept as its synonym (reciprocal)', async () => {
+      requireApp();
+      const accepted = buildConcept({ uri: 'etnotermos:accepted-recip' });
+      const synonym = buildConcept({
+        uri: 'etnotermos:synonym-recip',
+        synonymFor: [accepted.id],
+      });
+      insertConceptRows([
+        { ...accepted, synonym: [synonym.id] },
+        synonym,
+      ]);
+
+      const res = await request(app)
+        .post(`/concepts/${synonym.id}/synonym`)
+        .set('Authorization', validAuth)
+        .send({ targetId: accepted.id.toString(), version: 1 });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('returns 409 on version conflict', async () => {
+      requireApp();
+      const synonym = buildConcept({ uri: 'etnotermos:synonym-409', version: 5 });
+      const accepted = buildConcept({ uri: 'etnotermos:accepted-409' });
+      insertConceptRows([synonym, accepted]);
+
+      const res = await request(app)
+        .post(`/concepts/${synonym.id}/synonym`)
+        .set('Authorization', validAuth)
+        .send({ targetId: accepted.id.toString(), version: 1 }); // stale
+
+      expect(res.status).toBe(409);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // DELETE /concepts/:id/synonym/:targetId — Remove from the synonym side
+  // ---------------------------------------------------------------------------
+
+  describe('DELETE /concepts/:id/synonym/:targetId', () => {
+    it('returns 200 when the synonym relationship is removed', async () => {
+      requireApp();
+      const accepted = buildConcept({ uri: 'etnotermos:accepted-del' });
+      const synonym = buildConcept({ uri: 'etnotermos:synonym-del', synonym: [accepted.id] });
+      insertConceptRows([{ ...accepted, synonymFor: [synonym.id] }, synonym]);
+
+      const res = await request(app)
+        .delete(`/concepts/${synonym.id}/synonym/${accepted.id}`)
+        .set('Authorization', validAuth);
+
+      expect(res.status).toBe(200);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // DELETE /concepts/:id/synonymFor/:targetId — Remove from the accepted side
+  // ---------------------------------------------------------------------------
+
+  describe('DELETE /concepts/:id/synonymFor/:targetId', () => {
+    it('returns 200 when the synonym relationship is removed from the accepted side', async () => {
+      requireApp();
+      const synonym = buildConcept({ uri: 'etnotermos:synonym-del2' });
+      const accepted = buildConcept({ uri: 'etnotermos:accepted-del2', synonymFor: [synonym.id] });
+      insertConceptRows([accepted, { ...synonym, synonym: [accepted.id] }]);
+
+      const res = await request(app)
+        .delete(`/concepts/${accepted.id}/synonymFor/${synonym.id}`)
+        .set('Authorization', validAuth);
+
+      expect(res.status).toBe(200);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // POST /concepts/:id/related — blocked when a synonym pairing already exists
+  // ---------------------------------------------------------------------------
+
+  describe('POST /concepts/:id/related — blocked by existing synonym pairing', () => {
+    it('returns 400 when the pair is already linked by synonym', async () => {
+      requireApp();
+      const accepted = buildConcept({ uri: 'etnotermos:accepted-rt' });
+      const synonym = buildConcept({ uri: 'etnotermos:synonym-rt', synonym: [accepted.id] });
+      insertConceptRows([{ ...accepted, synonymFor: [synonym.id] }, synonym]);
+
+      const res = await request(app)
+        .post(`/concepts/${synonym.id}/related`)
+        .set('Authorization', validAuth)
+        .send({ targetId: accepted.id.toString(), version: 1 });
+
+      expect(res.status).toBe(400);
     });
   });
 });
