@@ -156,6 +156,14 @@ function upsertConcept(db, field, normalizedValue, comunidades) {
  * yet), so curators see the full domain vocabulary, not only observed values.
  * Always persists an AcquisitionLog document, even on failure.
  */
+/** Yields control back to the event loop so a long-running acquisition cycle doesn't
+ *  block the admin HTTP server (better-sqlite3 calls are synchronous) for its whole
+ *  duration — interleaved every YIELD_EVERY upserts. */
+const YIELD_EVERY = 40;
+function yieldToEventLoop() {
+  return new Promise((resolve) => setImmediate(resolve));
+}
+
 export async function run(db) {
   const startedAt = Date.now();
   const executedAt = new Date().toISOString();
@@ -163,6 +171,7 @@ export async function run(db) {
   const errors = [];
   let conceptsCreated = 0;
   let conceptsExisting = 0;
+  let processedCount = 0;
 
   try {
     const fieldValues = collectFieldValues(db);
@@ -184,6 +193,8 @@ export async function run(db) {
           fieldExisting++;
           conceptsExisting++;
         }
+
+        if (++processedCount % YIELD_EVERY === 0) await yieldToEventLoop();
       }
 
       fieldsProcessed.push({ field, created: fieldCreated, existing: fieldExisting });
@@ -208,6 +219,8 @@ export async function run(db) {
           entry.existing++;
           conceptsExisting++;
         }
+
+        if (++processedCount % YIELD_EVERY === 0) await yieldToEventLoop();
       }
     }
 

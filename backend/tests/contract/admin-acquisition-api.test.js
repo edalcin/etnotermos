@@ -61,6 +61,22 @@ describe('Contract: Admin Acquisition & Audit API', () => {
     return entry;
   }
 
+  // POST /acquisition/run fires AcquisitionService.run() in the background
+  // (by design - the route returns 202 immediately). Since run() now yields
+  // to the event loop periodically (so a long acquisition doesn't block the
+  // admin server), it may still be in flight when this test returns. Poll
+  // until its log lands so the next test's clearCollections() doesn't race
+  // it and leak a stray log into a 'no runs exist yet' assertion.
+  async function waitForAcquisitionLog(timeoutMs = 2000) {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      const { n } = db.prepare(`SELECT COUNT(*) as n FROM etnotermos_acquisition_log`).get();
+      if (n > 0) return;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    throw new Error('Timed out waiting for background acquisition run to write its log');
+  }
+
   beforeAll(async () => {
     // Seed ADMIN_USERS env before importing the app so auth middleware picks it up
     const passwordHash = await bcrypt.hash(TEST_PASSWORD, 1);
@@ -103,6 +119,8 @@ describe('Contract: Admin Acquisition & Audit API', () => {
 
       expect(res.body).toHaveProperty('ok', true);
       expect(res.body).toHaveProperty('message', 'Aquisição iniciada em background.');
+
+      await waitForAcquisitionLog();
     });
 
     test('returns 401 without auth', async () => {
