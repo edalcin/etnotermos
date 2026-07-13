@@ -4,9 +4,23 @@ import { config } from '../../config/index.js';
 export default async function requireAuth(req, res, next) {
   const authHeader = req.headers['authorization'];
 
-  if (!authHeader || !authHeader.startsWith('Basic ')) {
+  const unauthorized = (jsonMessage, friendlyMessage) => {
     res.set('WWW-Authenticate', 'Basic realm="BioCultTermos Admin"');
-    return res.status(401).json({ error: 'Authentication required' });
+    if (req.accepts('html')) {
+      return res.status(401).render('auth-error', {
+        title: 'Acesso negado — BioCultTermos Admin',
+        message: friendlyMessage,
+        currentPage: null,
+      });
+    }
+    return res.status(401).json({ error: jsonMessage });
+  };
+
+  if (!authHeader || !authHeader.startsWith('Basic ')) {
+    return unauthorized(
+      'Authentication required',
+      'É necessário informar usuário e senha para acessar esta área.'
+    );
   }
 
   let username, password;
@@ -17,8 +31,10 @@ export default async function requireAuth(req, res, next) {
     username = decoded.slice(0, separatorIndex);
     password = decoded.slice(separatorIndex + 1);
   } catch {
-    res.set('WWW-Authenticate', 'Basic realm="BioCultTermos Admin"');
-    return res.status(401).json({ error: 'Malformed credentials' });
+    return unauthorized(
+      'Malformed credentials',
+      'As credenciais enviadas estão em um formato inválido.'
+    );
   }
 
   const users = config.adminUsers ?? (() => {
@@ -26,12 +42,18 @@ export default async function requireAuth(req, res, next) {
   })();
   const user = users.find((u) => u.username === username);
   if (!user) {
-    return res.status(403).json({ error: 'Invalid credentials' });
+    return unauthorized(
+      'Invalid credentials',
+      'Usuário ou senha incorretos. Verifique e tente novamente.'
+    );
   }
 
   const match = await bcrypt.compare(password, user.passwordHash);
   if (!match) {
-    return res.status(403).json({ error: 'Invalid credentials' });
+    return unauthorized(
+      'Invalid credentials',
+      'Usuário ou senha incorretos. Verifique e tente novamente.'
+    );
   }
 
   req.user = { username };

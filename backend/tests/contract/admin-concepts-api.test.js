@@ -139,10 +139,10 @@ describe('Admin Concepts/Labels API', () => {
       expect(res.status).toBe(401);
     });
 
-    it('returns 403 when credentials are wrong', async () => {
+    it('returns 401 when credentials are wrong', async () => {
       requireApp();
       const res = await request(app).get('/').set('Authorization', badAuth);
-      expect(res.status).toBe(403);
+      expect(res.status).toBe(401);
     });
   });
 

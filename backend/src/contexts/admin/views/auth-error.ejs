@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link href="/assets/styles.css?v=<%= Date.now() %>" rel="stylesheet">
+</head>
+<body>
+  <div class="min-h-screen flex items-center justify-center bg-forest-50">
+    <div class="text-center max-w-md px-6">
+      <h1 class="text-6xl font-bold text-forest-600 mb-4">401</h1>
+      <h2 class="text-2xl font-semibold text-gray-800 mb-4">Acesso não autorizado</h2>
+      <p class="text-gray-600 mb-8"><%= message %></p>
+      <button onclick="location.reload()" class="btn-primary">Tentar novamente</button>
+      <p class="text-sm text-gray-500 mt-6">
+        Ao clicar em "Tentar novamente", o navegador deve pedir usuário e senha de novo. Se isso
+        não acontecer, feche esta aba e abra o endereço em uma janela anônima/privada — o
+        navegador guarda a credencial errada até ela ser limpa.
+      </p>
+    </div>
+  </div>
+</body>
+</html>
