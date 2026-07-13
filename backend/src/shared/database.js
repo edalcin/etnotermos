@@ -19,6 +19,21 @@ import { config } from '../config/index.js';
 
 let db = null;
 
+/**
+ * Normalizes a string for accent/case-insensitive alphabetical sorting:
+ * strips diacritics (NFD decomposition + combining-mark removal) and
+ * lowercases, so "árvore" sorts next to "arvore" instead of after "z"
+ * under SQLite's default BINARY collation. Pure ECMAScript — no ICU
+ * dependency, so it works identically on any Node build/platform.
+ */
+export function unicodeSortKey(value) {
+  if (value == null) return '';
+  return String(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
 export function connect() {
   if (db) return db;
 
@@ -28,6 +43,7 @@ export function connect() {
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
   db.pragma('busy_timeout = 5000');
+  db.function('unicode_sort_key', { deterministic: true }, unicodeSortKey);
 
   ensureSchema(db);
 

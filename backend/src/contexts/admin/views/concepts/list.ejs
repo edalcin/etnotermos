@@ -41,7 +41,7 @@
           hx-get="/concepts"
           hx-target="#concept-list"
           hx-trigger="change"
-          hx-include="[name='status'],[name='sourceField'],[name='q']"
+          hx-include="[name='status'],[name='sourceField'],[name='q'],[name='sort'],[name='dir']"
           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
                  focus:outline-none focus:border-forest-600">
           <option value="">Todos</option>
@@ -64,7 +64,7 @@
           hx-get="/concepts"
           hx-target="#concept-list"
           hx-trigger="change"
-          hx-include="[name='status'],[name='sourceField'],[name='q']"
+          hx-include="[name='status'],[name='sourceField'],[name='q'],[name='sort'],[name='dir']"
           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
                  focus:outline-none focus:border-forest-600">
           <option value="">Todos</option>
@@ -86,16 +86,19 @@
           hx-get="/concepts"
           hx-target="#concept-list"
           hx-trigger="keyup changed delay:300ms, search"
-          hx-include="[name='status'],[name='sourceField'],[name='q']"
+          hx-include="[name='status'],[name='sourceField'],[name='q'],[name='sort'],[name='dir']"
           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
                  focus:outline-none focus:border-forest-600">
       </div>
+
+      <input type="hidden" id="filter-sort" name="sort" value="<%= sort || '' %>">
+      <input type="hidden" id="filter-dir" name="dir" value="<%= dir || '' %>">
 
     </div>
 
     <!-- Concept list (HTMX target) -->
     <div id="concept-list">
-      <%- include('../partials/concept-rows', { concepts: data, pagination }) %>
+      <%- include('../partials/concept-rows', { concepts: data, pagination, sort, dir, isHtmxSwap: false }) %>
     </div>
 
   </main>

@@ -9,7 +9,20 @@
     active:    'Ativo',
     deprecated:'Depreciado',
   };
+  const filterInclude = "[name='status'],[name='sourceField'],[name='q']";
+  const nextSortDir = (col) => (sort === col && dir === 'asc') ? 'desc' : 'asc';
+  const sortIndicator = (col) => sort === col ? (dir === 'desc' ? ' \u25bc' : ' \u25b2') : '';
 %>
+
+<!-- Keep the filter bar's hidden sort/dir fields in sync after an htmx swap
+     (header-click requests set sort/dir explicitly via URL instead of through
+     hx-include, to avoid sending stale+fresh duplicates). Skipped when this
+     partial is included inline during the full page render, where list.ejs
+     already renders these same-id fields once — avoids duplicate IDs. -->
+<% if (isHtmxSwap) { %>
+<input type="hidden" id="filter-sort" name="sort" value="<%= sort || '' %>" hx-swap-oob="true">
+<input type="hidden" id="filter-dir" name="dir" value="<%= dir || '' %>" hx-swap-oob="true">
+<% } %>
 
 <% if (!concepts || concepts.length === 0) { %>
 <div class="bg-white rounded-lg shadow-sm p-10 text-center text-gray-500">
@@ -20,8 +33,26 @@
   <table class="min-w-full divide-y divide-gray-200">
     <thead class="bg-forest-600 text-white">
       <tr>
-        <th class="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider">Termo</th>
-        <th class="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider">Status</th>
+        <th class="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider">
+          <button type="button"
+                  hx-get="/concepts?sort=label&dir=<%= nextSortDir('label') %>"
+                  hx-target="#concept-list"
+                  hx-swap="innerHTML"
+                  hx-include="<%= filterInclude %>"
+                  class="flex items-center gap-1 hover:underline focus:outline-none">
+            Termo<%= sortIndicator('label') %>
+          </button>
+        </th>
+        <th class="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider">
+          <button type="button"
+                  hx-get="/concepts?sort=status&dir=<%= nextSortDir('status') %>"
+                  hx-target="#concept-list"
+                  hx-swap="innerHTML"
+                  hx-include="<%= filterInclude %>"
+                  class="flex items-center gap-1 hover:underline focus:outline-none">
+            Status<%= sortIndicator('status') %>
+          </button>
+        </th>
         <th class="px-5 py-3 text-left text-xs font-medium uppercase tracking-wider hidden sm:table-cell">
           Campos
         </th>
@@ -69,7 +100,7 @@
      const totalPages = Math.max(1, Math.ceil(pagination.total / pagination.limit));
      const rangeStart = (pagination.page - 1) * pagination.limit + 1;
      const rangeEnd = Math.min(pagination.page * pagination.limit, pagination.total);
-     const includeFilters = "[name='status'],[name='sourceField'],[name='q']";
+     const includeFilters = "[name='status'],[name='sourceField'],[name='q'],[name='sort'],[name='dir']";
 %>
 <div class="mt-4 flex flex-wrap items-center justify-between gap-3 bg-white rounded-lg shadow-sm px-4 py-3">
   <p class="text-sm text-gray-600">

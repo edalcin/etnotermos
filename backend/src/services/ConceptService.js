@@ -146,6 +146,26 @@ function collectDescendants(db, concept) {
 // ---------------------------------------------------------------------------
 
 /**
+ * Whitelisted sortable columns for findMany's ORDER BY, keyed by the `sort`
+ * query param. `sort`/`dir` are only ever used as lookups into this map (or
+ * mapped to the literal 'ASC'/'DESC'), never concatenated raw into SQL.
+ * The `unicode_sort_key()` SQL function (registered in shared/database.js)
+ * groups accented Portuguese letters with their base form.
+ */
+const SORTABLE_COLUMNS = {
+  label: `COALESCE(json_extract(e.doc,'$.prefLabels[0].literalForm'), '')`,
+  status: `json_extract(e.doc,'$.status')`,
+};
+
+/** Builds an `ORDER BY` clause for a whitelisted column, or '' when `sort` is unset/unknown. */
+function buildOrderByClause(sort, dir) {
+  const column = SORTABLE_COLUMNS[sort];
+  if (!column) return '';
+  const direction = dir === 'desc' ? 'DESC' : 'ASC';
+  return `ORDER BY unicode_sort_key(${column}) ${direction}`;
+}
+
+/**
  * Return a paginated list of concepts with optional filtering and text search.
  *
  * options:
@@ -155,13 +175,15 @@ function collectDescendants(db, concept) {
  *   page         – 1-based page number (default 1)
  *   limit        – page size (default 20)
  *   publicOnly   – when true, restrict to active concepts and strip non-public labels
+ *   sort         – column to sort by: 'label' | 'status' (default: relevance/insertion order)
+ *   dir          – sort direction: 'asc' | 'desc' (default: 'asc')
  */
 export async function findMany(db, options = {}) {
-  const { status, sourceField, q, page = 1, limit = 20, publicOnly = false } = options;
+  const { status, sourceField, q, page = 1, limit = 20, publicOnly = false, sort, dir } = options;
   const offset = (page - 1) * limit;
+  const orderBy = buildOrderByClause(sort, dir);
 
   const statusFilter = publicOnly ? CONCEPT_STATUS.ACTIVE : status;
-
   const extraConditions = [];
   const extraParams = [];
   if (statusFilter) {
@@ -186,7 +208,7 @@ export async function findMany(db, options = {}) {
           `SELECT e.doc FROM etnotermos_fts f
            JOIN etnotermos e ON e.id = f.id
            WHERE etnotermos_fts MATCH ? ${extraWhere}
-           ORDER BY bm25(etnotermos_fts, 10.0, 5.0, 3.0, 2.0)
+           ${orderBy || 'ORDER BY bm25(etnotermos_fts, 10.0, 5.0, 3.0, 2.0)'}
            LIMIT ? OFFSET ?`
         )
         .all(`"${ftsQuery}"`, ...extraParams, limit, offset);
@@ -205,6 +227,7 @@ export async function findMany(db, options = {}) {
           `SELECT e.doc FROM etnotermos e
            WHERE EXISTS (SELECT 1 FROM json_each(json_extract(e.doc,'$.prefLabels')) je WHERE json_extract(je.value,'$.literalForm') LIKE ?)
            ${extraWhere}
+           ${orderBy}
            LIMIT ? OFFSET ?`
         )
         .all(likePattern, ...extraParams, limit, offset);
@@ -219,7 +242,7 @@ export async function findMany(db, options = {}) {
   } else {
     const where = extraConditions.length ? `WHERE ${extraConditions.join(' AND ')}` : '';
     rows = db
-      .prepare(`SELECT doc FROM etnotermos e ${where} LIMIT ? OFFSET ?`)
+      .prepare(`SELECT doc FROM etnotermos e ${where} ${orderBy} LIMIT ? OFFSET ?`)
       .all(...extraParams, limit, offset);
     total = db.prepare(`SELECT COUNT(*) as total FROM etnotermos e ${where}`).get(...extraParams).total;
   }

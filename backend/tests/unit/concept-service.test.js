@@ -515,5 +515,67 @@ describe('ConceptService — unit tests', () => {
       expect(result.pagination).toHaveProperty('page', 1);
       expect(result.pagination).toHaveProperty('total');
     });
+
+    test('sort:"label", dir:"asc" orders concepts alphabetically by prefLabel', async () => {
+      ['zebra', 'banana', 'abacaxi'].forEach((term) =>
+        insertConceptRow(
+          makeConcept({
+            status: 'active',
+            prefLabels: [{ id: randomUUID(), literalForm: term, language: 'pt', type: 'pref', accessLevel: 'public', labelRelations: [] }],
+          })
+        )
+      );
+
+      const result = await ConceptService.findMany(db, { sort: 'label', dir: 'asc' });
+      expect(result.data.map((c) => c.prefLabels[0].literalForm)).toEqual(['abacaxi', 'banana', 'zebra']);
+    });
+
+    test('sort:"label", dir:"desc" reverses the alphabetical order', async () => {
+      ['zebra', 'banana', 'abacaxi'].forEach((term) =>
+        insertConceptRow(
+          makeConcept({
+            status: 'active',
+            prefLabels: [{ id: randomUUID(), literalForm: term, language: 'pt', type: 'pref', accessLevel: 'public', labelRelations: [] }],
+          })
+        )
+      );
+
+      const result = await ConceptService.findMany(db, { sort: 'label', dir: 'desc' });
+      expect(result.data.map((c) => c.prefLabels[0].literalForm)).toEqual(['zebra', 'banana', 'abacaxi']);
+    });
+
+    test('sort:"label" groups accented Portuguese terms with their base form', async () => {
+      ['zebra', 'árvore', 'arvore', 'banana'].forEach((term) =>
+        insertConceptRow(
+          makeConcept({
+            status: 'active',
+            prefLabels: [{ id: randomUUID(), literalForm: term, language: 'pt', type: 'pref', accessLevel: 'public', labelRelations: [] }],
+          })
+        )
+      );
+
+      const result = await ConceptService.findMany(db, { sort: 'label', dir: 'asc' });
+      const order = result.data.map((c) => c.prefLabels[0].literalForm);
+      // "árvore"/"arvore" must land together, ahead of "banana" and "zebra" —
+      // not after "zebra" as plain byte-order collation would place them.
+      expect(order.slice(0, 2).sort()).toEqual(['arvore', 'árvore'].sort());
+      expect(order[2]).toBe('banana');
+      expect(order[3]).toBe('zebra');
+    });
+
+    test('sort:"status" orders concepts by status value', async () => {
+      insertConceptRow(makeConcept({ status: 'deprecated', replacedBy: null }));
+      insertConceptRow(makeConcept({ status: 'active' }));
+      insertConceptRow(makeConcept({ status: 'candidate' }));
+
+      const result = await ConceptService.findMany(db, { sort: 'status', dir: 'asc' });
+      expect(result.data.map((c) => c.status)).toEqual(['active', 'candidate', 'deprecated']);
+    });
+
+    test('unknown sort value is ignored (no error, falls back to unsorted)', async () => {
+      insertConceptRow(makeConcept({ status: 'active' }));
+
+      await expect(ConceptService.findMany(db, { sort: 'bogus', dir: 'asc' })).resolves.toHaveProperty('data');
+    });
   });
 });

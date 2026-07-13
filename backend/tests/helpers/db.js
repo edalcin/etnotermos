@@ -1,4 +1,5 @@
 import SqliteDb from 'better-sqlite3';
+import { unicodeSortKey } from '../../src/shared/database.js';
 
 let db = null;
 
@@ -12,6 +13,7 @@ export async function connect() {
   db = new SqliteDb(':memory:');
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
+  db.function('unicode_sort_key', { deterministic: true }, unicodeSortKey);
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS etnotermos (

@@ -238,6 +238,35 @@ describe('Admin Concepts/Labels API', () => {
       expect(res.text).not.toMatch(/Mostrando \d/);
     });
 
+    it('sort=label&dir=asc orders rows alphabetically by prefLabel', async () => {
+      requireApp();
+      insertConceptRows([
+        buildConcept({ prefLabels: [{ ...buildConcept().prefLabels[0], literalForm: 'zebra' }] }),
+        buildConcept({ prefLabels: [{ ...buildConcept().prefLabels[0], literalForm: 'abacaxi' }] }),
+      ]);
+      const res = await request(app)
+        .get('/concepts?sort=label&dir=asc')
+        .set('Authorization', validAuth);
+      expect(res.status).toBe(200);
+      expect(res.text.indexOf('abacaxi')).toBeLessThan(res.text.indexOf('zebra'));
+    });
+
+    it('column headers are clickable and toggle sort direction via the URL', async () => {
+      requireApp();
+      insertConceptRow(buildConcept());
+      const res = await request(app)
+        .get('/concepts')
+        .set('Authorization', validAuth);
+      expect(res.status).toBe(200);
+      expect(res.text).toContain(`hx-get="/concepts?sort=label&dir=asc"`);
+      expect(res.text).toContain(`hx-get="/concepts?sort=status&dir=asc"`);
+
+      const sorted = await request(app)
+        .get('/concepts?sort=label&dir=asc')
+        .set('Authorization', validAuth);
+      expect(sorted.text).toContain(`hx-get="/concepts?sort=label&dir=desc"`);
+    });
+
     it('second page shows the remaining items and an enabled "Anterior" control', async () => {
       requireApp();
       insertConceptRows(Array.from({ length: 25 }, () => buildConcept()));

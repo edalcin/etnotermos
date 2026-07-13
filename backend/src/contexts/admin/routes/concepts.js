@@ -7,24 +7,41 @@ const router = Router();
 router.get('/', async (req, res, next) => {
   try {
     const db = req.app.locals.db;
-    const { status, sourceField, q, page = 1, limit = 20 } = req.query;
+    const { status, sourceField, q, sort, dir, page = 1, limit = 20 } = req.query;
     const result = await ConceptService.findMany(db, {
       status,
       sourceField,
       q,
+      sort,
+      dir,
       page: parseInt(page, 10),
       limit: parseInt(limit, 10),
     });
 
     if (req.get('HX-Request')) {
-      return res.render('partials/concept-rows', { concepts: result.data, pagination: result.pagination });
+      return res.render('partials/concept-rows', {
+        concepts: result.data,
+        pagination: result.pagination,
+        sort,
+        dir,
+        isHtmxSwap: true,
+      });
     }
 
     if (req.get('Accept') === 'application/json') {
       return res.json(result);
     }
 
-    res.render('concepts/list', { ...result, q, sourceField, status, user: req.user, currentPage: 'terms' });
+    res.render('concepts/list', {
+      ...result,
+      q,
+      sourceField,
+      status,
+      sort,
+      dir,
+      user: req.user,
+      currentPage: 'terms',
+    });
   } catch (err) {
     next(err);
   }
