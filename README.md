@@ -116,17 +116,25 @@ O SQLite compila com o módulo **FTS5**, usado para busca textual ponderada (`bm
 
 ## Integração com BioCultDB
 
-O BioCultTermos e o [BioCultDB](https://github.com/edalcin/BioCultDB) compartilham banco de dados, identidade visual e vocabulário:
+O BioCultTermos entra como **git submodule** dentro do repositório do
+[BioCultDB](https://github.com/edalcin/BioCultDB) e roda no **mesmo container Docker** que ele
+(imagem dual-app `docker/Dockerfile.unidade`, publicada como `ghcr.io/edalcin/biocultdb:latest`) —
+não é mais um sistema externo, é a mesma unidade de implantação (**Unidade de Fontes Secundárias**,
+ADR-005 da Arquitetura BioCultural). Os dois processos compartilham banco de dados, identidade
+visual e vocabulário:
 
 | Aspecto | Detalhe |
 |---|---|
-| **Database** | SQLite `unidade.sqlite` (arquivo compartilhado, WAL) |
+| **Database** | SQLite `biocultdb.sqlite` (arquivo compartilhado, WAL) |
 | **Tabela etnotermos** | `etnotermos` (separada de `biocultdb_records`) |
 | **Tabela fonte** | `biocultdb_records` (lida pelo contexto de Aquisição) |
-| **Campos gerenciados** | `comunidades.tipo`, `comunidades.plantas.nomeVernacular`, `comunidades.plantas.tipoUso`, `comunidades.atividadesEconomicas` |
+| **Campos gerenciados** | `comunidades.tipo`, `comunidades.plantas.nomeCientifico`, `comunidades.plantas.nomeVernacular`, `comunidades.plantas.tipoUso`, `comunidades.atividadesEconomicas` — mais um vocabulário estático de referência de tipos de uso (`src/data/referenceTerms.js`, ~450 termos do domínio etnobotânico), semeado a cada ciclo de aquisição independente do que já foi digitado em algum registro |
 | **Identidade visual** | Tema `forest` (Tailwind CSS) — mesmas cores, fontes, componentes |
 
 O BioCultDB coleta dados secundários de artigos científicos. O BioCultTermos consome esses dados automaticamente via contexto de Aquisição, transformando valores brutos em conceitos SKOS-XL candidatos. Os curadores então elevam, relacionam e enriquecem esses conceitos via interface de Curadoria.
+
+**Em produção desde julho de 2026** — detalhes da integração, corte e estabilização em
+`BioCultDB/integracao.md` e `BioCultDB/docs/decisions/ADR-001-integracao-bioculttermos.md`.
 
 ---
 
@@ -139,8 +147,8 @@ graph TD
     U1["🔍 Público / Pesquisador\n(acesso anônimo)"]
     U2["✏️ Curador\n(autenticado)"]
     ET["BioCultTermos v2.0\n[Sistema]\nAquisição · Apresentação · Curadoria\nde vocabulário controlado SKOS-XL"]
-    EDB["BioCultDB\n[Sistema externo]\nBase de dados etnobotânicos\nportão 3001–3003"]
-    SDB[("SQLite+JSON\n[Banco de Dados]\nunidade.sqlite")]
+    EDB["BioCultDB\n[Mesmo container]\nBase de dados etnobotânicos\nportas 3001–3003"]
+    SDB[("SQLite+JSON\n[Banco de Dados]\nbiocultdb.sqlite")]
 
     U1 -->|"Consulta termos\n(porta 4000)"| ET
     U2 -->|"Cura e valida termos\n(porta 4001)"| ET
@@ -164,10 +172,10 @@ graph TD
     end
 
     subgraph Shared["Banco Compartilhado"]
-        SDB[("SQLite unidade.sqlite\n[Banco de Dados]\ntabelas: etnotermos\netnotermos_acquisition_log\netnotermos_audit_log")]
+        SDB[("SQLite biocultdb.sqlite\n[Banco de Dados]\ntabelas: etnotermos\netnotermos_acquisition_log\netnotermos_audit_log")]
     end
 
-    subgraph BioCultDB["BioCultDB (externo)"]
+    subgraph BioCultDB["BioCultDB (mesmo container, Unidade de Fontes Secundárias)"]
         EDBAPP["Aplicação BioCultDB\nPortas 3001–3003"]
         EDBTBL[("tabela biocultdb_records")]
     end
@@ -303,7 +311,7 @@ graph LR
 - **Backend**: Node.js 20 LTS + Express.js + better-sqlite3
 - **Frontend**: HTMX 2.x + Alpine.js 3.x + Tailwind CSS 3.x (tema `forest`, idêntico ao BioCultDB)
 - **Template Engine**: EJS (server-side rendering)
-- **Banco de Dados**: SQLite (JSON1 + FTS5), arquivo `unidade.sqlite` (compartilhado com o BioCultDB da unidade)
+- **Banco de Dados**: SQLite (JSON1 + FTS5), arquivo `biocultdb.sqlite` (compartilhado com o BioCultDB da unidade)
 - **Visualização**: Cytoscape.js (grafos de relacionamentos)
 - **Testes**: Jest + Supertest + SQLite `:memory:`
 - **Deploy**: Docker (Alpine Linux)
@@ -348,7 +356,7 @@ Gerar o hash: `node -e "import('bcrypt').then(m=>m.default.hash('senha',10).then
 
 Ou use o script interativo: `node docker/create-admin-user.js`
 
-### Docker
+### Docker (standalone — apenas para testar este repositório isoladamente)
 
 ```bash
 # Configurar (interativo — pede usuário e senha; caminho do arquivo SQLite via SQLITE_DB_PATH)
@@ -358,10 +366,18 @@ node docker/create-admin-user.js
 docker-compose -f docker/docker-compose.yml up -d
 ```
 
+> **Este repositório está congelado como produto standalone** (ADR-001 do BioCultDB, item 9): em
+> produção, o BioCultTermos roda **exclusivamente** dentro da unidade dual-app do BioCultDB
+> (`docker/Dockerfile.unidade`, imagem `ghcr.io/edalcin/biocultdb:latest`) — nunca isolado via este
+> `docker-compose.yml`. O comando acima serve só para testar mudanças de código deste repositório
+> localmente antes de fazer commit + push (ver fluxo de submodule em
+> `BioCultDB/integracao.md` §7). `docs/deployment.md` e `docs/instalacao-unraid.md` abaixo
+> descrevem o modelo standalone anterior — histórico, não o caminho de deploy atual.
+
 Documentação detalhada:
 - [Desenvolvimento local](docs/desenvolvimento.md)
-- [Deployment em produção](docs/deployment.md)
-- [Instalação no UNRAID](docs/instalacao-unraid.md)
+- [Deployment em produção (modelo standalone anterior — ver nota acima)](docs/deployment.md)
+- [Instalação no UNRAID (modelo standalone anterior — ver nota acima)](docs/instalacao-unraid.md)
 
 ---
 
