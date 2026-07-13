@@ -3,6 +3,31 @@
   rótulos, que são só nomes deste mesmo conceito). Existem quatro tipos:
 </p>
 
+<div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+  <p class="font-medium text-blue-800 mb-1">Antes de tudo: rótulo alternativo × relação de sinônimo</p>
+  <p>Os dois parecem resolver a mesma coisa, mas operam em níveis diferentes:</p>
+  <ul class="list-disc pl-5 mt-1 space-y-1">
+    <li>
+      <strong>Rótulo alternativo (alt)</strong> — outro nome para o <strong>mesmo registro</strong>
+      (mesmo <code class="bg-white px-1 rounded text-xs">id</code> de conceito). Não cria nada novo,
+      só adiciona um nome a mais no mesmo conceito. Use quando os dois nomes já foram digitados
+      como o <strong>mesmo</strong> conceito, ou quando ainda não foram curados separadamente.
+    </li>
+    <li>
+      <strong>Relação de sinônimo</strong> — liga <strong>dois registros diferentes</strong>
+      (dois <code class="bg-white px-1 rounded text-xs">id</code>s de conceito, cada um com sua
+      própria definição, notas e histórico de curadoria). Use quando os dois já existem como
+      conceitos separados e você não quer apagar nenhum dos dois.
+    </li>
+  </ul>
+  <p class="mt-2 italic text-blue-900">
+    Regra de bolso: rótulo alternativo é outro jeito de escrever a <strong>mesma linha</strong> do
+    banco de dados; sinônimo é <strong>uma linha apontando para outra</strong>. Se você não sabe se
+    já existem dois registros, busque o outro nome na lista de conceitos — se aparecer com <em>id</em>
+    próprio, já são dois registros e a resposta é sinônimo, não rótulo.
+  </p>
+</div>
+
 <div>
   <h4 class="font-semibold text-gray-800 mb-1">
     <span class="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-xs mr-1">BT</span>
