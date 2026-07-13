@@ -35,8 +35,8 @@
       <% if (concept.replacedBy) { %>
       <p class="text-red-700 text-sm mt-1">
         Use:
-        <a href="/concepts/<%= concept.replacedBy._id %>"
-           class="underline font-medium"><%= concept.replacedBy.prefLabel %></a>
+        <a href="/concepts/<%= concept.replacedBy %>"
+           class="underline font-medium">Ver conceito substituto</a>
       </p>
       <% } %>
     </div>
@@ -161,9 +161,9 @@
         </h3>
         <div class="flex flex-wrap gap-2">
           <% concept.broader.forEach(b => { %>
-          <a href="/concepts/<%= b._id %>"
+          <a href="/concepts/<%= b.id %>"
              class="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm hover:bg-blue-100 transition-colors">
-            <%= b.prefLabel %>
+            <%= (b.prefLabels && b.prefLabels[0]) ? b.prefLabels[0].literalForm : b.id %>
           </a>
           <% }) %>
         </div>
@@ -177,9 +177,9 @@
         </h3>
         <div class="flex flex-wrap gap-2">
           <% concept.narrower.forEach(n => { %>
-          <a href="/concepts/<%= n._id %>"
+          <a href="/concepts/<%= n.id %>"
              class="px-3 py-1 bg-purple-50 text-purple-700 rounded-full text-sm hover:bg-purple-100 transition-colors">
-            <%= n.prefLabel %>
+            <%= (n.prefLabels && n.prefLabels[0]) ? n.prefLabels[0].literalForm : n.id %>
           </a>
           <% }) %>
         </div>
@@ -193,9 +193,9 @@
         </h3>
         <div class="flex flex-wrap gap-2">
           <% concept.related.forEach(r => { %>
-          <a href="/concepts/<%= r._id %>"
+          <a href="/concepts/<%= r.id %>"
              class="px-3 py-1 bg-forest-50 text-forest-700 rounded-full text-sm hover:bg-forest-100 transition-colors">
-            <%= r.prefLabel %>
+            <%= (r.prefLabels && r.prefLabels[0]) ? r.prefLabels[0].literalForm : r.id %>
           </a>
           <% }) %>
         </div>

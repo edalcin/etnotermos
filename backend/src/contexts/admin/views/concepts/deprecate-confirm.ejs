@@ -19,7 +19,7 @@
       <ul class="mb-6 space-y-2">
         <% (orphans || []).forEach(function(orphan) { %>
         <li class="flex items-center gap-3 p-3 bg-red-50 rounded border border-red-200">
-          <span class="font-mono text-sm text-gray-500"><%= orphan._id %></span>
+          <span class="font-mono text-sm text-gray-500"><%= orphan.id %></span>
           <span class="text-gray-800">
             <%= orphan.prefLabels && orphan.prefLabels[0] ? orphan.prefLabels[0].literalForm : '(sem rótulo)' %>
           </span>
