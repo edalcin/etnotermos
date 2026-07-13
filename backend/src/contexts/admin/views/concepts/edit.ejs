@@ -121,10 +121,11 @@
     <div class="bg-white rounded-lg shadow-md p-6 mt-6">
       <h2 class="text-lg font-semibold text-gray-800 mb-3">Ações de Status</h2>
       <button
-        x-on:click="confirm('Ativar este conceito?') && $el.closest('form').submit()"
         hx-post="/concepts/<%= concept.id %>/activate"
+        hx-vals='{"version": <%= concept.version %>}'
         hx-confirm="Confirmar ativação do conceito?"
         hx-target="#save-status"
+        hx-on::after-request="if(event.detail.successful) window.location.reload()"
         class="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700
                transition-colors font-medium">
         Ativar Conceito
@@ -149,7 +150,9 @@
           <h3 class="text-lg font-semibold text-gray-800 mb-3">Deprecar Conceito</h3>
           <form hx-post="/concepts/<%= concept.id %>/deprecate"
                 hx-target="#deprecate-status"
-                hx-swap="innerHTML">
+                hx-swap="innerHTML"
+                hx-on::after-request="if(event.detail.successful) window.location.reload()">
+            <input type="hidden" name="version" value="<%= concept.version %>">
             <label class="block text-sm font-medium text-gray-700 mb-1">
               Substituído por (opcional)
             </label>
@@ -357,45 +360,39 @@
         Operação criaria um ciclo hierárquico. Escolha um conceito diferente.
       </div>
 
-      <%
-        const relSections = [
-          { key: 'broader',  label: 'Mais amplo (BT)',         colorClass: 'bg-blue-50 text-blue-700',   endpoint: 'broader'  },
-          { key: 'narrower', label: 'Mais específico (NT)',     colorClass: 'bg-purple-50 text-purple-700', endpoint: 'narrower' },
-          { key: 'related',  label: 'Relacionado (RT)',         colorClass: 'bg-forest-50 text-forest-700', endpoint: 'related'  },
-        ];
-      %>
-
       <% relSections.forEach(rel => { %>
       <div class="mb-5">
         <h3 class="text-sm font-semibold text-gray-600 mb-2"><%= rel.label %></h3>
-        <div class="flex flex-wrap gap-2 mb-2" id="rel-<%= rel.key %>">
-          <% (concept[rel.key] || []).forEach(r => { %>
-          <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm
-                       <%= rel.colorClass %>">
-            <a href="/concepts/<%= r.id %>" class="hover:underline"><%= (r.prefLabels && r.prefLabels[0]) ? r.prefLabels[0].literalForm : r.id %></a>
-            <button
-              hx-delete="/concepts/<%= concept.id %>/<%= rel.endpoint %>/<%= r.id %>"
-              hx-target="#rel-<%= rel.key %>"
-              hx-swap="outerHTML"
-              class="ml-1 opacity-60 hover:opacity-100" title="Remover">
-              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M6 18L18 6M6 6l12 12"/>
-              </svg>
-            </button>
-          </span>
-          <% }) %>
-        </div>
+        <%- include('../partials/relation-pills', { concept, rel }) %>
         <form
           hx-post="/concepts/<%= concept.id %>/<%= rel.endpoint %>"
           hx-target="#rel-<%= rel.key %>"
           hx-swap="outerHTML"
           hx-on::response-error="if(event.detail.xhr.status===400) document.getElementById('cycle-error').classList.remove('hidden')"
-          class="flex gap-2">
-          <input type="text" name="targetId" placeholder="ID do conceito"
-                 class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm w-56
-                        focus:outline-none focus:border-forest-600">
-          <button type="submit"
+          hx-on::before-request="if(event.detail.elt===this && !this.querySelector('[name=targetId]').value){event.preventDefault();this.querySelector('[name=q]').focus();}"
+          hx-on::after-request="if(event.detail.elt===this && event.detail.successful) this.reset()"
+          x-data="{ open: false }"
+          class="flex gap-2 relative">
+          <div class="relative flex-1 max-w-xs">
+            <input type="text" name="q" placeholder="Digite o nome do conceito..." autocomplete="off"
+                   hx-get="/concepts/search?exclude=<%= concept.id %>"
+                   hx-trigger="keyup changed delay:300ms, focus"
+                   hx-target="#suggest-<%= rel.key %>"
+                   hx-swap="innerHTML"
+                   x-on:focus="open = true"
+                   x-on:input="open = true; $el.form.querySelector('[name=targetId]').value = ''"
+                   x-on:keydown.escape="open = false"
+                   class="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm
+                          focus:outline-none focus:border-forest-600">
+            <input type="hidden" name="targetId">
+            <div id="suggest-<%= rel.key %>"
+                 x-show="open"
+                 x-cloak
+                 x-on:click.outside="open = false"
+                 class="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg
+                        max-h-56 overflow-y-auto"></div>
+          </div>
+          <button type="submit" x-on:click="open = false"
                   class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm
                          hover:bg-gray-200 transition-colors">
             Adicionar

@@ -291,6 +291,101 @@ describe('Admin Concepts/Labels API', () => {
         .set('Authorization', validAuth);
       expect(res.status).toBe(404);
     });
+
+    it('the Ativar Conceito button sends the current version and only htmx confirms once', async () => {
+      requireApp();
+      const concept = buildConcept({ status: 'candidate', version: 7 });
+      insertConceptRow(concept);
+      const res = await request(app)
+        .get(`/concepts/${concept.id}`)
+        .set('Authorization', validAuth);
+      expect(res.status).toBe(200);
+      // hx-confirm is htmx's own single confirmation dialog for this action.
+      expect(res.text).toMatch(/hx-confirm="Confirmar ativação do conceito\?"/);
+      // The activate endpoint requires the concept's current version for
+      // optimistic locking; the button must send it explicitly since it is
+      // not inside a <form> (no version field would otherwise reach the server).
+      expect(res.text).toMatch(/hx-vals='\{"version": 7\}'/);
+      // The old broken x-on:click (confirm() + .closest('form').submit() on a
+      // button with no ancestor form) caused the double-confirmation and must
+      // not be present anymore.
+      expect(res.text).not.toMatch(/x-on:click="confirm\(/);
+    });
+
+    it('the Deprecar Conceito form includes the current version as a hidden field', async () => {
+      requireApp();
+      const concept = buildConcept({ status: 'active', version: 4 });
+      insertConceptRow(concept);
+      const res = await request(app)
+        .get(`/concepts/${concept.id}`)
+        .set('Authorization', validAuth);
+      expect(res.status).toBe(200);
+      expect(res.text).toMatch(/name="version" value="4"/);
+    });
+
+    it('the relation "Adicionar" forms use a name search field instead of a raw ID input', async () => {
+      requireApp();
+      const concept = buildConcept();
+      insertConceptRow(concept);
+      const res = await request(app)
+        .get(`/concepts/${concept.id}`)
+        .set('Authorization', validAuth);
+      expect(res.status).toBe(200);
+      expect(res.text).toContain('name="q"');
+      expect(res.text).toContain('placeholder="Digite o nome do conceito..."');
+      expect(res.text).toContain('name="targetId"');
+      expect(res.text).not.toContain('placeholder="ID do conceito"');
+      // Three relation sections (broader/narrower/related) each get their own
+      // search endpoint call and suggestion dropdown target.
+      expect(res.text).toMatch(/\/concepts\/search\?exclude=/);
+      expect(res.text).toContain('id="suggest-broader"');
+      expect(res.text).toContain('id="suggest-narrower"');
+      expect(res.text).toContain('id="suggest-related"');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // GET /concepts/search — Name-based lookup for the relation picker
+  // ---------------------------------------------------------------------------
+
+  describe('GET /concepts/search', () => {
+    it('returns matching concepts by prefLabel text', async () => {
+      requireApp();
+      insertConceptRow(buildConcept({ prefLabels: [{ ...buildConcept().prefLabels[0], literalForm: 'erva-mate' }] }));
+      const res = await request(app)
+        .get('/concepts/search?q=erva')
+        .set('Authorization', validAuth);
+      expect(res.status).toBe(200);
+      expect(res.text).toContain('erva-mate');
+    });
+
+    it('excludes the concept passed via ?exclude= from its own suggestions', async () => {
+      requireApp();
+      const concept = buildConcept({
+        prefLabels: [{ ...buildConcept().prefLabels[0], literalForm: 'guarita-unica' }],
+      });
+      insertConceptRow(concept);
+      const res = await request(app)
+        .get(`/concepts/search?q=guarita-unica&exclude=${concept.id}`)
+        .set('Authorization', validAuth);
+      expect(res.status).toBe(200);
+      expect(res.text).not.toContain('guarita-unica');
+    });
+
+    it('returns an empty-state message for a blank query', async () => {
+      requireApp();
+      const res = await request(app)
+        .get('/concepts/search?q=')
+        .set('Authorization', validAuth);
+      expect(res.status).toBe(200);
+      expect(res.text).toContain('Nenhum conceito encontrado.');
+    });
+
+    it('returns 401 without auth', async () => {
+      requireApp();
+      const res = await request(app).get('/concepts/search?q=test');
+      expect(res.status).toBe(401);
+    });
   });
 
   // ---------------------------------------------------------------------------
@@ -658,6 +753,14 @@ describe('Admin Concepts/Labels API', () => {
         .send({ targetId: broad.id.toString(), version: 1 });
 
       expect(res.status).toBe(200);
+      // Regression check: the response used to be raw JSON (the updated
+      // concept document) swapped as HTML into #rel-broader; it must now be
+      // the rendered pill list with the linked concept's label and a working
+      // remove control, not a JSON dump.
+      expect(res.headers['content-type']).toMatch(/html/);
+      expect(res.text).toContain('id="rel-broader"');
+      expect(res.text).toContain(broad.prefLabels[0].literalForm);
+      expect(res.text).toContain(`hx-delete="/concepts/${narrow.id}/broader/${broad.id}"`);
     });
 
     it('returns 400 {error:"Relação criaria ciclo hierárquico."} when targetId is an ancestor', async () => {

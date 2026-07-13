@@ -1,0 +1,21 @@
+<%
+  const items = concept[rel.key] || [];
+%>
+<div class="flex flex-wrap gap-2 mb-2" id="rel-<%= rel.key %>">
+  <% items.forEach(r => { %>
+  <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm
+               <%= rel.colorClass %>">
+    <a href="/concepts/<%= r.id %>" class="hover:underline"><%= (r.prefLabels && r.prefLabels[0]) ? r.prefLabels[0].literalForm : r.id %></a>
+    <button
+      hx-delete="/concepts/<%= concept.id %>/<%= rel.endpoint %>/<%= r.id %>"
+      hx-target="#rel-<%= rel.key %>"
+      hx-swap="outerHTML"
+      class="ml-1 opacity-60 hover:opacity-100" title="Remover">
+      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+  </span>
+  <% }) %>
+</div>

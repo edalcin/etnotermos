@@ -1,0 +1,29 @@
+<%
+  const STATUS_LABEL = { candidate: 'Candidato', active: 'Ativo', deprecated: 'Depreciado' };
+%>
+<% if (!concepts || concepts.length === 0) { %>
+<div class="px-3 py-2 text-sm text-gray-500">Nenhum conceito encontrado.</div>
+<% } else { %>
+<ul class="divide-y divide-gray-100">
+  <% concepts.forEach(c => {
+       const label = (c.prefLabels && c.prefLabels[0]) ? c.prefLabels[0].literalForm : c.id;
+       const statusLabel = STATUS_LABEL[c.status] || c.status;
+  %>
+  <li>
+    <button type="button"
+            data-id="<%= c.id %>"
+            data-label="<%= label %>"
+            x-on:click="
+              const form = $el.closest('form');
+              form.querySelector('[name=targetId]').value = $el.dataset.id;
+              form.querySelector('[name=q]').value = $el.dataset.label;
+              open = false;
+            "
+            class="w-full text-left px-3 py-2 text-sm hover:bg-forest-50 flex items-center justify-between gap-2">
+      <span class="truncate"><%= label %></span>
+      <span class="text-xs text-gray-400 shrink-0 ml-2"><%= statusLabel %></span>
+    </button>
+  </li>
+  <% }) %>
+</ul>
+<% } %>

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import * as ConceptService from '../../../services/ConceptService.js';
+import { REL_SECTIONS } from '../../../lib/relSections.js';
 
 const router = Router();
 
@@ -29,6 +30,24 @@ router.get('/', async (req, res, next) => {
   }
 });
 
+// Registered before GET /:id so the literal "search" segment isn't swallowed by :id.
+router.get('/search', async (req, res, next) => {
+  try {
+    const db = req.app.locals.db;
+    const { q = '', exclude } = req.query;
+
+    if (!q.trim()) {
+      return res.render('partials/concept-suggestions', { concepts: [] });
+    }
+
+    const result = await ConceptService.findMany(db, { q: q.trim(), limit: 8 });
+    const concepts = result.data.filter((c) => c.id !== exclude);
+    res.render('partials/concept-suggestions', { concepts });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get('/:id', async (req, res, next) => {
   try {
     const db = req.app.locals.db;
@@ -39,7 +58,7 @@ router.get('/:id', async (req, res, next) => {
       return res.json(concept);
     }
 
-    res.render('concepts/edit', { concept, user: req.user, currentPage: 'terms' });
+    res.render('concepts/edit', { concept, relSections: REL_SECTIONS, user: req.user, currentPage: 'terms' });
   } catch (err) {
     next(err);
   }

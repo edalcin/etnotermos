@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import * as ConceptService from '../../../services/ConceptService.js';
+import { REL_SECTIONS } from '../../../lib/relSections.js';
 
 const router = Router();
 
@@ -66,6 +67,18 @@ async function resolveVersion(db, id, bodyVersion) {
   return row ? row.version : null;
 }
 
+/** Renders the updated pill list for `field` (broader/narrower/related) after a
+ *  successful add/remove, matching what concepts/edit.ejs expects at #rel-<field> —
+ *  JSON callers (Accept: application/json) still get the raw concept document. */
+async function renderRelationResponse(req, res, db, id, field) {
+  const concept = await ConceptService.findById(db, id);
+  if (req.get('Accept') === 'application/json') {
+    return res.status(200).json(concept);
+  }
+  const rel = REL_SECTIONS.find((r) => r.key === field);
+  res.render('partials/relation-pills', { concept, rel });
+}
+
 router.post('/concepts/:id/broader', async (req, res, next) => {
   try {
     const db = req.app.locals.db;
@@ -75,7 +88,7 @@ router.post('/concepts/:id/broader', async (req, res, next) => {
     const { targetId } = req.body;
     const result = await ConceptService.addBroader(db, req.params.id, version, targetId, req.user.username);
     if (!result) return res.status(404).json({ error: 'Conceito não encontrado' });
-    res.status(200).json(result);
+    await renderRelationResponse(req, res, db, req.params.id, 'broader');
   } catch (err) {
     if (err.code === 400) return res.status(400).json({ error: err.message });
     if (err.code === 409) return res.status(409).json({ error: err.message });
@@ -97,7 +110,7 @@ router.delete('/concepts/:id/broader/:targetId', async (req, res, next) => {
       req.user.username
     );
     if (!result) return res.status(404).json({ error: 'Conceito não encontrado' });
-    res.json(result);
+    await renderRelationResponse(req, res, db, req.params.id, 'broader');
   } catch (err) {
     if (err.code === 409) return res.status(409).json({ error: err.message });
     next(err);
@@ -113,7 +126,7 @@ router.post('/concepts/:id/related', async (req, res, next) => {
     const { targetId } = req.body;
     const result = await ConceptService.addRelated(db, req.params.id, version, targetId, req.user.username);
     if (!result) return res.status(404).json({ error: 'Conceito não encontrado' });
-    res.status(200).json(result);
+    await renderRelationResponse(req, res, db, req.params.id, 'related');
   } catch (err) {
     if (err.code === 409) return res.status(409).json({ error: err.message });
     next(err);
@@ -134,7 +147,7 @@ router.delete('/concepts/:id/related/:targetId', async (req, res, next) => {
       req.user.username
     );
     if (!result) return res.status(404).json({ error: 'Conceito não encontrado' });
-    res.json(result);
+    await renderRelationResponse(req, res, db, req.params.id, 'related');
   } catch (err) {
     if (err.code === 409) return res.status(409).json({ error: err.message });
     next(err);
