@@ -404,35 +404,35 @@ O BioCultTermos implementa os Princípios CARE para dados de povos indígenas:
 - [Arquitetura BioCultural](https://github.com/edalcin/Arquitetura-BioCultural) — Ecossistema integrado
 - [BioCultDB](https://github.com/edalcin/BioCultDB) — Sistema fonte de dados etnobotânicos
 
-## Arquitetura BioCultural Federada — v3.0
+## Arquitetura BioCultural Federada — v3.2
 
-O **BioCultTermos** faz parte da [Arquitetura BioCultural](https://github.com/edalcin/Arquitetura-BioCultural), um ecossistema federado para gestão de Conhecimento Tradicional Associado à Biodiversidade (CTA). Na versão 3.0, o BioCultTermos assume um papel central e diferente da versão anterior.
+O **BioCultTermos** faz parte da [Arquitetura BioCultural](https://github.com/edalcin/Arquitetura-BioCultural), um ecossistema federado para gestão de Conhecimento Tradicional Associado à Biodiversidade (CTA). Na arquitetura federada (v3.2), o BioCultTermos assume um papel central e diferente da versão anterior.
 
 ### Papel do BioCultTermos na Federação
 
-Na arquitetura federada v3.0, **cada membro opera sua própria instância soberana do BioCultTermos** com seu próprio `skos:ConceptScheme`. O BioCultTermos deixa de ser uma infraestrutura terminológica central compartilhada e passa a ser um componente **por membro** — garantindo o princípio **Authority to Control** do CARE: cada comunidade ou iniciativa é dona de seus próprios vocabulários.
+Na arquitetura federada v3.2, **cada membro opera sua própria instância soberana do BioCultTermos** com seu próprio `skos:ConceptScheme`. O BioCultTermos deixa de ser uma infraestrutura terminológica central compartilhada e passa a ser um componente **por membro** — garantindo o princípio **Authority to Control** do CARE: cada comunidade ou iniciativa é dona de seus próprios vocabulários.
 
 ```mermaid
 graph TD
     subgraph I1["Iniciativa de Fontes Secundárias"]
         ET1(BioCultTermos\nConceptScheme: I1) <--> SDB1[(SQLite I1)]
     end
-
-    subgraph C2["Comunidade Tradicional #2"]
+    subgraph C2["Comunidade Tradicional"]
         ET2(BioCultTermos\nConceptScheme: C2) <--> SDB2[(SQLite C2)]
     end
-
-    subgraph C3["Comunidade Tradicional #N"]
-        ET3(BioCultTermos\nConceptScheme: CN) <--> SDB3[(SQLite CN)]
+    subgraph AC["Acervos Históricos e Museológicos"]
+        ET3(BioCultTermos\nConceptScheme: AC) <--> SDB3[(SQLite AC)]
     end
-
+    subgraph NA["Obras de Naturalistas séc. XVII-XIX"]
+        ET4(BioCultTermos\nConceptScheme: NA) <--> SDB4[(SQLite NA)]
+    end
     subgraph PL["Pluriverso"]
-        MAP["Mapeamentos SKOS\nskos:exactMatch\nskos:closeMatch\nskos:broadMatch"]
+        MAP["Mapeamentos SKOS-XL\nskos:exactMatch\nskos:closeMatch\nskos:broadMatch"]
     end
-
     ET1 -->|"harvest REST\n(ConceptScheme público)"| MAP
     ET2 -->|"harvest REST\n(ConceptScheme público)"| MAP
     ET3 -->|"harvest REST\n(ConceptScheme público)"| MAP
+    ET4 -->|"harvest REST\n(ConceptScheme público)"| MAP
 ```
 
 O **Pluriverso** mantém uma camada de mapeamentos semânticos (`skos:exactMatch`, `skos:closeMatch`, `skos:broadMatch`) entre os `ConceptScheme` de diferentes membros. Isso permite que uma busca semântica federada encontre registros independentemente de qual termo cada membro usa para o mesmo conceito.
@@ -444,7 +444,7 @@ O **Pluriverso** mantém uma camada de mapeamentos semânticos (`skos:exactMatch
 - **O Pluriverso** propõe mapeamentos; o Comitê Federado os aprova — nunca são impostos
 - **Saída da federação**: ao sair, todos os mapeamentos envolvendo os conceitos desse membro são removidos do Pluriverso
 
-### Mudanças Necessárias para v3.0
+### Mudanças Necessárias para a Federação
 
 > **Nota**: Nenhuma implementação está sendo realizada agora.
 
@@ -461,6 +461,8 @@ O **Pluriverso** mantém uma camada de mapeamentos semânticos (`skos:exactMatch
 |------------|---------|
 | **[BioCultDB](https://github.com/edalcin/BioCultDB)** | A instância da Iniciativa #1 do BioCultTermos serve ao BioCultDB como infraestrutura terminológica |
 | **[BioCultRelatos](https://github.com/edalcin/BioCultRelatos)** | Cada Comunidade Tradicional opera sua própria instância do BioCultTermos integrada ao seu BioCultRelatos |
+| **[BioCultAcervos](https://github.com/edalcin/BioCultAcervos)** | Cada acervo histórico/museológico membro opera sua própria instância do BioCultTermos integrada ao seu BioCultAcervos |
+| **[BioCultNaturalistas](https://github.com/edalcin/BioCultNaturalistas)** | Cada membro de Obras de Naturalistas opera sua própria instância do BioCultTermos integrada ao seu BioCultNaturalistas |
 | **[Pluriverso](https://github.com/edalcin/pluriverso)** | Coleta ConceptSchemes públicos e mantém mapeamentos SKOS entre membros |
 | **[Arquitetura BioCultural](https://github.com/edalcin/Arquitetura-BioCultural)** | Documentação completa ([ADR-004](https://github.com/edalcin/Arquitetura-BioCultural/blob/main/docs/architecture-decisions/ADR-004-federated-architecture.md)) |
 
