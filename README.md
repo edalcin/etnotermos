@@ -5,7 +5,7 @@
   <img src="docs/BioCultTermosLogo.png" alt="BioCultTermos Logo" width="200">
 </div>
 
-**BioCultTermos v2.0** é um sistema integrado ao [BioCultDB](https://github.com/edalcin/BioCultDB) para aquisição, apresentação e curadoria de vocabulário controlado etnobotânico, operando sob o padrão **SKOS-XL** (Simple Knowledge Organization System — eXtension for Labels).
+**BioCultTermos v2.0** é o **módulo de vocabulário controlado etnobotânico** da [Arquitetura BioCultural](https://github.com/edalcin/Arquitetura-BioCultural), embutido via **git submodule** em cada unidade federada (BioCultDB, BioCultRelatos, BioCultAcervos, BioCultNaturalistas), operando sob o padrão **SKOS-XL** (Simple Knowledge Organization System — eXtension for Labels).
 
 > **Padrão**: [W3C SKOS-XL](https://www.w3.org/TR/skos-reference/skos-xl.html) · [Especificação SKOS completa](docs/simple_knowledge_organization_system_skos.pdf)
 
@@ -19,7 +19,7 @@
 
 O conhecimento das comunidades tradicionais do Brasil expressa relações profundas entre povos, línguas e entidades biológicas. Preservar esse conhecimento de forma legítima exige uma arquitetura de informação que não seja colonizadora — que trate os termos das línguas indígenas como protagonistas, não como apêndices subordinados à nomenclatura científica ocidental.
 
-O BioCultTermos nasce desta necessidade: gerenciar os termos que o [BioCultDB](https://github.com/edalcin/BioCultDB) acumula diretamente na literatura científica, submetendo-os a um processo estruturado de curadoria segundo o padrão SKOS-XL, com governança de dados alinhada aos Princípios CARE.
+O BioCultTermos nasce desta necessidade: gerenciar os termos que a ferramenta principal de cada unidade federada acumula (literatura científica no caso do BioCultDB; registro primário no BioCultRelatos; acervos e obras históricas em BioCultAcervos/BioCultNaturalistas), submetendo-os a um processo estruturado de curadoria segundo o padrão SKOS-XL, com governança de dados alinhada aos Princípios CARE.
 
 ---
 
@@ -114,18 +114,36 @@ O SQLite compila com o módulo **FTS5**, usado para busca textual ponderada (`bm
 
 ---
 
-## Integração com BioCultDB
+## Módulo Compartilhado via Git Submodule
+
+O BioCultTermos é **um único repositório**, consumido como **git submodule** por cada unidade hospedeira — nunca um fork por unidade. Alterações de código são sempre commitadas de dentro do submodule de alguma unidade (ex.: `BioCultDB/bioculttermos/`), pushadas de volta a este mesmo repositório compartilhado, e então propagadas às demais unidades via bump do ponteiro do submodule quando cada uma decide incorporar a mudança.
+
+**Este repositório está congelado como produto standalone** desde a integração com o BioCultDB (julho de 2026, ver ADR-001 abaixo): ninguém sobe seu `docker-compose.yml` isoladamente em produção, e ele não recebe roadmap próprio. Toda evolução acontece através das unidades hospedeiras:
+
+| Unidade hospedeira | Ferramenta principal | Status da integração |
+|---|---|---|
+| Iniciativa de Fontes Secundárias | [BioCultDB](https://github.com/edalcin/BioCultDB) | **Implementado, em produção** desde 2026-07-13 — `BioCultDB/integracao.md`, `BioCultDB/docs/decisions/ADR-001-integracao-bioculttermos.md` |
+| Comunidade Tradicional | [BioCultRelatos](https://github.com/edalcin/BioCultRelatos) | Padrão definido, implementação pendente (repositório ainda sem código) — `BioCultRelatos/integracao.md`, `BioCultRelatos/docs/decisions/ADR-001-integracao-bioculttermos.md` |
+| Acervos Históricos e Museológicos | [BioCultAcervos](https://github.com/edalcin/BioCultAcervos) | Padrão definido, implementação pendente (repositório ainda sem código) — `BioCultAcervos/integracao.md`, `BioCultAcervos/docs/decisions/ADR-001-integracao-bioculttermos.md` |
+| Obras de Naturalistas (séc. XVII–XIX) | [BioCultNaturalistas](https://github.com/edalcin/BioCultNaturalistas) | Padrão definido, implementação pendente (repositório ainda sem código) — `BioCultNaturalistas/integracao.md`, `BioCultNaturalistas/docs/decisions/ADR-001-integracao-bioculttermos.md` |
+
+**Soberania é de dados, não de código.** O módulo BioCultTermos é intencionalmente o mesmo binário/código em todas as unidades — o que cada unidade mantém soberano é seu próprio arquivo SQLite (`ConceptScheme` próprio, dados nunca compartilhados entre unidades). Decisão arquitetural completa em [ADR-007 da Arquitetura BioCultural](https://github.com/edalcin/Arquitetura-BioCultural/blob/main/docs/architecture-decisions/ADR-007-shared-bioculttermos-module.md).
+
+**Bloqueio de código pendente**: o `AcquisitionService` (`backend/src/services/AcquisitionService.js`) ainda lê a tabela `biocultdb_records` com uma lista de campos hardcoded — funciona hoje apenas para o BioCultDB. Generalizar tabela-fonte e campos monitorados como configuráveis é pré-requisito bloqueante para qualquer unidade além do BioCultDB entrar em produção (ver ADR-001 de cada unidade hospedeira acima).
+
+## Integração de Referência — BioCultDB (produção)
 
 O BioCultTermos entra como **git submodule** dentro do repositório do
 [BioCultDB](https://github.com/edalcin/BioCultDB) e roda no **mesmo container Docker** que ele
 (imagem dual-app `docker/Dockerfile.unidade`, publicada como `ghcr.io/edalcin/biocultdb:latest`) —
-não é mais um sistema externo, é a mesma unidade de implantação (**Unidade de Fontes Secundárias**,
-ADR-005 da Arquitetura BioCultural). Os dois processos compartilham banco de dados, identidade
-visual e vocabulário:
+não é um sistema externo, é a mesma unidade de implantação (**Unidade de Fontes Secundárias**,
+ADR-005 da Arquitetura BioCultural). Esta é a única integração em produção até o momento; serve de
+modelo de implementação real para as demais unidades da tabela acima. Os dois processos compartilham
+banco de dados, identidade visual e vocabulário:
 
 | Aspecto | Detalhe |
 |---|---|
-| **Database** | SQLite `biocultdb.sqlite` (arquivo compartilhado, WAL) |
+| **Database** | SQLite `biocultdb.sqlite` (arquivo compartilhado, WAL) — nome específico do BioCultDB por continuidade de dado real; demais unidades usam o nome canônico `unidade.sqlite` (ADR-005) |
 | **Tabela etnotermos** | `etnotermos` (separada de `biocultdb_records`) |
 | **Tabela fonte** | `biocultdb_records` (lida pelo contexto de Aquisição) |
 | **Campos gerenciados** | `comunidades.tipo`, `comunidades.plantas.nomeCientifico`, `comunidades.plantas.nomeVernacular`, `comunidades.plantas.tipoUso`, `comunidades.atividadesEconomicas` — mais um vocabulário estático de referência de tipos de uso (`src/data/referenceTerms.js`, ~450 termos do domínio etnobotânico), semeado a cada ciclo de aquisição independente do que já foi digitado em algum registro |
@@ -311,7 +329,7 @@ graph LR
 - **Backend**: Node.js 20 LTS + Express.js + better-sqlite3
 - **Frontend**: HTMX 2.x + Alpine.js 3.x + Tailwind CSS 3.x (tema `forest`, idêntico ao BioCultDB)
 - **Template Engine**: EJS (server-side rendering)
-- **Banco de Dados**: SQLite (JSON1 + FTS5), arquivo `biocultdb.sqlite` (compartilhado com o BioCultDB da unidade)
+- **Banco de Dados**: SQLite (JSON1 + FTS5) — arquivo compartilhado com a ferramenta principal da unidade hospedeira (`biocultdb.sqlite` no BioCultDB; `unidade.sqlite` nas demais unidades, ADR-005)
 - **Visualização**: Cytoscape.js (grafos de relacionamentos)
 - **Testes**: Jest + Supertest + SQLite `:memory:`
 - **Deploy**: Docker (Alpine Linux)
@@ -366,13 +384,14 @@ node docker/create-admin-user.js
 docker-compose -f docker/docker-compose.yml up -d
 ```
 
-> **Este repositório está congelado como produto standalone** (ADR-001 do BioCultDB, item 9): em
-> produção, o BioCultTermos roda **exclusivamente** dentro da unidade dual-app do BioCultDB
-> (`docker/Dockerfile.unidade`, imagem `ghcr.io/edalcin/biocultdb:latest`) — nunca isolado via este
-> `docker-compose.yml`. O comando acima serve só para testar mudanças de código deste repositório
-> localmente antes de fazer commit + push (ver fluxo de submodule em
-> `BioCultDB/integracao.md` §7). `docs/deployment.md` e `docs/instalacao-unraid.md` abaixo
-> descrevem o modelo standalone anterior — histórico, não o caminho de deploy atual.
+> **Este repositório está congelado como produto standalone** (ver "Módulo Compartilhado via Git
+> Submodule" acima): em produção, o BioCultTermos roda **exclusivamente** dentro da unidade dual-app
+> da instância hospedeira que o embute (hoje só o BioCultDB, `docker/Dockerfile.unidade`, imagem
+> `ghcr.io/edalcin/biocultdb:latest`) — nunca isolado via este `docker-compose.yml`. O comando acima
+> serve só para testar mudanças de código deste repositório localmente antes de fazer commit + push
+> (ver fluxo de submodule em `BioCultDB/integracao.md` §7, replicado em `integracao.md` de cada
+> unidade hospedeira). `docs/deployment.md` e `docs/instalacao-unraid.md` abaixo descrevem o modelo
+> standalone anterior — histórico, não o caminho de deploy atual.
 
 Documentação detalhada:
 - [Desenvolvimento local](docs/desenvolvimento.md)
@@ -390,7 +409,7 @@ O BioCultTermos implementa os Princípios CARE para dados de povos indígenas:
 | **C**ollective Benefit | Vocabulário gerenciado pelas próprias comunidades via interface de curadoria |
 | **A**uthority to Control | `accessLevel` por rótulo: `public`, `restricted`, `sacred` |
 | **R**esponsibility | Trilha de auditoria completa por campo e por responsável |
-| **E**thics | Aquisição não-invasiva (leitura de dados já publicados no BioCultDB) |
+| **E**thics | Aquisição não-invasiva (leitura de dados já publicados pela ferramenta principal de cada unidade) |
 
 ---
 
@@ -402,7 +421,7 @@ O BioCultTermos implementa os Princípios CARE para dados de povos indígenas:
 - [Darwin Core](https://dwc.tdwg.org/) — Interoperabilidade com biodiversidade
 - [Protocolo de Nagoya](https://www.cbd.int/abs/) — Repartição de benefícios
 - [Arquitetura BioCultural](https://github.com/edalcin/Arquitetura-BioCultural) — Ecossistema integrado
-- [BioCultDB](https://github.com/edalcin/BioCultDB) — Sistema fonte de dados etnobotânicos
+- [BioCultDB](https://github.com/edalcin/BioCultDB) · [BioCultRelatos](https://github.com/edalcin/BioCultRelatos) · [BioCultAcervos](https://github.com/edalcin/BioCultAcervos) · [BioCultNaturalistas](https://github.com/edalcin/BioCultNaturalistas) — unidades hospedeiras (ferramentas principais que embutem este módulo)
 
 ## Arquitetura BioCultural Federada — v3.2
 
@@ -459,16 +478,16 @@ O **Pluriverso** mantém uma camada de mapeamentos semânticos (`skos:exactMatch
 
 | Componente | Relação |
 |------------|---------|
-| **[BioCultDB](https://github.com/edalcin/BioCultDB)** | A instância da Iniciativa #1 do BioCultTermos serve ao BioCultDB como infraestrutura terminológica |
+| **[BioCultDB](https://github.com/edalcin/BioCultDB)** | Unidade hospedeira em produção; embute o BioCultTermos via git submodule como sua infraestrutura terminológica soberana |
 | **[BioCultRelatos](https://github.com/edalcin/BioCultRelatos)** | Cada Comunidade Tradicional opera sua própria instância do BioCultTermos integrada ao seu BioCultRelatos |
 | **[BioCultAcervos](https://github.com/edalcin/BioCultAcervos)** | Cada acervo histórico/museológico membro opera sua própria instância do BioCultTermos integrada ao seu BioCultAcervos |
 | **[BioCultNaturalistas](https://github.com/edalcin/BioCultNaturalistas)** | Cada membro de Obras de Naturalistas opera sua própria instância do BioCultTermos integrada ao seu BioCultNaturalistas |
 | **[Pluriverso](https://github.com/edalcin/pluriverso)** | Coleta ConceptSchemes públicos e mantém mapeamentos SKOS entre membros |
-| **[Arquitetura BioCultural](https://github.com/edalcin/Arquitetura-BioCultural)** | Documentação completa ([ADR-004](https://github.com/edalcin/Arquitetura-BioCultural/blob/main/docs/architecture-decisions/ADR-004-federated-architecture.md)) |
+| **[Arquitetura BioCultural](https://github.com/edalcin/Arquitetura-BioCultural)** | Documentação completa ([ADR-004](https://github.com/edalcin/Arquitetura-BioCultural/blob/main/docs/architecture-decisions/ADR-004-federated-architecture.md) — federação; [ADR-007](https://github.com/edalcin/Arquitetura-BioCultural/blob/main/docs/architecture-decisions/ADR-007-shared-bioculttermos-module.md) — módulo compartilhado via submodule) |
 
 ---
 
-**Status**: v2.0 em desenvolvimento ativo
+**Status**: v2.0 — congelado como produto standalone, evolução via submodule das unidades hospedeiras (ver "Módulo Compartilhado via Git Submodule" acima)
 
 **Licença**: A definir
 
