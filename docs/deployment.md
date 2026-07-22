@@ -1,5 +1,11 @@
 # Guia de Deployment em Produção — BioCultTermos v2.0
 
+> **⚠️ Descontinuado.** Este documento descreve o modelo de deploy standalone anterior (pré-julho/2026).
+> O repositório BioCultTermos está congelado como produto e **não gera mais Dockerfile/imagem própria**
+> — ver "Módulo Compartilhado via Git Submodule" no `README.md` e ADR-007 em `Arquitetura-BioCultural`.
+> Deploy real acontece dentro de cada instância hospedeira (hoje: `BioCultDB/docker/Dockerfile.unidade`).
+> Mantido só como referência histórica.
+
 ---
 
 ## Opção 1 — Docker Compose (Recomendado)

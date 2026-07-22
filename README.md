@@ -372,31 +372,24 @@ ADMIN_USERS=[{"username":"curador1","passwordHash":"$2b$10$..."}]
 
 Gerar o hash: `node -e "import('bcrypt').then(m=>m.default.hash('senha',10).then(console.log))"`
 
-Ou use o script interativo: `node docker/create-admin-user.js`
-
-### Docker (standalone — apenas para testar este repositório isoladamente)
-
-```bash
-# Configurar (interativo — pede usuário e senha; caminho do arquivo SQLite via SQLITE_DB_PATH)
-node docker/create-admin-user.js
-
-# Iniciar
-docker-compose -f docker/docker-compose.yml up -d
-```
+**Sem Docker standalone neste repositório**: este repositório não gera mais nenhum Dockerfile/imagem
+próprio (ver "Módulo Compartilhado via Git Submodule" acima e a atualização de ADR-007 em
+`Arquitetura-BioCultural`). Para testar mudanças de código localmente antes de commit + push, rode os
+dois contextos diretamente com `npm run dev:public` / `npm run dev:admin` (seção "Instalação e
+Desenvolvimento" acima) contra um `SQLITE_DB_PATH` local.
 
 > **Este repositório está congelado como produto standalone** (ver "Módulo Compartilhado via Git
 > Submodule" acima): em produção, o BioCultTermos roda **exclusivamente** dentro da unidade dual-app
 > da instância hospedeira que o embute (hoje só o BioCultDB, `docker/Dockerfile.unidade`, imagem
-> `ghcr.io/edalcin/biocultdb:latest`) — nunca isolado via este `docker-compose.yml`. O comando acima
-> serve só para testar mudanças de código deste repositório localmente antes de fazer commit + push
-> (ver fluxo de submodule em `BioCultDB/integracao.md` §7, replicado em `integracao.md` de cada
-> unidade hospedeira). `docs/deployment.md` e `docs/instalacao-unraid.md` abaixo descrevem o modelo
-> standalone anterior — histórico, não o caminho de deploy atual.
+> `ghcr.io/edalcin/biocultdb:latest`) — nunca isolado. Cada instância hospedeira mantém seu próprio
+> Dockerfile/CI (ver fluxo de submodule em `BioCultDB/integracao.md` §7, replicado em `integracao.md`
+> de cada unidade hospedeira). `docs/deployment.md` e `docs/instalacao-unraid.md` abaixo descrevem o
+> modelo standalone anterior — histórico, não o caminho de deploy atual.
 
 Documentação detalhada:
 - [Desenvolvimento local](docs/desenvolvimento.md)
-- [Deployment em produção (modelo standalone anterior — ver nota acima)](docs/deployment.md)
-- [Instalação no UNRAID (modelo standalone anterior — ver nota acima)](docs/instalacao-unraid.md)
+- [Deployment em produção (modelo standalone anterior, descontinuado — ver nota acima)](docs/deployment.md)
+- [Instalação no UNRAID (modelo standalone anterior, descontinuado — ver nota acima)](docs/instalacao-unraid.md)
 
 ---
 

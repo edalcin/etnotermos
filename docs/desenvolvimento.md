@@ -133,11 +133,6 @@ BioCultTermos/
 │       ├── public/styles/       # Tailwind CSS — interface pública
 │       ├── admin/styles/        # Tailwind CSS — interface admin
 │       └── shared/styles/       # Tema forest compartilhado
-├── docker/
-│   ├── etnotermos.Dockerfile
-│   ├── docker-compose.yml
-│   ├── .env.example
-│   └── create-admin-user.js    # Script interativo para gerar docker/.env
 ├── docs/                        # Documentação
 ├── specs/
 │   └── 001-quero-refatorar-toda/  # Spec, plano, contratos, data model

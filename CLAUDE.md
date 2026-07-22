@@ -84,11 +84,6 @@ frontend/
     └── shared/              # Shared CSS and assets
         └── styles/          # Cores "forest" e componentes base
 
-docker/
-├── etnotermos.Dockerfile    # Single container com ambos contextos
-└── docker-compose.yml       # Orquestração (compatível com BioCultDB)
-```
-
 ## Commands
 
 ### Development
@@ -105,12 +100,6 @@ cd frontend
 npm install
 npm run build:css     # Build Tailwind CSS
 npm run watch:css     # Watch mode para desenvolvimento
-```
-
-### Docker
-```bash
-docker-compose up -d    # Start etnotermos (container único com SQLite embutido)
-docker-compose down     # Stop all services
 ```
 
 ## Code Style
