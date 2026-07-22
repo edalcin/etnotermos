@@ -9,6 +9,8 @@ export const REL_SECTIONS = [
     label: 'Mais específico (NT)',
     colorClass: 'bg-purple-50 text-purple-700',
     endpoint: 'narrower',
+    addable: false,
+    deletable: false,
   },
   { key: 'related', label: 'Relacionado (RT)', colorClass: 'bg-forest-50 text-forest-700', endpoint: 'related' },
   {

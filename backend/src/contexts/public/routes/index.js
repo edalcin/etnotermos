@@ -2,6 +2,7 @@ import { Router } from 'express';
 import path from 'path';
 import { config } from '../../../config/index.js';
 import { CONCEPT_STATUS } from '../../../models/Concept.js';
+import * as ConceptService from '../../../services/ConceptService.js';
 
 const router = Router();
 
@@ -31,7 +32,15 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-router.get('/browse', (req, res) => res.redirect(301, '/concepts'));
+router.get('/browse', (req, res, next) => {
+  try {
+    const db = req.app.locals.db;
+    const terms = ConceptService.findAllActiveWithRelations(db);
+    res.render('browse', { title: 'Navegar', currentPage: 'browse', terms });
+  } catch (err) {
+    next(err);
+  }
+});
 router.get('/search', (req, res) => res.redirect(301, '/concepts'));
 
 router.get('/export', (req, res) => {

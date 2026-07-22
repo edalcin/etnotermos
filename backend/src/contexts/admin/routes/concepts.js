@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import * as ConceptService from '../../../services/ConceptService.js';
 import { REL_SECTIONS } from '../../../lib/relSections.js';
+import * as SourceService from '../../../services/SourceService.js';
+import { config } from '../../../config/index.js';
 
 const router = Router();
 
@@ -75,7 +77,15 @@ router.get('/:id', async (req, res, next) => {
       return res.json(concept);
     }
 
-    res.render('concepts/edit', { concept, relSections: REL_SECTIONS, user: req.user, currentPage: 'terms' });
+    const sources = SourceService.findSourcesForConcept(db, concept);
+    res.render('concepts/edit', {
+      concept,
+      relSections: REL_SECTIONS,
+      user: req.user,
+      currentPage: 'terms',
+      sources,
+      biocultdbUrl: config.biocultdbPublicUrl,
+    });
   } catch (err) {
     next(err);
   }
@@ -110,7 +120,12 @@ router.post('/:id/activate', async (req, res, next) => {
 
     const result = await ConceptService.activate(db, req.params.id, version, req.user.username);
     if (!result) return res.status(404).json({ error: 'Conceito não encontrado' });
-    res.json({ ok: true, status: result.status });
+
+    if (req.get('Accept') === 'application/json') {
+      return res.json({ ok: true, status: result.status });
+    }
+    const fresh = await ConceptService.findById(db, req.params.id);
+    res.render('partials/status-actions', { concept: fresh, flash: 'Conceito Ativado', oobVersion: true });
   } catch (err) {
     if (err.code === 400) return res.status(400).json({ error: err.message });
     if (err.code === 409) return res.status(409).json({ error: err.message });

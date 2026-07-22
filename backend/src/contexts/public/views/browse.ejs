@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="BioCultTermos — Navegar termos ativos">
+  <title>Navegar — BioCultTermos</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+  <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"
+          integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
+          crossorigin="anonymous" defer></script>
+  <script src="https://unpkg.com/alpinejs@3.14.9/dist/cdn.min.js"
+          integrity="sha384-9Ax3MmS9AClxJyd5/zafcXXjxmwFhZCdsT6HJoJjarvCaAkJlk5QDzjLJm+Wdx5F"
+          crossorigin="anonymous" defer></script>
+</head>
+<body class="bg-forest-50 min-h-screen flex flex-col">
+
+  <%- include('partials/header') %>
+
+  <main class="flex-grow container mx-auto px-4 py-8">
+
+    <h1 class="text-2xl font-bold text-forest-700 mb-6">Termos ativos (<%= terms.length %>)</h1>
+
+    <% if (terms.length === 0) { %>
+    <p class="text-gray-500">Nenhum termo ativo cadastrado ainda.</p>
+    <% } else { %>
+    <%
+      const REL_META = {
+        broader:    { label: 'BT',          colorClass: 'bg-blue-50 text-blue-700' },
+        narrower:   { label: 'NT',          colorClass: 'bg-purple-50 text-purple-700' },
+        related:    { label: 'RT',          colorClass: 'bg-forest-50 text-forest-700' },
+        synonym:    { label: 'Sinônimo de', colorClass: 'bg-amber-50 text-amber-700' },
+        synonymFor: { label: 'Sinônimos',   colorClass: 'bg-amber-50 text-amber-700' },
+      };
+    %>
+    <div class="space-y-3">
+      <% terms.forEach(t => { %>
+      <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+        <a href="/concepts/<%= t.id %>" class="text-lg font-semibold text-forest-700 hover:underline">
+          <%= t.prefLabel %>
+        </a>
+        <% Object.keys(REL_META).forEach(key => { %>
+          <% const items = t.relations[key]; %>
+          <% if (items && items.length > 0) { %>
+          <div class="mt-1 flex flex-wrap items-center gap-2 text-sm">
+            <span class="text-gray-500 font-medium"><%= REL_META[key].label %>:</span>
+            <% items.forEach(r => { %>
+            <a href="/concepts/<%= r.id %>"
+               class="px-2 py-0.5 rounded-full <%= REL_META[key].colorClass %> hover:opacity-80 transition-opacity">
+              <%= r.label %>
+            </a>
+            <% }) %>
+          </div>
+          <% } %>
+        <% }) %>
+      </div>
+      <% }) %>
+    </div>
+    <% } %>
+
+  </main>
+
+  <%- include('partials/footer') %>
+
+</body>
+</html>

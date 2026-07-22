@@ -15,8 +15,9 @@
             data-label="<%= label %>"
             x-on:click="
               const form = $el.closest('form');
-              form.querySelector('[name=targetId]').value = $el.dataset.id;
-              form.querySelector('[name=q]').value = $el.dataset.label;
+              const tid = form.querySelector('[name=targetId]'); if (tid) tid.value = $el.dataset.id;
+              const disp = form.querySelector('[name=q]') || form.querySelector('[name=literalForm]');
+              if (disp) disp.value = $el.dataset.label;
               open = false;
             "
             class="w-full text-left px-3 py-2 text-sm hover:bg-forest-50 flex items-center justify-between gap-2">

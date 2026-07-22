@@ -1039,4 +1039,62 @@ export async function updateLabelAccessLevel(db, id, version, labelId, accessLev
   return updateLabel(db, id, version, labelId, { accessLevel }, username);
 }
 
-export default { findMany, findById, updateNotes, activate, deprecate, addLabel, updateLabel, promoteLabel, updateLabelAccessLevel, removeLabel, saveAudio, removeAudio, addBroader, removeBroader, addRelated, removeRelated, addSynonym, removeSynonym, removeSynonymFor };
+/**
+ * Return every active concept with its 5 semantic relation fields (broader,
+ * narrower, related, synonym, synonymFor) resolved to { id, label } pairs —
+ * used by the public "Navegar" page to list the whole controlled vocabulary
+ * in one pass. ponytail: O(n) single pass over etnotermos; fine at the scale
+ * of a controlled vocabulary (hundreds/thousands of concepts).
+ */
+export function findAllActiveWithRelations(db) {
+  const rows = db.prepare(`SELECT id, doc FROM etnotermos`).all();
+  const concepts = rows.map((r) => JSON.parse(r.doc));
+
+  const labelMap = new Map(
+    concepts.map((c) => [c.id, (c.prefLabels && c.prefLabels[0]) ? c.prefLabels[0].literalForm : c.id])
+  );
+
+  const toRelList = (ids) =>
+    (ids || [])
+      .filter((id) => labelMap.has(id))
+      .map((id) => ({ id, label: labelMap.get(id) }));
+
+  return concepts
+    .filter((c) => c.status === CONCEPT_STATUS.ACTIVE)
+    .map((c) => ({
+      id: c.id,
+      prefLabel: labelMap.get(c.id),
+      sourceFields: c.sourceFields || [],
+      relations: {
+        broader: toRelList(c.broader),
+        narrower: toRelList(c.narrower),
+        related: toRelList(c.related),
+        synonym: toRelList(c.synonym),
+        synonymFor: toRelList(c.synonymFor),
+      },
+    }))
+    .sort((a, b) => (a.prefLabel || '').localeCompare(b.prefLabel || ''));
+}
+
+/**
+ * Resolve a concept id by exact (case-insensitive) prefLabel literal form —
+ * lets curators add a semantic relation by typing an exact term name instead
+ * of picking from the autocomplete list. Prefers an active concept when the
+ * label is ambiguous across statuses.
+ */
+export function findIdByExactPrefLabel(db, literalForm) {
+  const row = db
+    .prepare(
+      `SELECT e.id AS id FROM etnotermos e
+       WHERE EXISTS (
+         SELECT 1 FROM json_each(json_extract(e.doc,'$.prefLabels')) je
+         WHERE LOWER(json_extract(je.value,'$.literalForm')) = LOWER(?)
+       )
+       ORDER BY (json_extract(e.doc,'$.status') = 'active') DESC
+       LIMIT 1`
+    )
+    .get(literalForm);
+  return row ? row.id : null;
+}
+
+export default { findMany, findById, updateNotes, activate, deprecate, addLabel, updateLabel, promoteLabel, updateLabelAccessLevel, removeLabel, saveAudio, removeAudio, addBroader, removeBroader, addRelated, removeRelated, addSynonym, removeSynonym, removeSynonymFor, findAllActiveWithRelations, findIdByExactPrefLabel };

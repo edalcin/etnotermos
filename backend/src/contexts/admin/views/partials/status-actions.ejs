@@ -1,0 +1,88 @@
+<%
+/**
+ * Status action card for a concept (candidate -> Ativar, active -> Deprecar).
+ * Locals:
+ *   concept    — full concept object (status, version, id, prefLabels)
+ *   flash      — optional success message shown above the actions (e.g. "Conceito Ativado")
+ *   oobVersion — when true, also emits an out-of-band update for #concept-version
+ *                (the hidden version input on the notes form), keeping it in sync
+ *                after this partial bumped the concept's version server-side.
+ */
+%>
+<div id="status-actions">
+  <% if (flash) { %>
+  <p class="text-green-700 font-medium mb-3"><%= flash %></p>
+  <% } %>
+
+  <% if (concept.status === 'candidate') { %>
+  <div class="bg-white rounded-lg shadow-md p-6 mt-6" x-data="{ helpOpen: false }">
+    <div class="flex items-center gap-2 mb-3">
+      <h2 class="text-lg font-semibold text-gray-800">Ações de Status</h2>
+      <%- include('help-modal', { key: 'status', title: 'Ações de Status' }) %>
+    </div>
+    <button
+      hx-post="/concepts/<%= concept.id %>/activate"
+      hx-vals='{"version": <%= concept.version %>}'
+      hx-confirm="Confirmar ativação do conceito?"
+      hx-target="#status-actions"
+      hx-swap="outerHTML"
+      class="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700
+             transition-colors font-medium">
+      Ativar Conceito
+    </button>
+  </div>
+  <% } %>
+
+  <% if (concept.status === 'active') { %>
+  <div class="bg-white rounded-lg shadow-md p-6 mt-6" x-data="{ open: false, helpOpen: false }">
+    <div class="flex items-center gap-2 mb-3">
+      <h2 class="text-lg font-semibold text-gray-800">Ações de Status</h2>
+      <%- include('help-modal', { key: 'status', title: 'Ações de Status' }) %>
+    </div>
+    <button @click="open = true"
+            class="px-5 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600
+                   transition-colors font-medium">
+      Deprecar Conceito
+    </button>
+
+    <!-- Deprecate modal -->
+    <div x-show="open" x-cloak
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+         @keydown.escape.window="open = false">
+      <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4" @click.stop>
+        <h3 class="text-lg font-semibold text-gray-800 mb-3">Deprecar Conceito</h3>
+        <form hx-post="/concepts/<%= concept.id %>/deprecate"
+              hx-target="#deprecate-status"
+              hx-swap="innerHTML"
+              hx-on::after-request="if(event.detail.successful) window.location.reload()">
+          <input type="hidden" name="version" value="<%= concept.version %>">
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Substituído por (opcional)
+          </label>
+          <input type="text" name="replacedById"
+                 placeholder="ID do conceito substituto"
+                 class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-4
+                        focus:outline-none focus:border-forest-600">
+          <div class="flex gap-3">
+            <button type="submit"
+                    class="px-5 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600
+                           transition-colors font-medium">
+              Confirmar Depreciação
+            </button>
+            <button type="button" @click="open = false"
+                    class="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300
+                           transition-colors font-medium">
+              Cancelar
+            </button>
+          </div>
+        </form>
+        <div id="deprecate-status" class="mt-3 text-sm"></div>
+      </div>
+    </div>
+  </div>
+  <% } %>
+</div>
+
+<% if (oobVersion) { %>
+<input type="hidden" id="concept-version" name="version" value="<%= concept.version %>" hx-swap-oob="true">
+<% } %>

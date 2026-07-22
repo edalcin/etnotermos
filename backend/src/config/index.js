@@ -40,6 +40,8 @@ export const config = {
 
   audioStoragePath: process.env.AUDIO_STORAGE_PATH || '/data/audio',
 
+  biocultdbPublicUrl: process.env.BIOCULTDB_PUBLIC_URL || 'http://localhost:3003',
+
   acquisitionCronSchedule: process.env.ACQUISITION_CRON_SCHEDULE || '0 3 * * *',
 
   logLevel: process.env.LOG_LEVEL || 'info',

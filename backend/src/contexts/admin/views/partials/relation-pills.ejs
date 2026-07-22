@@ -6,6 +6,7 @@
   <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm
                <%= rel.colorClass %>">
     <a href="/concepts/<%= r.id %>" class="hover:underline"><%= (r.prefLabels && r.prefLabels[0]) ? r.prefLabels[0].literalForm : r.id %></a>
+    <% if (rel.deletable !== false) { %>
     <button
       hx-delete="/concepts/<%= concept.id %>/<%= rel.endpoint %>/<%= r.id %>"
       hx-target="#rel-<%= rel.key %>"
@@ -16,6 +17,7 @@
               d="M6 18L18 6M6 6l12 12"/>
       </svg>
     </button>
+    <% } %>
   </span>
   <% }) %>
 </div>

@@ -67,6 +67,15 @@ async function resolveVersion(db, id, bodyVersion) {
   return row ? row.version : null;
 }
 
+/** Resolves the target concept id from either the hidden `targetId` (chosen via
+ *  autocomplete) or an exact-match lookup on the typed `q` name — lets "Adicionar"
+ *  work whether a suggestion was clicked or an exact existing term name was typed. */
+function resolveTarget(db, body) {
+  if (body.targetId && String(body.targetId).trim()) return String(body.targetId).trim();
+  if (body.q && body.q.trim()) return ConceptService.findIdByExactPrefLabel(db, body.q.trim());
+  return null;
+}
+
 /** Renders the updated pill list for `field` (broader/narrower/related) after a
  *  successful add/remove, matching what concepts/edit.ejs expects at #rel-<field> —
  *  JSON callers (Accept: application/json) still get the raw concept document. */
@@ -85,7 +94,12 @@ router.post('/concepts/:id/broader', async (req, res, next) => {
     const version = await resolveVersion(db, req.params.id, req.body.version);
     if (version === null) return res.status(404).json({ error: 'Conceito não encontrado' });
 
-    const { targetId } = req.body;
+    const targetId = resolveTarget(db, req.body);
+    if (!targetId) {
+      const e = new Error('Selecione um conceito da lista de sugestões.');
+      e.code = 400;
+      throw e;
+    }
     const result = await ConceptService.addBroader(db, req.params.id, version, targetId, req.user.username);
     if (!result) return res.status(404).json({ error: 'Conceito não encontrado' });
     await renderRelationResponse(req, res, db, req.params.id, 'broader');
@@ -123,7 +137,12 @@ router.post('/concepts/:id/related', async (req, res, next) => {
     const version = await resolveVersion(db, req.params.id, req.body.version);
     if (version === null) return res.status(404).json({ error: 'Conceito não encontrado' });
 
-    const { targetId } = req.body;
+    const targetId = resolveTarget(db, req.body);
+    if (!targetId) {
+      const e = new Error('Selecione um conceito da lista de sugestões.');
+      e.code = 400;
+      throw e;
+    }
     const result = await ConceptService.addRelated(db, req.params.id, version, targetId, req.user.username);
     if (!result) return res.status(404).json({ error: 'Conceito não encontrado' });
     await renderRelationResponse(req, res, db, req.params.id, 'related');
@@ -161,7 +180,12 @@ router.post('/concepts/:id/synonym', async (req, res, next) => {
     const version = await resolveVersion(db, req.params.id, req.body.version);
     if (version === null) return res.status(404).json({ error: 'Conceito não encontrado' });
 
-    const { targetId } = req.body;
+    const targetId = resolveTarget(db, req.body);
+    if (!targetId) {
+      const e = new Error('Selecione um conceito da lista de sugestões.');
+      e.code = 400;
+      throw e;
+    }
     const result = await ConceptService.addSynonym(db, req.params.id, version, targetId, req.user.username);
     if (!result) return res.status(404).json({ error: 'Conceito não encontrado' });
     await renderRelationResponse(req, res, db, req.params.id, 'synonym');

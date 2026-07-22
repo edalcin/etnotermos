@@ -62,7 +62,7 @@
       hx-on::response-error="if(event.detail.xhr.status===409) conflictError=true"
       class="space-y-6">
 
-      <input type="hidden" name="version" value="<%= concept.version %>">
+      <input type="hidden" id="concept-version" name="version" value="<%= concept.version %>">
 
       <!-- Notes section -->
       <div class="bg-white rounded-lg shadow-md p-6" x-data="{ helpOpen: false }">
@@ -104,6 +104,7 @@
                       placeholder="Exemplo prático..."><%= concept.example || '' %></textarea>
           </div>
 
+          <%- include('../partials/source-list', { sources, biocultdbUrl }) %>
         </div>
       </div>
 
@@ -120,74 +121,7 @@
     </form>
 
     <!-- Status action buttons -->
-    <% if (concept.status === 'candidate') { %>
-    <div class="bg-white rounded-lg shadow-md p-6 mt-6" x-data="{ helpOpen: false }">
-      <div class="flex items-center gap-2 mb-3">
-        <h2 class="text-lg font-semibold text-gray-800">Ações de Status</h2>
-        <%- include('../partials/help-modal', { key: 'status', title: 'Ações de Status' }) %>
-      </div>
-      <button
-        hx-post="/concepts/<%= concept.id %>/activate"
-        hx-vals='{"version": <%= concept.version %>}'
-        hx-confirm="Confirmar ativação do conceito?"
-        hx-target="#save-status"
-        hx-on::after-request="if(event.detail.successful) window.location.reload()"
-        class="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700
-               transition-colors font-medium">
-        Ativar Conceito
-      </button>
-    </div>
-    <% } %>
-
-    <% if (concept.status === 'active') { %>
-    <div class="bg-white rounded-lg shadow-md p-6 mt-6" x-data="{ open: false, helpOpen: false }">
-      <div class="flex items-center gap-2 mb-3">
-        <h2 class="text-lg font-semibold text-gray-800">Ações de Status</h2>
-        <%- include('../partials/help-modal', { key: 'status', title: 'Ações de Status' }) %>
-      </div>
-      <button @click="open = true"
-              class="px-5 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600
-                     transition-colors font-medium">
-        Deprecar Conceito
-      </button>
-
-      <!-- Deprecate modal -->
-      <div x-show="open" x-cloak
-           class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-           @keydown.escape.window="open = false">
-        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4" @click.stop>
-          <h3 class="text-lg font-semibold text-gray-800 mb-3">Deprecar Conceito</h3>
-          <form hx-post="/concepts/<%= concept.id %>/deprecate"
-                hx-target="#deprecate-status"
-                hx-swap="innerHTML"
-                hx-on::after-request="if(event.detail.successful) window.location.reload()">
-            <input type="hidden" name="version" value="<%= concept.version %>">
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Substituído por (opcional)
-            </label>
-            <input type="text" name="replacedById"
-                   x-model="replacedById"
-                   placeholder="ID do conceito substituto"
-                   class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-4
-                          focus:outline-none focus:border-forest-600">
-            <div class="flex gap-3">
-              <button type="submit"
-                      class="px-5 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600
-                             transition-colors font-medium">
-                Confirmar Depreciação
-              </button>
-              <button type="button" @click="open = false"
-                      class="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300
-                             transition-colors font-medium">
-                Cancelar
-              </button>
-            </div>
-          </form>
-          <div id="deprecate-status" class="mt-3 text-sm"></div>
-        </div>
-      </div>
-    </div>
-    <% } %>
+    <%- include('../partials/status-actions', { concept, flash: null, oobVersion: false }) %>
 
     <!-- Labels section -->
     <div class="bg-white rounded-lg shadow-md p-6 mt-6" x-data="{ helpOpen: false }">
@@ -217,9 +151,9 @@
 
       <div class="space-y-3 mb-6">
         <% allLabels.forEach(label => { %>
-        <div class="border border-gray-200 rounded-lg p-4 flex flex-wrap items-start gap-3">
+        <div class="border border-gray-200 rounded-lg p-4 flex flex-wrap items-start gap-3" x-data="{ editing: false }">
           <div class="flex-1 min-w-0">
-            <p class="font-medium text-gray-900"><%= label.literalForm %></p>
+            <p class="font-medium text-gray-900 cursor-pointer hover:text-forest-700" @click="editing = true" title="Editar rótulo"><%= label.literalForm %></p>
             <div class="flex flex-wrap gap-2 mt-1">
               <span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">
                 <%= TYPE_LABEL[label.typeDisplay] || label.typeDisplay %>
@@ -254,16 +188,23 @@
           <form hx-post="/concepts/<%= concept.id %>/labels/<%= label.id %>/audio"
                 hx-encoding="multipart/form-data"
                 hx-target="this" hx-swap="outerHTML"
+                x-data="{ helpOpen: false }"
                 class="flex items-center gap-2">
             <input type="file" name="audio" accept="audio/*"
                    class="text-xs text-gray-600 file:mr-2 file:py-1 file:px-2
                           file:rounded file:border-0 file:text-xs file:bg-forest-100 file:text-forest-700">
             <button type="submit"
                     class="px-2 py-1 bg-forest-600 text-white rounded text-xs hover:bg-forest-700">
-              Enviar
+              Enviar áudio
             </button>
+            <%- include('../partials/help-modal', { key: 'audio', title: 'Áudio de pronúncia' }) %>
           </form>
           <% } %>
+          <button type="button" @click="editing = true"
+                  class="self-start px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs hover:bg-gray-200"
+                  title="Editar rótulo">
+            Editar
+          </button>
 
           <!-- Promote to preferred (swaps pref within this language) -->
           <% if (label.typeDisplay !== 'pref') { %>
@@ -293,6 +234,74 @@
                     d="M6 18L18 6M6 6l12 12"/>
             </svg>
           </button>
+          <form x-show="editing" x-cloak
+                hx-put="/concepts/<%= concept.id %>/labels/<%= label.id %>"
+                hx-target="#save-status"
+                hx-swap="innerHTML"
+                hx-on::after-request="if(event.detail.successful) window.location.reload()"
+                class="w-full mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 border-t border-gray-200 pt-3">
+            <input type="hidden" name="version" value="<%= concept.version %>">
+
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Forma literal *</label>
+              <input type="text" name="literalForm" required value="<%= label.literalForm %>"
+                     class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
+                            focus:outline-none focus:border-forest-600">
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Idioma (ISO 639-3) *</label>
+              <input type="text" name="language" required value="<%= label.language %>"
+                     class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
+                            focus:outline-none focus:border-forest-600">
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Nível de Acesso</label>
+              <select name="accessLevel"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
+                             focus:outline-none focus:border-forest-600">
+                <option value="public" <%= label.accessLevel === 'public' ? 'selected' : '' %>>Público</option>
+                <option value="restricted" <%= label.accessLevel === 'restricted' ? 'selected' : '' %>>Restrito</option>
+                <option value="sacred" <%= label.accessLevel === 'sacred' ? 'selected' : '' %>>Sagrado</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Povo fonte</label>
+              <input type="text" name="sourcePeople" value="<%= label.sourcePeople || '' %>"
+                     class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
+                            focus:outline-none focus:border-forest-600">
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-gray-700 mb-1">Povo detentor (CARE)</label>
+              <input type="text" name="holderPeople" value="<%= label.holderPeople || '' %>"
+                     class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
+                            focus:outline-none focus:border-forest-600">
+            </div>
+
+            <div class="sm:col-span-2 flex items-center gap-3">
+              <input type="checkbox" name="priorInformedConsent" value="true" <%= label.priorInformedConsent ? 'checked' : '' %>
+                     id="pic-check-<%= label.id %>" class="rounded text-forest-600">
+              <label for="pic-check-<%= label.id %>" class="text-sm text-gray-700">
+                Consentimento prévio e informado registrado
+              </label>
+            </div>
+
+            <div class="sm:col-span-2 flex gap-3">
+              <button type="submit"
+                      class="px-4 py-1.5 bg-forest-600 text-white rounded-lg text-xs hover:bg-forest-700
+                             transition-colors font-medium">
+                Salvar
+              </button>
+              <button type="button" @click="editing = false"
+                      class="px-4 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-xs hover:bg-gray-300
+                             transition-colors font-medium">
+                Cancelar
+              </button>
+            </div>
+          </form>
         </div>
         <% }) %>
       </div>
@@ -306,13 +315,25 @@
         <form hx-post="/concepts/<%= concept.id %>/labels"
               hx-target="#labels-result"
               hx-swap="innerHTML"
+              x-data="{ open: false }"
               class="px-4 pb-4 pt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
 
-          <div>
+          <div class="relative">
             <label class="block text-xs font-medium text-gray-700 mb-1">Forma literal *</label>
-            <input type="text" name="literalForm" required
+            <input type="text" name="literalForm" required autocomplete="off"
+                   hx-get="/concepts/search?exclude=<%= concept.id %>"
+                   hx-trigger="keyup changed delay:300ms, focus"
+                   hx-target="#suggest-label"
+                   hx-swap="innerHTML"
+                   x-on:focus="open = true"
+                   x-on:input="open = true"
+                   x-on:keydown.escape="open = false"
                    class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm
                           focus:outline-none focus:border-forest-600">
+            <div id="suggest-label" x-show="open" x-cloak
+                 x-on:click.outside="open = false"
+                 class="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg
+                        max-h-56 overflow-y-auto"></div>
           </div>
 
           <div>
@@ -398,7 +419,7 @@
           hx-target="#rel-<%= rel.key %>"
           hx-swap="outerHTML"
           hx-on::response-error="if(event.detail.xhr.status===400){ try { document.getElementById('rel-error').textContent = JSON.parse(event.detail.xhr.responseText).error; } catch(e) { document.getElementById('rel-error').textContent = 'Operação inválida.'; } document.getElementById('rel-error').classList.remove('hidden'); }"
-          hx-on::before-request="if(event.detail.elt===this && !this.querySelector('[name=targetId]').value){event.preventDefault();this.querySelector('[name=q]').focus();}"
+          hx-on::before-request="if(event.detail.elt===this && !this.querySelector('[name=targetId]').value && !this.querySelector('[name=q]').value){event.preventDefault();this.querySelector('[name=q]').focus();}"
           hx-on::after-request="if(event.detail.elt===this && event.detail.successful) this.reset()"
           x-data="{ open: false }"
           class="flex gap-2 relative">

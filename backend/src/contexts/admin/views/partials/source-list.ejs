@@ -1,0 +1,15 @@
+<h3 class="text-sm font-semibold text-gray-600 mt-2">Fontes</h3>
+<% if (!sources || sources.length === 0) { %>
+<p class="text-gray-500 text-sm">Nenhuma fonte encontrada para este termo.</p>
+<% } else { %>
+<ul class="space-y-1 mt-1">
+  <% sources.forEach(s => { %>
+  <li>
+    <a href="<%= biocultdbUrl %>/referencia/<%= s.id %>" target="_blank" rel="noopener"
+       class="text-forest-700 hover:underline text-sm">
+      <%= s.citation %>
+    </a>
+  </li>
+  <% }) %>
+</ul>
+<% } %>
