@@ -118,6 +118,11 @@ O SQLite compila com o módulo **FTS5**, usado para busca textual ponderada (`bm
 
 O BioCultTermos é **um único repositório**, consumido como **git submodule** por cada unidade hospedeira — nunca um fork por unidade. Alterações de código são sempre commitadas de dentro do submodule de alguma unidade (ex.: `BioCultDB/bioculttermos/`), pushadas de volta a este mesmo repositório compartilhado, e então propagadas às demais unidades via bump do ponteiro do submodule quando cada uma decide incorporar a mudança.
 
+**Toda mudança de código feita através de qualquer unidade hospedeira é documentada em
+[`CHANGELOG.md`](CHANGELOG.md)** deste repositório — ver
+[ADR-010](https://github.com/edalcin/Arquitetura-BioCultural/blob/main/docs/architecture-decisions/ADR-010-central-documentation-and-build-verification.md)
+da Arquitetura BioCultural.
+
 **Este repositório está congelado como produto standalone** desde a integração com o BioCultDB (julho de 2026, ver ADR-001 abaixo): ninguém sobe seu `docker-compose.yml` isoladamente em produção, e ele não recebe roadmap próprio. Toda evolução acontece através das unidades hospedeiras:
 
 | Unidade hospedeira | Ferramenta principal | Status da integração |
